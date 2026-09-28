@@ -303,6 +303,21 @@ export type CampusChallenge = {
   joined: boolean;
 };
 
+export type MemberNotice = {
+  id: number;
+  title: string;
+  body: string;
+  createdAt: string;
+  read: boolean;
+};
+
+export async function getMyNotices(accessToken: string): Promise<{ notices: MemberNotice[] }> {
+  const response = await fetch(`${apiUrl}/notices/me`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return readJson(response, "Could not load notices.");
+}
+
 export async function getChallenges(accessToken: string): Promise<{ challenges: CampusChallenge[] }> {
   const response = await fetch(`${apiUrl}/challenges`, {
     headers: { Authorization: `Bearer ${accessToken}` },

@@ -2,7 +2,47 @@ import sql from "mssql";
 import type { Role } from "../../domain/roles.js";
 import { getPool } from "../../db/pool.js";
 
+function asUtc(value: string): string {
+  return value.endsWith("Z") ? value : `${value}Z`;
+}
+
+export type MemberNotice = {
+  id: number;
+  title: string;
+  body: string;
+  createdAt: string;
+  read: boolean;
+};
+
 export class NoticesRepository {
+  async listForUser(userId: number): Promise<MemberNotice[]> {
+    const pool = await getPool();
+    const result = await pool.request().input("userId", sql.Int, userId).query<{
+      Id: number;
+      Title: string;
+      Body: string;
+      CreatedAt: string;
+      ReadAt: string | null;
+    }>(`
+      SELECT
+        Id,
+        Title,
+        Body,
+        CONVERT(varchar(33), CreatedAt, 127) AS CreatedAt,
+        CONVERT(varchar(33), ReadAt, 127) AS ReadAt
+      FROM dbo.Notifications
+      WHERE UserId = @userId
+      ORDER BY CreatedAt DESC, Id DESC
+    `);
+    return result.recordset.map((row) => ({
+      id: row.Id,
+      title: row.Title,
+      body: row.Body,
+      createdAt: asUtc(row.CreatedAt),
+      read: row.ReadAt !== null,
+    }));
+  }
+
   async notifyClassMembers(startsOn: string, endsOn: string, title: string, body: string): Promise<number> {
     const pool = await getPool();
     const transaction = new sql.Transaction(pool);

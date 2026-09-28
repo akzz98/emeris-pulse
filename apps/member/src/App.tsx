@@ -5,6 +5,7 @@ import { EquipmentScreen } from "./EquipmentScreen";
 import { HomeScreen } from "./HomeScreen";
 import { LoginScreen } from "./LoginScreen";
 import { MembershipScreen } from "./MembershipScreen";
+import { NotificationsScreen } from "./NotificationsScreen";
 import { ProfileScreen } from "./ProfileScreen";
 import { RegisterScreen } from "./RegisterScreen";
 import { TimetableScreen } from "./TimetableScreen";
@@ -68,6 +69,10 @@ export function App() {
 
   if (screen === "wellness") {
     return <WellnessScreen session={session} nav={nav} onSignOut={onSignOut} />;
+  }
+
+  if (screen === "notices") {
+    return <NotificationsScreen session={session} nav={nav} onSignOut={onSignOut} />;
   }
 
   if (screen === "profile") {

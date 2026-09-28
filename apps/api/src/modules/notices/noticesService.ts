@@ -4,6 +4,10 @@ import { NoticesRepository } from "./noticesRepository.js";
 
 const notices = new NoticesRepository();
 
+export async function listMyNotices(userId: number) {
+  return { notices: await notices.listForUser(userId) };
+}
+
 function realDate(value: string): boolean {
   const [year, month, day] = value.split("-").map(Number);
   const date = new Date(Date.UTC(year, month - 1, day));
