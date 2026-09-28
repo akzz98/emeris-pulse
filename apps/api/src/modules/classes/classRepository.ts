@@ -41,6 +41,7 @@ export type LockedClass = {
   title: string;
   location: string;
   startsAt: string;
+  endsAt: string;
 };
 
 export type ExistingPlace = {
@@ -103,6 +104,7 @@ export class ClassRepository {
       Title: string;
       Location: string;
       StartsAt: string;
+      EndsAt: string;
     }>(`
       SELECT
         Id,
@@ -113,7 +115,8 @@ export class ClassRepository {
         InstructorUserId,
         Title,
         Location,
-        CONVERT(varchar(33), StartsAt, 126) AS StartsAt
+        CONVERT(varchar(33), StartsAt, 126) AS StartsAt,
+        CONVERT(varchar(33), EndsAt, 126) AS EndsAt
       FROM dbo.ClassSessions WITH (UPDLOCK, ROWLOCK)
       WHERE Id = @classId
     `);
@@ -131,6 +134,7 @@ export class ClassRepository {
       title: row.Title,
       location: row.Location,
       startsAt: row.StartsAt,
+      endsAt: row.EndsAt,
     };
   }
 
@@ -177,20 +181,21 @@ export class ClassRepository {
   async nextWaitlisted(
     transaction: sql.Transaction,
     classId: number,
-  ): Promise<{ id: number; firstName: string; lastName: string } | null> {
+  ): Promise<{ id: number; userId: number; firstName: string; lastName: string } | null> {
     const result = await new sql.Request(transaction).input("classId", sql.Int, classId).query<{
       Id: number;
+      UserId: number;
       FirstName: string;
       LastName: string;
     }>(`
-      SELECT TOP 1 b.Id, u.FirstName, u.LastName
+      SELECT TOP 1 b.Id, b.UserId, u.FirstName, u.LastName
       FROM dbo.Bookings b WITH (UPDLOCK, ROWLOCK)
       INNER JOIN dbo.Users u ON u.Id = b.UserId
       WHERE b.ClassSessionId = @classId AND b.Status = N'Waitlisted'
       ORDER BY b.CreatedAt, b.Id
     `);
     const row = result.recordset[0];
-    return row ? { id: row.Id, firstName: row.FirstName, lastName: row.LastName } : null;
+    return row ? { id: row.Id, userId: row.UserId, firstName: row.FirstName, lastName: row.LastName } : null;
   }
 
   async setStatus(transaction: sql.Transaction, bookingId: number, status: PlaceStatus): Promise<void> {
@@ -396,6 +401,15 @@ export class ClassRepository {
     }));
   }
 
+  async bookedUserIds(transaction: sql.Transaction, classId: number): Promise<number[]> {
+    const result = await new sql.Request(transaction).input("classId", sql.Int, classId).query<{ UserId: number }>(`
+      SELECT UserId
+      FROM dbo.Bookings WITH (UPDLOCK, HOLDLOCK)
+      WHERE ClassSessionId = @classId AND Status = N'Booked'
+    `);
+    return result.recordset.map((row) => row.UserId);
+  }
+
   async peopleToNotify(transaction: sql.Transaction, classId: number): Promise<number[]> {
     const result = await new sql.Request(transaction).input("classId", sql.Int, classId).query<{ UserId: number }>(`
       SELECT UserId
@@ -405,6 +419,7 @@ export class ClassRepository {
     return result.recordset.map((row) => row.UserId);
   }
 
+  // A notice is a row for the member to read in the app. It is not emailed or texted.
   async insertNotification(transaction: sql.Transaction, userId: number, title: string, body: string): Promise<void> {
     await new sql.Request(transaction)
       .input("userId", sql.Int, userId)

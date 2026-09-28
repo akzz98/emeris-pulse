@@ -1,10 +1,11 @@
 import type { Request, Response } from "express";
 import { requireUser } from "../../http/authenticate.js";
-import { attendanceSchema, classIdParams, publishClassSchema } from "./classSchemas.js";
+import { attendanceSchema, classIdParams, classMessageSchema, publishClassSchema } from "./classSchemas.js";
 import {
   bookClass,
   cancelBooking,
   cancelClass,
+  messageBookedMembers,
   getAttendance,
   getAttendanceTrends,
   getInstructorClasses,
@@ -52,6 +53,13 @@ export async function cancelClassHandler(req: Request, res: Response) {
   const user = requireUser(req);
   const params = classIdParams.parse(res.locals.params);
   res.status(200).json(await cancelClass(user.id, params.classId));
+}
+
+export async function classMessageHandler(req: Request, res: Response) {
+  const user = requireUser(req);
+  const params = classIdParams.parse(res.locals.params);
+  const body = classMessageSchema.parse(req.body);
+  res.status(201).json(await messageBookedMembers(user.id, params.classId, body.message));
 }
 
 export async function managedClassesHandler(_req: Request, res: Response) {

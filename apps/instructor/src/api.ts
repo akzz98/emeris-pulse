@@ -167,6 +167,19 @@ export async function reportStudioFault(
   return readJson(response, "Could not report this equipment.");
 }
 
+export async function messageBookedMembers(
+  accessToken: string,
+  classId: number,
+  message: string,
+): Promise<{ notified: number }> {
+  const response = await fetch(`${apiUrl}/classes/${classId}/message`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ message }),
+  });
+  return readJson(response, "Could not send this message.");
+}
+
 export async function cancelClass(accessToken: string, classId: number): Promise<{ notified: number }> {
   const response = await fetch(`${apiUrl}/classes/${classId}/cancel`, {
     method: "POST",

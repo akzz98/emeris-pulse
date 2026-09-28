@@ -8,6 +8,46 @@ import type { AttendanceInput, PublishClassInput } from "./classSchemas.js";
 
 const classes = new ClassRepository();
 
+function classWhen(startsAt: string): string {
+  const [datePart, timePart] = startsAt.slice(0, 16).split("T");
+  const [year, month, day] = datePart.split("-").map(Number);
+  const date = new Date(year, month - 1, day);
+  const dayLabel = date.toLocaleDateString("en-ZA", { weekday: "short", day: "numeric", month: "short" });
+  return `${dayLabel} at ${timePart}`;
+}
+
+function sameMinute(left: string, right: string): boolean {
+  return left.slice(0, 16) === right.slice(0, 16);
+}
+
+// Capacity is not listed. A larger room does not change where or when the member should arrive.
+function classChangeNotice(
+  before: { title: string; location: string; startsAt: string; endsAt: string; instructorId: number },
+  after: { title: string; location: string; startsAt: string; endsAt: string; instructorId: number },
+): string | null {
+  const parts: string[] = [];
+  if (before.title !== after.title) {
+    parts.push(`it is now called ${after.title}`);
+  }
+  if (!sameMinute(before.startsAt, after.startsAt) || !sameMinute(before.endsAt, after.endsAt)) {
+    parts.push(`it starts ${classWhen(after.startsAt)}`);
+  }
+  if (before.location !== after.location) {
+    parts.push(`it is in ${after.location}`);
+  }
+  if (before.instructorId !== after.instructorId) {
+    parts.push("the instructor has changed");
+  }
+  if (parts.length === 0) {
+    return null;
+  }
+  return `${before.title} has changed: ${parts.join(", ")}.`;
+}
+
+function reminderBody(title: string, location: string, startsAt: string): string {
+  return `${title} at ${location} starts ${classWhen(startsAt)}. Arrive a few minutes early.`;
+}
+
 function seatsLeft(capacity: number, bookedCount: number): number {
   return Math.max(0, capacity - bookedCount);
 }
@@ -70,6 +110,15 @@ export async function bookClass(userId: number, classId: number) {
     } else {
       await classes.insertPlace(transaction, classId, userId, status);
     }
+    // A waitlist place is not a seat, so the reminder is written only when the place is booked.
+    if (status === "Booked") {
+      await classes.insertNotification(
+        transaction,
+        userId,
+        "Class reminder",
+        reminderBody(session.title, session.location, session.startsAt),
+      );
+    }
     await transaction.commit();
     return {
       classId,
@@ -109,6 +158,12 @@ export async function cancelBooking(userId: number, classId: number) {
     let promoted: { firstName: string; lastName: string } | null = null;
     if (next && Booking.promoteAfterCancel(place.status, true)) {
       await classes.setStatus(transaction, next.id, "Booked");
+      await classes.insertNotification(
+        transaction,
+        next.userId,
+        "Class reminder",
+        reminderBody(session.title, session.location, session.startsAt),
+      );
       promoted = { firstName: next.firstName, lastName: next.lastName };
     }
 
@@ -224,6 +279,36 @@ export async function cancelClass(instructorId: number, classId: number) {
   }
 }
 
+// A note goes to booked members only. Waitlisted members do not have a seat in the room.
+export async function messageBookedMembers(instructorId: number, classId: number, message: string) {
+  const pool = await getPool();
+  const transaction = new sql.Transaction(pool);
+  await transaction.begin();
+  try {
+    const session = await classes.lockClass(transaction, classId);
+    if (!session) {
+      throw new HttpError(404, "CLASS_NOT_FOUND", "That class does not exist.");
+    }
+    requireOwnClass(instructorId, session.instructorId);
+    if (session.status !== "Scheduled") {
+      throw new HttpError(409, "CLASS_NOT_OPEN", "A message can only be sent for a scheduled class.");
+    }
+    if (session.ended) {
+      throw new HttpError(409, "CLASS_ENDED", "A message cannot be sent after the class has ended.");
+    }
+    const userIds = await classes.bookedUserIds(transaction, classId);
+    const body = `${session.title}: ${message}`;
+    for (const userId of userIds) {
+      await classes.insertNotification(transaction, userId, "Class message", body);
+    }
+    await transaction.commit();
+    return { classId, notified: userIds.length };
+  } catch (error) {
+    await transaction.rollback();
+    throw error;
+  }
+}
+
 export async function listManagedClasses() {
   return { classes: await classes.listManaged(), instructors: await classes.listInstructors() };
 }
@@ -291,8 +376,24 @@ export async function updateClass(classId: number, input: PublishClassInput) {
       capacity: input.capacity,
       location: input.location,
     });
+    // Booked and waitlisted members are told before the edit commits, so a saved change is never silent.
+    const notice = classChangeNotice(session, {
+      title: input.title,
+      location: input.location,
+      startsAt,
+      endsAt,
+      instructorId,
+    });
+    let notified = 0;
+    if (notice) {
+      const userIds = await classes.peopleToNotify(transaction, classId);
+      for (const userId of userIds) {
+        await classes.insertNotification(transaction, userId, "Class changed", notice);
+      }
+      notified = userIds.length;
+    }
     await transaction.commit();
-    return { id: classId, capacity: input.capacity };
+    return { id: classId, capacity: input.capacity, notified };
   } catch (error) {
     await transaction.rollback();
     throw error;

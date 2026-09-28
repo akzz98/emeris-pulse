@@ -207,6 +207,39 @@ export async function takeEquipmentOutOfService(
   return readAdmin(response, "Could not take this machine out of service.");
 }
 
+export type ManagedChallenge = {
+  id: number;
+  title: string;
+  description: string;
+  startsOn: string;
+  endsOn: string;
+  phase: "Open" | "Upcoming" | "Ended";
+  joinedCount: number;
+};
+
+export type ChallengeDraft = {
+  title: string;
+  description: string;
+  startsOn: string;
+  endsOn: string;
+};
+
+export async function getManagedChallenges(accessToken: string): Promise<{ challenges: ManagedChallenge[] }> {
+  const response = await fetch(`${apiUrl}/challenges/manage`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return readAdmin(response, "Could not load challenges.");
+}
+
+export async function createChallenge(accessToken: string, draft: ChallengeDraft): Promise<{ id: number; title: string }> {
+  const response = await fetch(`${apiUrl}/challenges`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+    body: JSON.stringify(draft),
+  });
+  return readAdmin(response, "Could not create this challenge.");
+}
+
 export async function getManagedClasses(
   accessToken: string,
 ): Promise<{ classes: ManagedClass[]; instructors: InstructorOption[] }> {
@@ -225,11 +258,39 @@ export async function publishClass(accessToken: string, draft: ClassDraft): Prom
   return readAdmin(response, "Could not publish the class.");
 }
 
-export async function updateClass(accessToken: string, classId: number, draft: ClassDraft): Promise<void> {
+export async function updateClass(
+  accessToken: string,
+  classId: number,
+  draft: ClassDraft,
+): Promise<{ notified: number }> {
   const response = await fetch(`${apiUrl}/classes/${classId}`, {
     method: "PATCH",
     headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
     body: JSON.stringify(draft),
   });
-  await readAdmin(response, "Could not update the class.");
+  return readAdmin(response, "Could not update the class.");
+}
+
+export async function broadcastNotice(
+  accessToken: string,
+  notice: { title: string; message: string; roles: string[] },
+): Promise<{ notified: number }> {
+  const response = await fetch(`${apiUrl}/notices/broadcast`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+    body: JSON.stringify(notice),
+  });
+  return readAdmin(response, "Could not send this broadcast.");
+}
+
+export async function announceClosure(
+  accessToken: string,
+  closure: { startsOn: string; endsOn: string; reason: string },
+): Promise<{ notified: number }> {
+  const response = await fetch(`${apiUrl}/notices/closure`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+    body: JSON.stringify(closure),
+  });
+  return readAdmin(response, "Could not send the closure notice.");
 }

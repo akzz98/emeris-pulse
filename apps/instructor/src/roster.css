@@ -34,6 +34,10 @@
   margin: 0.2rem 0 0;
 }
 
+.class-message {
+  margin-top: 0.75rem;
+}
+
 .roster-list ul {
   list-style: none;
   margin: 0.75rem 0 0;

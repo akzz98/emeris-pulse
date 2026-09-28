@@ -106,9 +106,15 @@ export function TimetableScreen({ session, nav, onSignOut }: TimetableScreenProp
     setBusy(true);
     setError(null);
     try {
-      await updateClass(session.accessToken, item.id, { ...next, capacity: Number(next.capacity) });
+      const saved = await updateClass(session.accessToken, item.id, { ...next, capacity: Number(next.capacity) });
       await load();
-      setNotice(`${next.title} was updated.`);
+      const told =
+        saved.notified === 0
+          ? "No members needed a notice."
+          : saved.notified === 1
+            ? "1 member was told."
+            : `${saved.notified} members were told.`;
+      setNotice(`${next.title} was updated. ${told}`);
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : "Could not update the class.";
       if (message === "UNAUTHENTICATED") {
