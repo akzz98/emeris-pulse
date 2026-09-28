@@ -11,6 +11,13 @@ export type MembershipRecord = {
   expiryDate: string;
 };
 
+export type PendingMembershipRecord = MembershipRecord & {
+  email: string;
+  campusIdentifier: string;
+  firstName: string;
+  lastName: string;
+};
+
 type MembershipRow = {
   Id: number;
   UserId: number;
@@ -71,6 +78,34 @@ export class MembershipRepository {
         VALUES (@userId, @memberType, @status, @startDate, @expiryDate)
       `);
     return mapMembership(result.recordset[0]);
+  }
+
+  async listPending(): Promise<PendingMembershipRecord[]> {
+    const pool = await getPool();
+    const result = await pool.request().query<
+      MembershipRow & {
+        Email: string;
+        CampusIdentifier: string;
+        FirstName: string;
+        LastName: string;
+      }
+    >(`
+      SELECT m.Id, m.UserId, m.MemberType, m.Status,
+             CONVERT(char(10), m.StartDate, 23) AS StartDate,
+             CONVERT(char(10), m.ExpiryDate, 23) AS ExpiryDate,
+             u.Email, u.CampusIdentifier, u.FirstName, u.LastName
+      FROM dbo.Memberships AS m
+      INNER JOIN dbo.Users AS u ON u.Id = m.UserId
+      WHERE m.Status = N'Pending'
+      ORDER BY m.Id
+    `);
+    return result.recordset.map((row) => ({
+      ...mapMembership(row),
+      email: row.Email,
+      campusIdentifier: row.CampusIdentifier,
+      firstName: row.FirstName,
+      lastName: row.LastName,
+    }));
   }
 
   async updateStatus(userId: number, status: MembershipStatus): Promise<void> {

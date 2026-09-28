@@ -383,6 +383,32 @@ export async function broadcastNotice(
   return readAdmin(response, "Could not send this broadcast.");
 }
 
+export type PendingMembership = {
+  userId: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  campusIdentifier: string;
+  memberType: "Student" | "Staff";
+  status: "Pending";
+  expiryDate: string;
+};
+
+export async function getPendingMemberships(accessToken: string): Promise<{ memberships: PendingMembership[] }> {
+  const response = await fetch(`${apiUrl}/memberships/pending`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return readAdmin(response, "Could not load memberships waiting for approval.");
+}
+
+export async function approveMembership(accessToken: string, userId: number): Promise<void> {
+  const response = await fetch(`${apiUrl}/memberships/${userId}/activate`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  await readAdmin(response, "Could not approve this membership.");
+}
+
 export async function announceClosure(
   accessToken: string,
   closure: { startsOn: string; endsOn: string; reason: string },

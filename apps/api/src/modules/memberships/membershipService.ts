@@ -21,6 +21,18 @@ async function loadCurrent(userId: number) {
   return { record, today };
 }
 
+export async function listPendingMemberships() {
+  const records = await memberships.listPending();
+  const today = todayLocal();
+  return records.map((record) => ({
+    ...presentMembership(record, today),
+    email: record.email,
+    campusIdentifier: record.campusIdentifier,
+    firstName: record.firstName,
+    lastName: record.lastName,
+  }));
+}
+
 export async function getMyMembership(userId: number) {
   const { record, today } = await loadCurrent(userId);
   return presentMembership(record, today);

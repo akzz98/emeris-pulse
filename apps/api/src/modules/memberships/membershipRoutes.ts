@@ -7,11 +7,18 @@ import {
   activateMembershipHandler,
   freezeMembershipHandler,
   getMyMembershipHandler,
+  listPendingMembershipsHandler,
 } from "./membershipController.js";
 
 export const membershipRouter = Router();
 
 membershipRouter.get("/memberships/me", authenticate, asyncHandler(getMyMembershipHandler));
+membershipRouter.get(
+  "/memberships/pending",
+  authenticate,
+  authorize("GymAdmin", "SystemAdmin"),
+  asyncHandler(listPendingMembershipsHandler),
+);
 membershipRouter.post(
   "/memberships/:userId/activate",
   authenticate,

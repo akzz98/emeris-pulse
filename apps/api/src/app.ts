@@ -23,7 +23,20 @@ export function createApp() {
     .map((origin) => origin.trim())
     .filter(Boolean);
 
-  app.use(helmet());
+  // The API returns JSON only, so the browser is not allowed to load anything from it.
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        useDefaults: false,
+        directives: {
+          defaultSrc: ["'none'"],
+          baseUri: ["'none'"],
+          formAction: ["'none'"],
+          frameAncestors: ["'none'"],
+        },
+      },
+    }),
+  );
   app.use(cors({ origin: origins }));
   app.use(express.json());
   app.use(healthRouter);

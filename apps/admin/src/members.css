@@ -1,0 +1,44 @@
+.members-heading h1 {
+  margin: 0;
+  color: var(--ep-teal, #004559);
+  font-size: 1.5rem;
+}
+
+.members-heading p {
+  margin: 0.25rem 0 1rem;
+  color: var(--ep-muted, #4d5e66);
+}
+
+.members-notice {
+  margin: 0 0 1rem;
+  color: var(--ep-success, #0d6b4c);
+}
+
+.members-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.members-list li {
+  background: var(--ep-white, #ffffff);
+  border: 1px solid var(--ep-line, #d5e0e4);
+  border-radius: 0.6rem;
+  padding: 0.9rem 1rem;
+}
+
+.members-list h2 {
+  margin: 0;
+  color: var(--ep-teal, #004559);
+  font-size: 1.1rem;
+}
+
+.members-list p {
+  margin: 0.2rem 0 0;
+}
+
+.members-list p:last-of-type {
+  margin-bottom: 0.75rem;
+}
