@@ -1,16 +1,25 @@
 import { useState } from "react";
 import type { AppNavItem } from "@emeris/ui";
+import { AttendanceScreen } from "./AttendanceScreen";
+import { ClassDetailsScreen } from "./ClassDetailsScreen";
 import { LoginScreen } from "./LoginScreen";
 import { RosterScreen } from "./RosterScreen";
 import { clearSession, loadSession, saveSession } from "./session";
 import type { InstructorSession } from "./api";
 
-function instructorNav(onSelect: () => void): AppNavItem[] {
-  return [{ label: "My classes", current: true, onSelect }];
+type InstructorScreen = "classes" | "attendance" | "details";
+
+function instructorNav(current: InstructorScreen, onSelect: (screen: InstructorScreen) => void): AppNavItem[] {
+  return [
+    { label: "My classes", current: current === "classes", onSelect: () => onSelect("classes") },
+    { label: "Attendance", current: current === "attendance", onSelect: () => onSelect("attendance") },
+    { label: "Class details", current: current === "details", onSelect: () => onSelect("details") },
+  ];
 }
 
 export function App() {
   const [session, setSession] = useState<InstructorSession | null>(() => loadSession());
+  const [screen, setScreen] = useState<InstructorScreen>("classes");
 
   if (!session) {
     return (
@@ -18,6 +27,7 @@ export function App() {
         onSignedIn={(next) => {
           saveSession(next);
           setSession(next);
+          setScreen("classes");
         }}
       />
     );
@@ -27,6 +37,13 @@ export function App() {
     clearSession();
     setSession(null);
   };
+  const nav = instructorNav(screen, setScreen);
 
-  return <RosterScreen session={session} nav={instructorNav(() => undefined)} onSignOut={onSignOut} />;
+  if (screen === "attendance") {
+    return <AttendanceScreen session={session} nav={nav} onSignOut={onSignOut} />;
+  }
+  if (screen === "details") {
+    return <ClassDetailsScreen session={session} nav={nav} onSignOut={onSignOut} />;
+  }
+  return <RosterScreen session={session} nav={nav} onSignOut={onSignOut} />;
 }

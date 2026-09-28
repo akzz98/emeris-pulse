@@ -124,3 +124,70 @@ export async function redeemPass(token: string): Promise<RedeemResult> {
   }
   return body;
 }
+
+export type ManagedClass = {
+  id: number;
+  title: string;
+  instructorEmail: string;
+  instructorName: string;
+  startsAt: string;
+  endsAt: string;
+  location: string;
+  capacity: number;
+  bookedCount: number;
+  status: string;
+};
+
+export type InstructorOption = {
+  id: number;
+  email: string;
+  firstName: string;
+  lastName: string;
+};
+
+export type ClassDraft = {
+  title: string;
+  instructorEmail: string;
+  startsAt: string;
+  endsAt: string;
+  capacity: number;
+  location: string;
+};
+
+async function readAdmin<T>(response: Response, fallback: string): Promise<T> {
+  const body = (await response.json()) as T & { error?: { message?: string } };
+  if (response.status === 401) {
+    throw new Error("UNAUTHENTICATED");
+  }
+  if (!response.ok) {
+    throw new Error(body.error?.message ?? fallback);
+  }
+  return body;
+}
+
+export async function getManagedClasses(
+  accessToken: string,
+): Promise<{ classes: ManagedClass[]; instructors: InstructorOption[] }> {
+  const response = await fetch(`${apiUrl}/classes/manage`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return readAdmin(response, "Could not load the timetable.");
+}
+
+export async function publishClass(accessToken: string, draft: ClassDraft): Promise<{ id: number }> {
+  const response = await fetch(`${apiUrl}/classes`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+    body: JSON.stringify(draft),
+  });
+  return readAdmin(response, "Could not publish the class.");
+}
+
+export async function updateClass(accessToken: string, classId: number, draft: ClassDraft): Promise<void> {
+  const response = await fetch(`${apiUrl}/classes/${classId}`, {
+    method: "PATCH",
+    headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+    body: JSON.stringify(draft),
+  });
+  await readAdmin(response, "Could not update the class.");
+}

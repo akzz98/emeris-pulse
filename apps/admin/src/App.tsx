@@ -5,10 +5,11 @@ import { DashboardScreen } from "./DashboardScreen";
 import { LoginScreen } from "./LoginScreen";
 import { ScanScreen } from "./ScanScreen";
 import { TemporaryPassScreen } from "./TemporaryPassScreen";
+import { TimetableScreen } from "./TimetableScreen";
 import { clearSession, loadSession, saveSession } from "./session";
 import type { AdminSession } from "./api";
 
-type AdminScreen = "dashboard" | "scan" | "logs" | "temporary";
+type AdminScreen = "dashboard" | "scan" | "logs" | "temporary" | "timetable";
 
 function adminNav(current: AdminScreen, onSelect: (screen: AdminScreen) => void, role: string): AppNavItem[] {
   const dashboard: AppNavItem = {
@@ -25,6 +26,7 @@ function adminNav(current: AdminScreen, onSelect: (screen: AdminScreen) => void,
     { label: "Scan entry", current: current === "scan", onSelect: () => onSelect("scan") },
     { label: "Access logs", current: current === "logs", onSelect: () => onSelect("logs") },
     { label: "Temporary pass", current: current === "temporary", onSelect: () => onSelect("temporary") },
+    { label: "Timetable", current: current === "timetable", onSelect: () => onSelect("timetable") },
   ];
 }
 
@@ -54,6 +56,10 @@ export function App() {
 
   if (screen === "dashboard") {
     return <DashboardScreen session={session} nav={nav} onSignOut={onSignOut} />;
+  }
+
+  if (screen === "timetable") {
+    return <TimetableScreen session={session} nav={nav} onSignOut={onSignOut} />;
   }
 
   if (screen === "temporary") {

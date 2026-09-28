@@ -12,6 +12,8 @@ test("cancel and attendance follow the booking status", () => {
   assert.equal(new Booking("Booked").cancel(), "Cancelled");
   assert.equal(new Booking("Waitlisted").cancel(), "Cancelled");
   assert.equal(new Booking("Booked").markAttended(), "Attended");
+  assert.equal(new Booking("Booked").markAbsent(), "Absent");
   assert.throws(() => new Booking("Cancelled").cancel(), DomainError);
   assert.throws(() => new Booking("Waitlisted").markAttended(), DomainError);
+  assert.throws(() => new Booking("Attended").markAbsent(), DomainError);
 });

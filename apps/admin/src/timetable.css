@@ -1,0 +1,56 @@
+.timetable-heading h1,
+.timetable-form h2,
+.timetable-list h2 {
+  margin: 0;
+  color: var(--ep-teal, #004559);
+}
+
+.timetable-heading h1,
+.timetable-form h2 {
+  font-size: 1.5rem;
+}
+
+.timetable-list h2 {
+  font-size: 1.1rem;
+}
+
+.timetable-heading p,
+.timetable-list p {
+  margin: 0.25rem 0 0.75rem;
+  color: var(--ep-muted, #4d5e66);
+}
+
+.timetable-notice {
+  margin: 0 0 1rem;
+  color: var(--ep-success, #0d6b4c);
+}
+
+.timetable-form,
+.timetable-list li {
+  background: var(--ep-white, #ffffff);
+  border: 1px solid var(--ep-line, #d5e0e4);
+  border-radius: 0.6rem;
+  padding: 1rem;
+}
+
+.timetable-form {
+  margin-bottom: 1rem;
+}
+
+.timetable-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.timetable-form select,
+.timetable-list select {
+  font: inherit;
+  color: var(--ep-ink, #142026);
+  background: var(--ep-white, #ffffff);
+  border: 1px solid var(--ep-line, #d5e0e4);
+  border-radius: 0.4rem;
+  padding: 0.6rem 0.7rem;
+}

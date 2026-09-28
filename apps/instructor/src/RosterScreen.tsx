@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { AppShell, EmptyState, ErrorState, LoadingState, type AppNavItem } from "@emeris/ui";
-import { getRoster, type InstructorSession, type Roster } from "./api";
+import { getRoster, getTrends, type InstructorSession, type Roster, type Trend } from "./api";
 import "./roster.css";
 
 type RosterScreenProps = {
@@ -19,6 +19,7 @@ function formatWhen(value: string): string {
 
 export function RosterScreen({ session, nav, onSignOut }: RosterScreenProps) {
   const [roster, setRoster] = useState<Roster | null>(null);
+  const [trends, setTrends] = useState<Trend[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -26,10 +27,11 @@ export function RosterScreen({ session, nav, onSignOut }: RosterScreenProps) {
     let active = true;
     setLoading(true);
     setError(null);
-    getRoster(session.accessToken)
-      .then((next) => {
+    Promise.all([getRoster(session.accessToken), getTrends(session.accessToken)])
+      .then(([nextRoster, nextTrends]) => {
         if (active) {
-          setRoster(next);
+          setRoster(nextRoster);
+          setTrends(nextTrends.classes);
         }
       })
       .catch((caught: unknown) => {
@@ -87,6 +89,23 @@ export function RosterScreen({ session, nav, onSignOut }: RosterScreenProps) {
           ))}
         </ul>
       ) : null}
+      <section className="roster-trends" aria-labelledby="trends-heading">
+        <h2 id="trends-heading">Attendance trends</h2>
+        <p>Share of booked members marked attended, for classes you have already taken.</p>
+        {trends && trends.length === 0 ? <p>No attendance has been recorded yet.</p> : null}
+        {trends && trends.length > 0 ? (
+          <ul className="roster-list">
+            {trends.map((item) => (
+              <li key={item.id}>
+                <h2>{item.title}</h2>
+                <p>
+                  {item.attended} attended, {item.absent} absent. {item.attendanceRate}% attended.
+                </p>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </section>
     </AppShell>
   );
 }

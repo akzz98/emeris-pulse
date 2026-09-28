@@ -51,3 +51,32 @@
 .roster-list ul li span {
   color: var(--ep-muted, #4d5e66);
 }
+
+.roster-trends {
+  margin-top: 1.5rem;
+}
+
+.roster-trends > h2 {
+  margin: 0;
+  color: var(--ep-teal, #004559);
+  font-size: 1.2rem;
+}
+
+.roster-trends > p {
+  margin: 0.25rem 0 0.75rem;
+  color: var(--ep-muted, #4d5e66);
+}
+
+.class-notice {
+  margin: 0 0 1rem;
+  color: var(--ep-success, #0d6b4c);
+}
+
+.attendance-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.attendance-actions .ep-button {
+  padding: 0.35rem 0.6rem;
+}

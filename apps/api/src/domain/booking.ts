@@ -25,4 +25,11 @@ export class Booking {
     }
     return "Attended";
   }
+
+  markAbsent(): BookingStatus {
+    if (this.status !== "Booked") {
+      throw new DomainError("Only a booked member can be marked absent.");
+    }
+    return "Absent";
+  }
 }
