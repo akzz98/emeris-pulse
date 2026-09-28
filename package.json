@@ -13,6 +13,8 @@
     "dev:admin": "npm run dev -w @emeris/admin",
     "dev:api": "npm run dev -w @emeris/api",
     "build": "npm run build -w @emeris/api && npm run build -w @emeris/member && npm run build -w @emeris/instructor && npm run build -w @emeris/admin",
+    "lint": "npm run typecheck",
+    "test": "npm test -w @emeris/api",
     "typecheck": "npm run typecheck -w @emeris/api && npm run typecheck -w @emeris/member && npm run typecheck -w @emeris/instructor && npm run typecheck -w @emeris/admin"
   },
   "engines": {

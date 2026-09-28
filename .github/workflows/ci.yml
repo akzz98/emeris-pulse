@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+
+  api:
+    runs-on: ubuntu-latest
+    services:
+      sql:
+        image: mcr.microsoft.com/azure-sql-edge:latest
+        env:
+          ACCEPT_EULA: "Y"
+          MSSQL_SA_PASSWORD: Emeris_Pulse_Dev1
+        ports:
+          - 1433:1433
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Apply schema and seed
+        run: node database/apply.mjs
+        env:
+          DATABASE_URL: Server=localhost,1433;Database=master;User Id=sa;Password=Emeris_Pulse_Dev1;Encrypt=true;TrustServerCertificate=true
+      - name: API tests
+        run: npm run test:api -w @emeris/api
+        env:
+          RUN_API_TESTS: "1"
+          JWT_SECRET: ci-test-secret-value
+          DATABASE_URL: Server=localhost,1433;Database=emeris_pulse;User Id=sa;Password=Emeris_Pulse_Dev1;Encrypt=true;TrustServerCertificate=true

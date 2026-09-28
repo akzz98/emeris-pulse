@@ -8,7 +8,7 @@ Digital platform for the Emeris campus gym. Members use a phone app for access, 
 - API: Node.js, Express, TypeScript
 - Database: Azure SQL. Locally this is Azure SQL Edge via Docker. See `database/README.md`.
 - Hosting: one Linux B1 App Service plan in Spain Central, plus Azure SQL Standard S0
-- Pipeline (next): GitHub Actions
+- Pipeline: GitHub Actions. Pull requests run lint, unit tests, and API tests. A merge to `main` deploys.
 
 Login is email and password with a 15-minute JWT and a hashed refresh token. Campus Microsoft Entra ID is not available to this group, so the app issues its own tokens. Each user still has a campus identifier. QR access is implemented. NFC stays a future hardware step.
 

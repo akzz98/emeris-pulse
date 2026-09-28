@@ -1,0 +1,73 @@
+name: CD
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Build API
+        run: npm run build -w @emeris/api
+      - name: Package API
+        run: |
+          mkdir -p "$RUNNER_TEMP/api"
+          cp -r apps/api/dist "$RUNNER_TEMP/api/dist"
+          node -e "const pkg=require('./apps/api/package.json'); require('fs').writeFileSync(process.env.RUNNER_TEMP+'/api/package.json', JSON.stringify({private:true,type:'module',scripts:{start:'node dist/index.js'},dependencies:pkg.dependencies}, null, 2))"
+          npm install --omit=dev --prefix "$RUNNER_TEMP/api"
+          cd "$RUNNER_TEMP/api" && zip -r "$RUNNER_TEMP/api.zip" .
+      - name: Deploy API
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: emeris-pulse-api
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_API }}
+          package: ${{ runner.temp }}/api.zip
+      - name: Build and deploy frontends
+        env:
+          VITE_API_URL: https://emeris-pulse-api.azurewebsites.net
+          MEMBER_PROFILE: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_MEMBER }}
+          INSTRUCTOR_PROFILE: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_INSTRUCTOR }}
+          ADMIN_PROFILE: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_ADMIN }}
+        run: |
+          npm run build -w @emeris/member
+          npm run build -w @emeris/instructor
+          npm run build -w @emeris/admin
+          deploy_site() {
+            local app="$1"
+            local dist="$2"
+            local profile="$3"
+            local stage="$RUNNER_TEMP/$app"
+            rm -rf "$stage"
+            mkdir -p "$stage"
+            cp -r "$dist"/. "$stage"/
+            cp deploy/static-server.mjs "$stage/server.mjs"
+            (cd "$stage" && zip -r "$RUNNER_TEMP/$app.zip" .)
+          }
+          deploy_site emeris-pulse-member apps/member/dist "$MEMBER_PROFILE"
+          deploy_site emeris-pulse-instructor apps/instructor/dist "$INSTRUCTOR_PROFILE"
+          deploy_site emeris-pulse-admin apps/admin/dist "$ADMIN_PROFILE"
+      - name: Deploy member
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: emeris-pulse-member
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_MEMBER }}
+          package: ${{ runner.temp }}/emeris-pulse-member.zip
+      - name: Deploy instructor
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: emeris-pulse-instructor
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_INSTRUCTOR }}
+          package: ${{ runner.temp }}/emeris-pulse-instructor.zip
+      - name: Deploy admin
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: emeris-pulse-admin
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_ADMIN }}
+          package: ${{ runner.temp }}/emeris-pulse-admin.zip

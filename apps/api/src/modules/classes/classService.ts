@@ -105,13 +105,11 @@ export async function cancelBooking(userId: number, classId: number) {
     const status = new Booking(place.status).cancel();
     await classes.setStatus(transaction, place.id, status);
 
+    const next = place.status === "Booked" ? await classes.nextWaitlisted(transaction, classId) : null;
     let promoted: { firstName: string; lastName: string } | null = null;
-    if (place.status === "Booked") {
-      const next = await classes.nextWaitlisted(transaction, classId);
-      if (next) {
-        await classes.setStatus(transaction, next.id, "Booked");
-        promoted = { firstName: next.firstName, lastName: next.lastName };
-      }
+    if (next && Booking.promoteAfterCancel(place.status, true)) {
+      await classes.setStatus(transaction, next.id, "Booked");
+      promoted = { firstName: next.firstName, lastName: next.lastName };
     }
 
     const bookedCount = await classes.countBooked(transaction, classId);

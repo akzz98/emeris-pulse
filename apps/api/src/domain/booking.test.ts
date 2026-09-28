@@ -8,6 +8,12 @@ test("a full class waitlists the member", () => {
   assert.equal(Booking.placeFor(0), "Waitlisted");
 });
 
+test("cancelling a booked place promotes the next waitlisted member", () => {
+  assert.equal(Booking.promoteAfterCancel("Booked", true), "Booked");
+  assert.equal(Booking.promoteAfterCancel("Booked", false), null);
+  assert.equal(Booking.promoteAfterCancel("Waitlisted", true), null);
+});
+
 test("cancel and attendance follow the booking status", () => {
   assert.equal(new Booking("Booked").cancel(), "Cancelled");
   assert.equal(new Booking("Waitlisted").cancel(), "Cancelled");
