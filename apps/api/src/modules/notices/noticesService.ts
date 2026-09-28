@@ -1,5 +1,5 @@
 import { HttpError } from "../../http/httpError.js";
-import type { ClosureInput } from "./noticesSchemas.js";
+import type { BroadcastInput, ClosureInput } from "./noticesSchemas.js";
 import { NoticesRepository } from "./noticesRepository.js";
 
 const notices = new NoticesRepository();
@@ -36,5 +36,12 @@ export async function announceClosure(input: ClosureInput) {
     throw new HttpError(400, "CLOSURE_DATES", "The end date must be on or after the start date.");
   }
   const notified = await notices.notifyClassMembers(input.startsOn, input.endsOn, "Gym closure", closureBody(input));
+  return { notified };
+}
+
+// Every account in the chosen roles is told, including an inactive membership. Other roles are left out.
+export async function broadcastNotice(input: BroadcastInput) {
+  const roles = [...new Set(input.roles)];
+  const notified = await notices.notifyRoles(roles, input.title, input.message);
   return { notified };
 }

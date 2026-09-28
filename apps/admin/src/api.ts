@@ -271,6 +271,18 @@ export async function updateClass(
   return readAdmin(response, "Could not update the class.");
 }
 
+export async function broadcastNotice(
+  accessToken: string,
+  notice: { title: string; message: string; roles: string[] },
+): Promise<{ notified: number }> {
+  const response = await fetch(`${apiUrl}/notices/broadcast`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+    body: JSON.stringify(notice),
+  });
+  return readAdmin(response, "Could not send this broadcast.");
+}
+
 export async function announceClosure(
   accessToken: string,
   closure: { startsOn: string; endsOn: string; reason: string },
