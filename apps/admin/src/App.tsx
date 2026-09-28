@@ -5,6 +5,7 @@ import { BroadcastScreen } from "./BroadcastScreen";
 import { ChallengeScreen } from "./ChallengeScreen";
 import { DashboardScreen } from "./DashboardScreen";
 import { LoginScreen } from "./LoginScreen";
+import { MembersScreen } from "./MembersScreen";
 import { MaintenanceScreen } from "./MaintenanceScreen";
 import { ReportsScreen } from "./ReportsScreen";
 import { ScanScreen } from "./ScanScreen";
@@ -13,7 +14,7 @@ import { TimetableScreen } from "./TimetableScreen";
 import { clearSession, loadSession, saveSession } from "./session";
 import type { AdminSession } from "./api";
 
-type AdminScreen = "dashboard" | "scan" | "logs" | "temporary" | "timetable" | "maintenance" | "challenges" | "broadcast" | "reports";
+type AdminScreen = "dashboard" | "scan" | "logs" | "members" | "temporary" | "timetable" | "maintenance" | "challenges" | "broadcast" | "reports";
 
 function adminNav(current: AdminScreen, onSelect: (screen: AdminScreen) => void, role: string): AppNavItem[] {
   const dashboard: AppNavItem = {
@@ -40,6 +41,7 @@ function adminNav(current: AdminScreen, onSelect: (screen: AdminScreen) => void,
     reports,
     { label: "Scan entry", current: current === "scan", onSelect: () => onSelect("scan") },
     { label: "Access logs", current: current === "logs", onSelect: () => onSelect("logs") },
+    { label: "Members", current: current === "members", onSelect: () => onSelect("members") },
     { label: "Temporary pass", current: current === "temporary", onSelect: () => onSelect("temporary") },
     { label: "Timetable", current: current === "timetable", onSelect: () => onSelect("timetable") },
     { label: "Challenges", current: current === "challenges", onSelect: () => onSelect("challenges") },
@@ -94,6 +96,10 @@ export function App() {
 
   if (screen === "broadcast") {
     return <BroadcastScreen session={session} nav={nav} onSignOut={onSignOut} />;
+  }
+
+  if (screen === "members") {
+    return <MembersScreen session={session} nav={nav} onSignOut={onSignOut} />;
   }
 
   if (screen === "temporary") {

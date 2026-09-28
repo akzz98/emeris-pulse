@@ -1,6 +1,7 @@
 import { fileURLToPath, URL } from "node:url";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
+import { contentSecurityPolicy } from "../contentSecurityPolicy";
 
 const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
 
@@ -15,5 +16,9 @@ export default defineConfig({
   server: {
     port: 5174,
     fs: { allow: [repoRoot] },
+    headers: { "Content-Security-Policy": contentSecurityPolicy(5174) },
+  },
+  preview: {
+    headers: { "Content-Security-Policy": contentSecurityPolicy(5174) },
   },
 });
