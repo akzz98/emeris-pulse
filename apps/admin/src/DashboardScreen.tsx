@@ -35,6 +35,7 @@ export function DashboardScreen({ session, nav, onSignOut }: DashboardScreenProp
   const [error, setError] = useState<string | null>(null);
   const [utilisationError, setUtilisationError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [utilisationLoading, setUtilisationLoading] = useState(true);
   const [closure, setClosure] = useState({ startsOn: "", endsOn: "", reason: "" });
   const [closureNotice, setClosureNotice] = useState<string | null>(null);
   const [closureError, setClosureError] = useState<string | null>(null);
@@ -42,8 +43,10 @@ export function DashboardScreen({ session, nav, onSignOut }: DashboardScreenProp
 
   useEffect(() => {
     let active = true;
+    setLoading(true);
+    setUtilisationLoading(true);
 
-    async function load() {
+    async function loadOccupancy() {
       try {
         const next = await getOccupancy(session.accessToken);
         if (active) {
@@ -60,6 +63,16 @@ export function DashboardScreen({ session, nav, onSignOut }: DashboardScreenProp
           return;
         }
         setError(message);
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    }
+
+    async function loadUtilisation(showLoading: boolean) {
+      if (showLoading && active) {
+        setUtilisationLoading(true);
       }
       try {
         const next = await getUtilisation(session.accessToken);
@@ -78,15 +91,19 @@ export function DashboardScreen({ session, nav, onSignOut }: DashboardScreenProp
         }
         setUtilisationError(message);
       } finally {
-        if (active) {
-          setLoading(false);
+        if (active && showLoading) {
+          setUtilisationLoading(false);
         }
       }
     }
 
-    void load();
-    // New entrance scans should show up without a reload.
-    const timer = window.setInterval(() => void load(), 30_000);
+    void loadOccupancy();
+    void loadUtilisation(true);
+    // New entrance scans should show up without a reload, and without hiding the report.
+    const timer = window.setInterval(() => {
+      void loadOccupancy();
+      void loadUtilisation(false);
+    }, 30_000);
     return () => {
       active = false;
       window.clearInterval(timer);
@@ -128,7 +145,7 @@ export function DashboardScreen({ session, nav, onSignOut }: DashboardScreenProp
         <h1>Dashboard</h1>
         <p>Who is on the floor, and which hours the granted visits fall into.</p>
       </header>
-      {loading ? <LoadingState title="Loading dashboard" message="Checking the floor and recent visits." /> : null}
+      {loading ? <LoadingState title="Loading dashboard" message="Checking who is on the floor." /> : null}
       {error ? <ErrorState title="Occupancy unavailable" message={error} /> : null}
       {occupancy ? (
         <section className="occupancy" aria-labelledby="occupancy-heading">
@@ -158,11 +175,16 @@ export function DashboardScreen({ session, nav, onSignOut }: DashboardScreenProp
       <section className="utilisation" aria-labelledby="utilisation-heading">
         <h2 id="utilisation-heading">Utilisation</h2>
         <p>Granted visits only. Hours are campus time.</p>
-        {utilisationError ? <ErrorState title="Utilisation unavailable" message={utilisationError} /> : null}
-        {utilisation && utilisation.visitsThisWeek === 0 ? (
+        {utilisationLoading ? (
+          <LoadingState title="Loading utilisation" message="Checking granted visits from the last 7 days." />
+        ) : null}
+        {!utilisationLoading && utilisationError ? (
+          <ErrorState title="Utilisation unavailable" message={utilisationError} />
+        ) : null}
+        {!utilisationLoading && utilisation && utilisation.visitsThisWeek === 0 ? (
           <EmptyState title="No visits" message="Granted entrance scans from the last 7 days appear here." />
         ) : null}
-        {utilisation && utilisation.visitsThisWeek > 0 ? (
+        {!utilisationLoading && utilisation && utilisation.visitsThisWeek > 0 ? (
           <>
             <p className="utilisation-counts">
               {utilisation.visitsToday} today · {utilisation.visitsThisWeek} in the last 7 days

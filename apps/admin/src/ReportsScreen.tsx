@@ -86,21 +86,25 @@ export function ReportsScreen({ session, nav, onSignOut }: ReportsScreenProps) {
   const [fillError, setFillError] = useState<string | null>(null);
   const [downtimeError, setDowntimeError] = useState<string | null>(null);
   const [wellnessError, setWellnessError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [fillLoading, setFillLoading] = useState(true);
+  const [downtimeLoading, setDowntimeLoading] = useState(true);
+  const [wellnessLoading, setWellnessLoading] = useState(true);
   const [fillPage, setFillPage] = useState(1);
   const [downtimePage, setDowntimePage] = useState(1);
   const [wellnessPage, setWellnessPage] = useState(1);
 
   useEffect(() => {
     let active = true;
-    async function load() {
-      try {
-        const next = await getClassFill(session.accessToken, fillPage);
-        if (active) {
-          setFill(next);
-          setFillError(null);
+    setFillLoading(true);
+    getClassFill(session.accessToken, fillPage)
+      .then((next) => {
+        if (!active) {
+          return;
         }
-      } catch (caught) {
+        setFill(next);
+        setFillError(null);
+      })
+      .catch((caught: unknown) => {
         if (!active) {
           return;
         }
@@ -110,14 +114,29 @@ export function ReportsScreen({ session, nav, onSignOut }: ReportsScreenProps) {
           return;
         }
         setFillError(message);
-      }
-      try {
-        const next = await getEquipmentDowntime(session.accessToken, downtimePage);
+      })
+      .finally(() => {
         if (active) {
-          setDowntime(next);
-          setDowntimeError(null);
+          setFillLoading(false);
         }
-      } catch (caught) {
+      });
+    return () => {
+      active = false;
+    };
+  }, [session.accessToken, fillPage, onSignOut]);
+
+  useEffect(() => {
+    let active = true;
+    setDowntimeLoading(true);
+    getEquipmentDowntime(session.accessToken, downtimePage)
+      .then((next) => {
+        if (!active) {
+          return;
+        }
+        setDowntime(next);
+        setDowntimeError(null);
+      })
+      .catch((caught: unknown) => {
         if (!active) {
           return;
         }
@@ -127,14 +146,29 @@ export function ReportsScreen({ session, nav, onSignOut }: ReportsScreenProps) {
           return;
         }
         setDowntimeError(message);
-      }
-      try {
-        const next = await getWellnessParticipation(session.accessToken, wellnessPage);
+      })
+      .finally(() => {
         if (active) {
-          setWellness(next);
-          setWellnessError(null);
+          setDowntimeLoading(false);
         }
-      } catch (caught) {
+      });
+    return () => {
+      active = false;
+    };
+  }, [session.accessToken, downtimePage, onSignOut]);
+
+  useEffect(() => {
+    let active = true;
+    setWellnessLoading(true);
+    getWellnessParticipation(session.accessToken, wellnessPage)
+      .then((next) => {
+        if (!active) {
+          return;
+        }
+        setWellness(next);
+        setWellnessError(null);
+      })
+      .catch((caught: unknown) => {
         if (!active) {
           return;
         }
@@ -144,17 +178,16 @@ export function ReportsScreen({ session, nav, onSignOut }: ReportsScreenProps) {
           return;
         }
         setWellnessError(message);
-      } finally {
+      })
+      .finally(() => {
         if (active) {
-          setLoading(false);
+          setWellnessLoading(false);
         }
-      }
-    }
-    void load();
+      });
     return () => {
       active = false;
     };
-  }, [session.accessToken, onSignOut, fillPage, downtimePage, wellnessPage]);
+  }, [session.accessToken, wellnessPage, onSignOut]);
 
   const area = session.user.role === "FacilityManager" ? "Facility" : "Admin";
   const down = downtime?.machines ?? [];
@@ -165,30 +198,32 @@ export function ReportsScreen({ session, nav, onSignOut }: ReportsScreenProps) {
         <h1>Reports</h1>
         <p>How full the classes are, which machines are out of service, and who joined a challenge.</p>
       </header>
-      {loading ? <LoadingState title="Loading reports" message="Checking bookings, maintenance, and challenges." /> : null}
       <section className="report" aria-labelledby="fill-heading">
         <h2 id="fill-heading">Class fill rate</h2>
         <p>A held seat counts. A waitlisted member does not.</p>
-        {fillError ? <ErrorState title="Fill rate unavailable" message={fillError} /> : null}
-        {fill && fill.classes.length === 0 ? (
+        {fillLoading ? <LoadingState title="Loading class fill" message="Checking held seats." /> : null}
+        {!fillLoading && fillError ? <ErrorState title="Fill rate unavailable" message={fillError} /> : null}
+        {!fillLoading && fill && fill.total === 0 ? (
           <EmptyState title="No classes" message="Scheduled classes appear here once they are published." />
         ) : null}
-        {fill && fill.classes.length > 0 ? (
+        {!fillLoading && fill && fill.total > 0 ? (
           <>
             <p className="report-summary">
               {fill.filled} of {fill.seats} seats held · {fill.fillRate}% full
             </p>
-            <ul>
-              {fill.classes.map((item) => (
-                <li key={item.id}>
-                  <h3>{item.title}</h3>
-                  <p>{formatWhen(item.startsAt)}</p>
-                  <p>
-                    {item.location} · {item.filled} of {item.capacity} · {item.fillRate}%
-                  </p>
-                </li>
-              ))}
-            </ul>
+            {fill.classes.length > 0 ? (
+              <ul>
+                {fill.classes.map((item) => (
+                  <li key={item.id}>
+                    <h3>{item.title}</h3>
+                    <p>{formatWhen(item.startsAt)}</p>
+                    <p>
+                      {item.location} · {item.filled} of {item.capacity} · {item.fillRate}%
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
             <ReportPager page={fill.page} pageSize={fill.pageSize} total={fill.total} onPage={setFillPage} />
           </>
         ) : null}
@@ -196,31 +231,34 @@ export function ReportsScreen({ session, nav, onSignOut }: ReportsScreenProps) {
       <section className="report" aria-labelledby="downtime-heading">
         <h2 id="downtime-heading">Equipment downtime</h2>
         <p>Time out of service is counted from the earliest ticket that is still open.</p>
-        {downtimeError ? <ErrorState title="Downtime unavailable" message={downtimeError} /> : null}
-        {downtime && downtime.total === 0 ? (
+        {downtimeLoading ? <LoadingState title="Loading downtime" message="Checking machines that are out of service." /> : null}
+        {!downtimeLoading && downtimeError ? <ErrorState title="Downtime unavailable" message={downtimeError} /> : null}
+        {!downtimeLoading && downtime && downtime.total === 0 ? (
           <EmptyState title="No equipment" message="Machines appear here once they are registered." />
         ) : null}
-        {downtime && downtime.total > 0 && downtime.outOfService === 0 ? (
+        {!downtimeLoading && downtime && downtime.total > 0 && downtime.outOfService === 0 ? (
           <EmptyState title="No downtime" message="Every machine is available." />
         ) : null}
-        {downtime && down.length > 0 ? (
+        {!downtimeLoading && downtime && downtime.outOfService > 0 ? (
           <>
             <p className="report-summary">
               {downtime.outOfService} of {downtime.total} machines out of service
             </p>
-            <ul>
-              {down.map((item) => (
-                <li key={item.id}>
-                  <h3>
-                    {item.code} · {item.name}
-                  </h3>
-                  <p>{item.location}</p>
-                  <p>
-                    {downLabel(item.hoursDown)} · {item.openTickets === 1 ? "1 open ticket" : `${item.openTickets} open tickets`}
-                  </p>
-                </li>
-              ))}
-            </ul>
+            {down.length > 0 ? (
+              <ul>
+                {down.map((item) => (
+                  <li key={item.id}>
+                    <h3>
+                      {item.code} · {item.name}
+                    </h3>
+                    <p>{item.location}</p>
+                    <p>
+                      {downLabel(item.hoursDown)} · {item.openTickets === 1 ? "1 open ticket" : `${item.openTickets} open tickets`}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
             <ReportPager
               page={downtime.page}
               pageSize={downtime.pageSize}
@@ -233,27 +271,30 @@ export function ReportsScreen({ session, nav, onSignOut }: ReportsScreenProps) {
       <section className="report" aria-labelledby="wellness-heading">
         <h2 id="wellness-heading">Wellness participation</h2>
         <p>Each person is counted on every challenge they joined.</p>
-        {wellnessError ? <ErrorState title="Wellness report unavailable" message={wellnessError} /> : null}
-        {wellness && wellness.challenges.length === 0 ? (
+        {wellnessLoading ? <LoadingState title="Loading wellness" message="Checking who joined a challenge." /> : null}
+        {!wellnessLoading && wellnessError ? <ErrorState title="Wellness report unavailable" message={wellnessError} /> : null}
+        {!wellnessLoading && wellness && wellness.total === 0 ? (
           <EmptyState title="No challenges" message="Campus challenges appear here once they are published." />
         ) : null}
-        {wellness && wellness.challenges.length > 0 ? (
+        {!wellnessLoading && wellness && wellness.total > 0 ? (
           <>
             <p className="report-summary">
               {wellness.people === 1 ? "1 person joined" : `${wellness.people} people joined`} ·{" "}
               {wellness.enrolments === 1 ? "1 enrolment" : `${wellness.enrolments} enrolments`}
             </p>
-            <ul>
-              {wellness.challenges.map((item) => (
-                <li key={item.id}>
-                  <h3>{item.title}</h3>
-                  <p>
-                    {formatDay(item.startsOn)} – {formatDay(item.endsOn)} · {item.phase}
-                  </p>
-                  <p>{item.participants === 1 ? "1 person joined" : `${item.participants} people joined`}</p>
-                </li>
-              ))}
-            </ul>
+            {wellness.challenges.length > 0 ? (
+              <ul>
+                {wellness.challenges.map((item) => (
+                  <li key={item.id}>
+                    <h3>{item.title}</h3>
+                    <p>
+                      {formatDay(item.startsOn)} – {formatDay(item.endsOn)} · {item.phase}
+                    </p>
+                    <p>{item.participants === 1 ? "1 person joined" : `${item.participants} people joined`}</p>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
             <ReportPager page={wellness.page} pageSize={wellness.pageSize} total={wellness.total} onPage={setWellnessPage} />
           </>
         ) : null}
