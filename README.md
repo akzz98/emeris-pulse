@@ -4,6 +4,8 @@ Digital platform for the Emeris campus gym. Members use a phone app for access, 
 
 Membership, door access, class bookings, equipment, maintenance, challenges, and notices all live in the same system. Notices stay inside the app. They are not sent by email or text.
 
+Task 2 implementation walkthrough: https://youtu.be/DALwdxsRzwE
+
 ## Who uses it
 
 | App | Who signs in | What they can do |
