@@ -1,11 +1,16 @@
 import type { Request, Response } from "express";
 import { requireUser } from "../../http/authenticate.js";
 import { classIdParams } from "./classSchemas.js";
-import { bookClass, cancelBooking, getTimetable } from "./classService.js";
+import { bookClass, cancelBooking, getRoster, getTimetable } from "./classService.js";
 
 export async function timetableHandler(req: Request, res: Response) {
   const user = requireUser(req);
   res.status(200).json(await getTimetable(user.id));
+}
+
+export async function rosterHandler(req: Request, res: Response) {
+  const user = requireUser(req);
+  res.status(200).json(await getRoster(user.id));
 }
 
 export async function bookClassHandler(req: Request, res: Response) {

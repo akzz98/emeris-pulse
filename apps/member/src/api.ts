@@ -197,7 +197,10 @@ export async function getTimetable(accessToken: string): Promise<{ classes: Clas
   return readJson(response, "Could not load the timetable.");
 }
 
-export async function bookClass(accessToken: string, classId: number): Promise<{ status: string; seatsLeft: number }> {
+export async function bookClass(
+  accessToken: string,
+  classId: number,
+): Promise<{ status: "Booked" | "Waitlisted"; seatsLeft: number }> {
   const response = await fetch(`${apiUrl}/classes/${classId}/bookings`, {
     method: "POST",
     headers: { Authorization: `Bearer ${accessToken}` },
@@ -205,7 +208,10 @@ export async function bookClass(accessToken: string, classId: number): Promise<{
   return readJson(response, "Could not book this class.");
 }
 
-export async function cancelBooking(accessToken: string, classId: number): Promise<{ status: string; seatsLeft: number }> {
+export async function cancelBooking(
+  accessToken: string,
+  classId: number,
+): Promise<{ status: string; seatsLeft: number; promoted: { firstName: string; lastName: string } | null }> {
   const response = await fetch(`${apiUrl}/classes/${classId}/bookings/me`, {
     method: "DELETE",
     headers: { Authorization: `Bearer ${accessToken}` },

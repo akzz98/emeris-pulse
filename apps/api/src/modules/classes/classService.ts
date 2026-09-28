@@ -28,7 +28,7 @@ async function requireActiveMember(userId: number): Promise<void> {
   }
 }
 
-// A seat is reserved only while capacity remains. A full class is refused.
+// A free seat is booked. A full class waitlists the member so they can take a later cancellation.
 export async function bookClass(userId: number, classId: number) {
   await requireActiveMember(userId);
   const pool = await getPool();
@@ -59,17 +59,22 @@ export async function bookClass(userId: number, classId: number) {
 
     const bookedCount = await classes.countBooked(transaction, classId);
     const remaining = seatsLeft(session.capacity, bookedCount);
-    if (Booking.placeFor(remaining) !== "Booked") {
+    const status = Booking.placeFor(remaining);
+    if (status !== "Booked" && status !== "Waitlisted") {
       throw new HttpError(409, "CLASS_FULL", "This class is full.");
     }
 
     if (existing) {
-      await classes.setStatus(transaction, existing.id, "Booked");
+      await classes.setStatus(transaction, existing.id, status);
     } else {
-      await classes.insertBooked(transaction, classId, userId);
+      await classes.insertPlace(transaction, classId, userId, status);
     }
     await transaction.commit();
-    return { classId, status: "Booked" as const, seatsLeft: remaining - 1 };
+    return {
+      classId,
+      status,
+      seatsLeft: status === "Booked" ? remaining - 1 : remaining,
+    };
   } catch (error) {
     await transaction.rollback();
     if (isUniqueViolation(error)) {
@@ -79,31 +84,50 @@ export async function bookClass(userId: number, classId: number) {
   }
 }
 
-// Cancelling frees the seat. Only a booked or waitlisted place can be cancelled.
+// Cancelling a booked place gives that seat to the next waitlisted member in the same transaction.
 export async function cancelBooking(userId: number, classId: number) {
-  const place = await classes.findPlace(classId, userId);
-  if (!place) {
-    throw new HttpError(404, "BOOKING_NOT_FOUND", "You do not have a place in this class.");
-  }
-  if (place.started) {
-    throw new HttpError(409, "CLASS_STARTED", "A place cannot be cancelled after the class has started.");
-  }
-  const status = new Booking(place.status).cancel();
   const pool = await getPool();
   const transaction = new sql.Transaction(pool);
   await transaction.begin();
   try {
-    await classes.setStatus(transaction, place.id, status);
     const session = await classes.lockClass(transaction, classId);
-    const bookedCount = session ? await classes.countBooked(transaction, classId) : 0;
+    if (!session) {
+      throw new HttpError(404, "CLASS_NOT_FOUND", "That class does not exist.");
+    }
+    if (session.started) {
+      throw new HttpError(409, "CLASS_STARTED", "A place cannot be cancelled after the class has started.");
+    }
+    const place = await classes.lockPlace(transaction, classId, userId);
+    if (!place) {
+      throw new HttpError(404, "BOOKING_NOT_FOUND", "You do not have a place in this class.");
+    }
+    const status = new Booking(place.status).cancel();
+    await classes.setStatus(transaction, place.id, status);
+
+    let promoted: { firstName: string; lastName: string } | null = null;
+    if (place.status === "Booked") {
+      const next = await classes.nextWaitlisted(transaction, classId);
+      if (next) {
+        await classes.setStatus(transaction, next.id, "Booked");
+        promoted = { firstName: next.firstName, lastName: next.lastName };
+      }
+    }
+
+    const bookedCount = await classes.countBooked(transaction, classId);
     await transaction.commit();
     return {
       classId,
       status,
-      seatsLeft: session ? seatsLeft(session.capacity, bookedCount) : 0,
+      seatsLeft: seatsLeft(session.capacity, bookedCount),
+      promoted,
     };
   } catch (error) {
     await transaction.rollback();
     throw error;
   }
+}
+
+export async function getRoster(instructorId: number) {
+  const roster = await classes.rosterForInstructor(instructorId);
+  return roster;
 }

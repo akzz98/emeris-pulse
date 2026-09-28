@@ -72,8 +72,12 @@ export function BookScreen({ session, nav, onSignOut }: BookScreenProps) {
   async function onBook(classId: number) {
     setBusyId(classId);
     try {
-      await bookClass(session.accessToken, classId);
-      await refresh("Your place is booked.");
+      const result = await bookClass(session.accessToken, classId);
+      await refresh(
+        result.status === "Waitlisted"
+          ? "The class is full. You are on the waitlist."
+          : "Your place is booked.",
+      );
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : "Could not book this class.";
       if (message === "UNAUTHENTICATED") {
@@ -90,8 +94,13 @@ export function BookScreen({ session, nav, onSignOut }: BookScreenProps) {
   async function onCancel(classId: number) {
     setBusyId(classId);
     try {
-      await cancelBooking(session.accessToken, classId);
-      await refresh("Your place has been cancelled and the seat is free.");
+      const result = await cancelBooking(session.accessToken, classId);
+      const promoted = result.promoted;
+      await refresh(
+        promoted
+          ? `Your place has been cancelled. ${promoted.firstName} ${promoted.lastName} has taken the seat.`
+          : "Your place has been cancelled.",
+      );
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : "Could not cancel this booking.";
       if (message === "UNAUTHENTICATED") {
@@ -109,7 +118,7 @@ export function BookScreen({ session, nav, onSignOut }: BookScreenProps) {
     <AppShell area="Member" nav={nav} onSignOut={onSignOut}>
       <header className="classes-heading">
         <h1>Book a class</h1>
-        <p>A place is reserved only while a seat remains. Cancelling frees that seat.</p>
+        <p>A free seat is booked straight away. A full class puts you on the waitlist, and a cancellation gives that seat to the next person waiting.</p>
       </header>
       {loading ? <LoadingState title="Loading classes" message="Checking seats and your bookings." /> : null}
       {error ? <ErrorState title="Booking not changed" message={error} /> : null}
@@ -126,6 +135,7 @@ export function BookScreen({ session, nav, onSignOut }: BookScreenProps) {
           {classes.map((item) => {
             const held = item.myStatus === "Booked" || item.myStatus === "Waitlisted";
             const canBook = item.status === "Scheduled" && !held && item.seatsLeft > 0;
+            const canWaitlist = item.status === "Scheduled" && !held && item.seatsLeft === 0;
             return (
               <li key={item.id}>
                 <h2>{item.title}</h2>
@@ -152,6 +162,11 @@ export function BookScreen({ session, nav, onSignOut }: BookScreenProps) {
                 {canBook ? (
                   <Button type="button" disabled={busyId === item.id} onClick={() => void onBook(item.id)}>
                     {busyId === item.id ? "Booking…" : "Book"}
+                  </Button>
+                ) : null}
+                {canWaitlist ? (
+                  <Button type="button" disabled={busyId === item.id} onClick={() => void onBook(item.id)}>
+                    {busyId === item.id ? "Joining…" : "Join waitlist"}
                   </Button>
                 ) : null}
               </li>
