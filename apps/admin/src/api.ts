@@ -207,6 +207,39 @@ export async function takeEquipmentOutOfService(
   return readAdmin(response, "Could not take this machine out of service.");
 }
 
+export type ManagedChallenge = {
+  id: number;
+  title: string;
+  description: string;
+  startsOn: string;
+  endsOn: string;
+  phase: "Open" | "Upcoming" | "Ended";
+  joinedCount: number;
+};
+
+export type ChallengeDraft = {
+  title: string;
+  description: string;
+  startsOn: string;
+  endsOn: string;
+};
+
+export async function getManagedChallenges(accessToken: string): Promise<{ challenges: ManagedChallenge[] }> {
+  const response = await fetch(`${apiUrl}/challenges/manage`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return readAdmin(response, "Could not load challenges.");
+}
+
+export async function createChallenge(accessToken: string, draft: ChallengeDraft): Promise<{ id: number; title: string }> {
+  const response = await fetch(`${apiUrl}/challenges`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+    body: JSON.stringify(draft),
+  });
+  return readAdmin(response, "Could not create this challenge.");
+}
+
 export async function getManagedClasses(
   accessToken: string,
 ): Promise<{ classes: ManagedClass[]; instructors: InstructorOption[] }> {

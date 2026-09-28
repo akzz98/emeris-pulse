@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { AppNavItem } from "@emeris/ui";
 import { AccessLogScreen } from "./AccessLogScreen";
+import { ChallengeScreen } from "./ChallengeScreen";
 import { DashboardScreen } from "./DashboardScreen";
 import { LoginScreen } from "./LoginScreen";
 import { MaintenanceScreen } from "./MaintenanceScreen";
@@ -10,7 +11,7 @@ import { TimetableScreen } from "./TimetableScreen";
 import { clearSession, loadSession, saveSession } from "./session";
 import type { AdminSession } from "./api";
 
-type AdminScreen = "dashboard" | "scan" | "logs" | "temporary" | "timetable" | "maintenance";
+type AdminScreen = "dashboard" | "scan" | "logs" | "temporary" | "timetable" | "maintenance" | "challenges";
 
 function adminNav(current: AdminScreen, onSelect: (screen: AdminScreen) => void, role: string): AppNavItem[] {
   const dashboard: AppNavItem = {
@@ -33,6 +34,7 @@ function adminNav(current: AdminScreen, onSelect: (screen: AdminScreen) => void,
     { label: "Access logs", current: current === "logs", onSelect: () => onSelect("logs") },
     { label: "Temporary pass", current: current === "temporary", onSelect: () => onSelect("temporary") },
     { label: "Timetable", current: current === "timetable", onSelect: () => onSelect("timetable") },
+    { label: "Challenges", current: current === "challenges", onSelect: () => onSelect("challenges") },
     maintenance,
   ];
 }
@@ -71,6 +73,10 @@ export function App() {
 
   if (screen === "timetable") {
     return <TimetableScreen session={session} nav={nav} onSignOut={onSignOut} />;
+  }
+
+  if (screen === "challenges") {
+    return <ChallengeScreen session={session} nav={nav} onSignOut={onSignOut} />;
   }
 
   if (screen === "temporary") {
