@@ -419,6 +419,7 @@ export class ClassRepository {
     return result.recordset.map((row) => row.UserId);
   }
 
+  // A notice is a row for the member to read in the app. It is not emailed or texted.
   async insertNotification(transaction: sql.Transaction, userId: number, title: string, body: string): Promise<void> {
     await new sql.Request(transaction)
       .input("userId", sql.Int, userId)

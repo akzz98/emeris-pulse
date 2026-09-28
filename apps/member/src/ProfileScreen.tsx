@@ -62,7 +62,7 @@ export function ProfileScreen({ session, nav, onSignOut, onUpdated }: ProfileScr
     setError(null);
     setSaved(false);
     try {
-      // A blank phone is cleared so gym notices are not sent to an old number.
+      // A blank phone is stored as empty. Phone is a contact field, not where notices are sent.
       const next = await updateProfile(session.accessToken, {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
@@ -88,7 +88,7 @@ export function ProfileScreen({ session, nav, onSignOut, onUpdated }: ProfileScr
     <AppShell area="Member" nav={nav} onSignOut={onSignOut}>
       <header className="profile-heading">
         <h1>Profile</h1>
-        <p>Contact details used for gym notices.</p>
+        <p>Your name and phone stay on your profile. Notices are listed in the app.</p>
       </header>
       {loading ? <LoadingState title="Loading profile" message="Fetching your contact details." /> : null}
       {error ? <ErrorState title="Profile unavailable" message={error} /> : null}
@@ -104,7 +104,7 @@ export function ProfileScreen({ session, nav, onSignOut, onUpdated }: ProfileScr
               <dd>{profile.campusIdentifier}</dd>
             </div>
           </dl>
-          {saved ? <SuccessBanner title="Contact details saved" message="Gym notices will use this name and phone number." /> : null}
+          {saved ? <SuccessBanner title="Contact details saved" message="Your name and phone are updated. Notices are not sent by email or text." /> : null}
           <TextField id="profile-first-name" label="First name" autoComplete="given-name" value={firstName} onChange={(event) => setFirstName(event.target.value)} required />
           <TextField id="profile-last-name" label="Last name" autoComplete="family-name" value={lastName} onChange={(event) => setLastName(event.target.value)} required />
           <TextField id="profile-phone" label="Phone" type="tel" autoComplete="tel" value={phone} onChange={(event) => setPhone(event.target.value)} />

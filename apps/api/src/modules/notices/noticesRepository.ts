@@ -14,6 +14,7 @@ export type MemberNotice = {
   read: boolean;
 };
 
+// Closure and broadcast notices are stored for the member app. No mail provider is called.
 export class NoticesRepository {
   async listForUser(userId: number): Promise<MemberNotice[]> {
     const pool = await getPool();
