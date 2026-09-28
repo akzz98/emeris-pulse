@@ -9,5 +9,10 @@ export const accessLogQuerySchema = z.object({
   pageSize: z.coerce.number().int().min(1).max(50).default(10),
 });
 
+export const temporaryPassSchema = z.object({
+  email: z.string().trim().email().max(255),
+});
+
 export type RedeemPassInput = z.infer<typeof redeemPassSchema>;
 export type AccessLogQuery = z.infer<typeof accessLogQuerySchema>;
+export type TemporaryPassInput = z.infer<typeof temporaryPassSchema>;

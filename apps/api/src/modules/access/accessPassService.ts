@@ -1,15 +1,19 @@
 import jwt from "jsonwebtoken";
 import { HttpError } from "../../http/httpError.js";
 import { getMyMembership } from "../memberships/membershipService.js";
-import type { AccessLogQuery, RedeemPassInput } from "./accessPassSchemas.js";
+import { UserRepository } from "../users/userRepository.js";
+import type { AccessLogQuery, RedeemPassInput, TemporaryPassInput } from "./accessPassSchemas.js";
 import { AccessEventRepository } from "./accessEventRepository.js";
 import { AccessPassRepository, newPassId } from "./accessPassRepository.js";
 
 const passes = new AccessPassRepository();
 const events = new AccessEventRepository();
+const users = new UserRepository();
 
-// Short enough that a screenshot of the code cannot be reused later in the day.
+// The member's own QR expires quickly because it stays on their phone.
 const passTtlSeconds = 60;
+// A desk pass lasts long enough to reach the door after a lost phone, and it is still single-use.
+const temporaryPassTtlSeconds = 15 * 60;
 
 function secret(): string {
   const value = process.env.JWT_SECRET;
@@ -31,7 +35,7 @@ export async function issueStandardPass(userId: number) {
 
   const jti = newPassId();
   const expiresAt = new Date(Date.now() + passTtlSeconds * 1000);
-  await passes.insert(userId, jti, expiresAt);
+  await passes.insert(userId, jti, expiresAt, "Standard");
 
   // Same signed pass for students and staff. The jti is stored so a later scan can reject a replay.
   const token = jwt.sign(
@@ -108,6 +112,39 @@ export async function redeemPass(input: RedeemPassInput) {
     throw new HttpError(409, "PASS_ALREADY_USED", "This pass has already been used.");
   }
   throw new HttpError(401, "PASS_INVALID", "This pass is not valid.");
+}
+
+// Lost phone does not bypass a frozen or pending membership. The desk still needs canEnter.
+export async function issueTemporaryPass(input: TemporaryPassInput) {
+  const user = await users.findByEmail(input.email.toLowerCase());
+  if (!user) {
+    throw new HttpError(404, "USER_NOT_FOUND", "No member was found with that email.");
+  }
+  const membership = await getMyMembership(user.id);
+  if (!membership.canEnter) {
+    throw new HttpError(
+      403,
+      "MEMBERSHIP_INACTIVE",
+      "A temporary pass can only be issued for an active membership.",
+    );
+  }
+
+  const jti = newPassId();
+  const expiresAt = new Date(Date.now() + temporaryPassTtlSeconds * 1000);
+  await passes.insert(user.id, jti, expiresAt, "Temporary");
+  const token = jwt.sign(
+    { sub: String(user.id), purpose: "access", kind: "Temporary" },
+    secret(),
+    { expiresIn: temporaryPassTtlSeconds, jwtid: jti },
+  );
+
+  return {
+    token,
+    expiresAt: expiresAt.toISOString(),
+    expiresIn: temporaryPassTtlSeconds,
+    kind: "Temporary" as const,
+    member: { firstName: user.firstName, lastName: user.lastName, email: user.email },
+  };
 }
 
 export async function listAccessLog(query: AccessLogQuery) {

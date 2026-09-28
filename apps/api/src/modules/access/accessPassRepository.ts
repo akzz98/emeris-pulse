@@ -31,17 +31,23 @@ function mapPass(row: PassRow): AccessPassRecord {
 }
 
 export class AccessPassRepository {
-  async insert(userId: number, jti: string, expiresAt: Date): Promise<AccessPassRecord> {
+  async insert(
+    userId: number,
+    jti: string,
+    expiresAt: Date,
+    kind: "Standard" | "Temporary",
+  ): Promise<AccessPassRecord> {
     const pool = await getPool();
     const result = await pool
       .request()
       .input("userId", sql.Int, userId)
       .input("jti", sql.NVarChar(64), jti)
+      .input("kind", sql.NVarChar(16), kind)
       .input("expiresAt", sql.DateTime2, expiresAt)
       .query<PassRow>(`
         INSERT INTO dbo.AccessPasses (UserId, Jti, Kind, ExpiresAt)
         OUTPUT INSERTED.Id, INSERTED.UserId, INSERTED.Jti, INSERTED.ExpiresAt, INSERTED.UsedAt
-        VALUES (@userId, @jti, N'Standard', @expiresAt)
+        VALUES (@userId, @jti, @kind, @expiresAt)
       `);
     return mapPass(result.recordset[0]);
   }

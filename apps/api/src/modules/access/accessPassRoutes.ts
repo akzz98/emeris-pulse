@@ -2,8 +2,8 @@ import { Router } from "express";
 import { authenticate, authorize } from "../../http/authenticate.js";
 import { asyncHandler } from "../../http/asyncHandler.js";
 import { validateBody, validateQuery } from "../../http/validate.js";
-import { issuePassHandler, listAccessLogHandler, redeemPassHandler } from "./accessPassController.js";
-import { accessLogQuerySchema, redeemPassSchema } from "./accessPassSchemas.js";
+import { issuePassHandler, issueTemporaryPassHandler, listAccessLogHandler, redeemPassHandler } from "./accessPassController.js";
+import { accessLogQuerySchema, redeemPassSchema, temporaryPassSchema } from "./accessPassSchemas.js";
 
 export const accessRouter = Router();
 
@@ -16,4 +16,11 @@ accessRouter.get(
   authorize("GymAdmin", "SystemAdmin"),
   validateQuery(accessLogQuerySchema),
   asyncHandler(listAccessLogHandler),
+);
+accessRouter.post(
+  "/access/passes/temporary",
+  authenticate,
+  authorize("GymAdmin", "SystemAdmin"),
+  validateBody(temporaryPassSchema),
+  asyncHandler(issueTemporaryPassHandler),
 );

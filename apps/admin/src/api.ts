@@ -61,6 +61,33 @@ export async function getAccessLog(accessToken: string, page: number): Promise<A
   return body;
 }
 
+export type TemporaryPass = {
+  token: string;
+  expiresAt: string;
+  expiresIn: number;
+  kind: "Temporary";
+  member: { firstName: string; lastName: string; email: string };
+};
+
+export async function issueTemporaryPass(accessToken: string, email: string): Promise<TemporaryPass> {
+  const response = await fetch(`${apiUrl}/access/passes/temporary`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ email }),
+  });
+  const body = (await response.json()) as TemporaryPass & { error?: { message?: string } };
+  if (response.status === 401) {
+    throw new Error("UNAUTHENTICATED");
+  }
+  if (!response.ok) {
+    throw new Error(body.error?.message ?? "Could not issue a temporary pass.");
+  }
+  return body;
+}
+
 export type RedeemResult = {
   result: "Granted";
 };
