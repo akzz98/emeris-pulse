@@ -44,7 +44,7 @@
   color: var(--ep-muted, #4d5e66);
 }
 
-.members-list h2 {
+.members-list h3 {
   margin: 0;
   color: var(--ep-teal, #004559);
   font-size: 1.1rem;

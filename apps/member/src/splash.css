@@ -13,7 +13,7 @@
   width: auto;
 }
 
-.splash p {
+.splash h1 {
   margin: 0;
   color: var(--ep-teal, #004559);
   font-weight: 700;

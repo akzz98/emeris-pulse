@@ -24,7 +24,8 @@
   padding: 0.9rem 1rem;
 }
 
-.roster-list h2 {
+.roster-list h2,
+.roster-trends h3 {
   margin: 0;
   color: var(--ep-teal, #004559);
   font-size: 1.1rem;

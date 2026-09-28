@@ -159,9 +159,9 @@ export function MembersScreen({ session, nav, onSignOut }: MembersScreenProps) {
                 <ul className="members-list">
                   {group.memberships.map((membership) => (
                     <li key={membership.userId}>
-                      <h2>
+                      <h3>
                         {membership.firstName} {membership.lastName}
-                      </h2>
+                      </h3>
                       <p>{membership.email}</p>
                       <p>
                         {membership.campusIdentifier} · {membership.memberType} · expires {formatDay(membership.expiryDate)}

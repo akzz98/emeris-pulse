@@ -15,7 +15,8 @@ export function LoadingState({ title, message }: StateProps) {
 export function EmptyState({ title, message }: StateProps) {
   return (
     <section className="ep-state">
-      <h1>{title}</h1>
+      {/* The screen already has one h1. This message sits under that title. */}
+      <h2>{title}</h2>
       <p>{message}</p>
     </section>
   );

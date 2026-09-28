@@ -149,9 +149,8 @@ export function DashboardScreen({ session, nav, onSignOut }: DashboardScreenProp
       {error ? <ErrorState title="Occupancy unavailable" message={error} /> : null}
       {occupancy ? (
         <section className="occupancy" aria-labelledby="occupancy-heading">
-          <p className="occupancy-count" id="occupancy-heading">
-            {occupancy.onFloor}
-          </p>
+          <h2 id="occupancy-heading">On the floor</h2>
+          <p className="occupancy-count">{occupancy.onFloor}</p>
           <p>
             {occupancy.onFloor === 1 ? "person" : "people"} on the floor. A granted entry counts for{" "}
             {occupancy.windowMinutes} minutes.

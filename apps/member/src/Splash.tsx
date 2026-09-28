@@ -3,9 +3,9 @@ import "./splash.css";
 
 export function Splash() {
   return (
-    <div className="splash" role="status" aria-live="polite">
+    <main className="splash" role="status" aria-live="polite">
       <img src={logo} alt="Emeris" />
-      <p>Emeris Pulse</p>
-    </div>
+      <h1>Emeris Pulse</h1>
+    </main>
   );
 }

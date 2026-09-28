@@ -97,7 +97,7 @@ export function RosterScreen({ session, nav, onSignOut }: RosterScreenProps) {
           <ul className="roster-list">
             {trends.map((item) => (
               <li key={item.id}>
-                <h2>{item.title}</h2>
+                <h3>{item.title}</h3>
                 <p>
                   {item.attended} attended, {item.absent} absent. {item.attendanceRate}% attended.
                 </p>
