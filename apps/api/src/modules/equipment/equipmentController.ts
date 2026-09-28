@@ -1,7 +1,15 @@
 import type { Request, Response } from "express";
 import { requireUser } from "../../http/authenticate.js";
-import { currentSession, endSession, listEquipment, reportFault, startSession } from "./equipmentService.js";
-import { faultSchema, startSessionSchema } from "./equipmentSchemas.js";
+import {
+  currentSession,
+  endSession,
+  listEquipment,
+  listStudioEquipment,
+  reportFault,
+  reportUnsafeStudio,
+  startSession,
+} from "./equipmentService.js";
+import { faultSchema, startSessionSchema, studioFaultSchema } from "./equipmentSchemas.js";
 
 export async function listEquipmentHandler(_req: Request, res: Response) {
   res.status(200).json(await listEquipment());
@@ -22,6 +30,16 @@ export async function reportFaultHandler(req: Request, res: Response) {
   const user = requireUser(req);
   const body = faultSchema.parse(req.body);
   res.status(201).json(await reportFault(user.id, body.description));
+}
+
+export async function studioEquipmentHandler(_req: Request, res: Response) {
+  res.status(200).json(await listStudioEquipment());
+}
+
+export async function reportStudioFaultHandler(req: Request, res: Response) {
+  const user = requireUser(req);
+  const body = studioFaultSchema.parse(req.body);
+  res.status(201).json(await reportUnsafeStudio(user.id, body.code, body.description));
 }
 
 export async function endSessionHandler(req: Request, res: Response) {

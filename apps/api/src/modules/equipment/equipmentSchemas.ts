@@ -17,3 +17,15 @@ export const faultSchema = z.object({
 });
 
 export type FaultInput = z.infer<typeof faultSchema>;
+
+export const studioFaultSchema = z.object({
+  code: z
+    .string()
+    .trim()
+    .min(1)
+    .max(32)
+    .transform((value) => value.toUpperCase()),
+  description: z.string().trim().min(1).max(400),
+});
+
+export type StudioFaultInput = z.infer<typeof studioFaultSchema>;

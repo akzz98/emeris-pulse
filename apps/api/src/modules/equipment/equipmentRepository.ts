@@ -86,6 +86,18 @@ export class EquipmentRepository {
     return result.recordset.map(mapEquipment);
   }
 
+  // Studio kit is equipment whose location name starts with Studio.
+  async listInStudio(): Promise<EquipmentItem[]> {
+    const pool = await getPool();
+    const result = await pool.request().query<EquipmentRow>(`
+      SELECT Id, Code, Name, Location, Status
+      FROM dbo.Equipment
+      WHERE Location LIKE N'Studio%'
+      ORDER BY Code
+    `);
+    return result.recordset.map(mapEquipment);
+  }
+
   async lockByCode(transaction: sql.Transaction, code: string): Promise<EquipmentItem | null> {
     const result = await transaction.request().input("code", sql.NVarChar(32), code).query<EquipmentRow>(`
       SELECT Id, Code, Name, Location, Status
@@ -151,6 +163,15 @@ export class EquipmentRepository {
     return row ? mapSession(row) : null;
   }
 
+  async lockOpenTicket(transaction: sql.Transaction, equipmentId: number): Promise<boolean> {
+    const result = await transaction.request().input("equipmentId", sql.Int, equipmentId).query<{ Id: number }>(`
+      SELECT TOP 1 Id
+      FROM dbo.MaintenanceTickets WITH (UPDLOCK, HOLDLOCK)
+      WHERE EquipmentId = @equipmentId AND Status IN (N'Open', N'InProgress')
+    `);
+    return result.recordset.length > 0;
+  }
+
   async openTicketForEquipment(equipmentId: number): Promise<boolean> {
     const pool = await getPool();
     const result = await pool.request().input("equipmentId", sql.Int, equipmentId).query<{ Id: number }>(`
@@ -166,10 +187,10 @@ export class EquipmentRepository {
     userId: number,
     description: string,
     status: TicketStatus,
+    transaction?: sql.Transaction,
   ): Promise<{ id: number }> {
-    const pool = await getPool();
-    const result = await pool
-      .request()
+    const request = transaction ? transaction.request() : (await getPool()).request();
+    const result = await request
       .input("equipmentId", sql.Int, equipmentId)
       .input("userId", sql.Int, userId)
       .input("status", sql.NVarChar(16), status)

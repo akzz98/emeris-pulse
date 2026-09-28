@@ -136,6 +136,37 @@ export async function getMyClasses(accessToken: string): Promise<{ classes: Inst
   return readJson(response, "Could not load your classes.");
 }
 
+export type StudioMachine = {
+  id: number;
+  code: string;
+  name: string;
+  location: string;
+  status: "Available" | "OutOfService";
+};
+
+export async function getStudioEquipment(accessToken: string): Promise<{ equipment: StudioMachine[] }> {
+  const response = await fetch(`${apiUrl}/equipment/studio`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return readJson(response, "Could not load studio equipment.");
+}
+
+export async function reportStudioFault(
+  accessToken: string,
+  code: string,
+  description: string,
+): Promise<{ name: string }> {
+  const response = await fetch(`${apiUrl}/equipment/studio/tickets`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ code, description }),
+  });
+  return readJson(response, "Could not report this equipment.");
+}
+
 export async function cancelClass(accessToken: string, classId: number): Promise<{ notified: number }> {
   const response = await fetch(`${apiUrl}/classes/${classId}/cancel`, {
     method: "POST",

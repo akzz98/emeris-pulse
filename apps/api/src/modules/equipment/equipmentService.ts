@@ -80,6 +80,45 @@ export async function reportFault(userId: number, description: string) {
   };
 }
 
+// An instructor can flag studio kit without starting a member session. Floor machines stay on the member path.
+export async function listStudioEquipment() {
+  return { equipment: await equipment.listInStudio() };
+}
+
+export async function reportUnsafeStudio(userId: number, code: string, description: string) {
+  const pool = await getPool();
+  const transaction = new sql.Transaction(pool);
+  await transaction.begin();
+  try {
+    const machine = await equipment.lockByCode(transaction, code);
+    if (!machine) {
+      throw new HttpError(404, "EQUIPMENT_NOT_FOUND", "That machine code is not on the floor.");
+    }
+    if (!machine.location.startsWith("Studio")) {
+      throw new HttpError(409, "NOT_STUDIO_EQUIPMENT", "Only studio equipment can be reported here.");
+    }
+    const alreadyOpen = await equipment.lockOpenTicket(transaction, machine.id);
+    if (alreadyOpen) {
+      throw new HttpError(409, "TICKET_ALREADY_OPEN", "A ticket is already open for this machine.");
+    }
+    const status = MaintenanceTicket.report();
+    const ticket = await equipment.insertTicket(machine.id, userId, description, status, transaction);
+    await transaction.commit();
+    return {
+      id: ticket.id,
+      equipmentId: machine.id,
+      code: machine.code,
+      name: machine.name,
+      location: machine.location,
+      status,
+      description,
+    };
+  } catch (error) {
+    await transaction.rollback();
+    throw error;
+  }
+}
+
 export async function endSession(userId: number) {
   const ended = await equipment.endOpenSession(userId);
   if (!ended) {
