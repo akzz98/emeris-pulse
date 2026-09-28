@@ -219,6 +219,59 @@ export async function cancelBooking(
   return readJson(response, "Could not cancel this booking.");
 }
 
+export type FloorMachine = {
+  id: number;
+  code: string;
+  name: string;
+  location: string;
+  status: "Available" | "OutOfService";
+};
+
+export type EquipmentSession = {
+  id: number;
+  equipmentId: number;
+  code: string;
+  name: string;
+  location: string;
+  startedAt: string;
+};
+
+export async function getEquipment(accessToken: string): Promise<{ equipment: FloorMachine[] }> {
+  const response = await fetch(`${apiUrl}/equipment`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return readJson(response, "Could not load the equipment.");
+}
+
+export async function getCurrentEquipmentSession(
+  accessToken: string,
+): Promise<{ session: EquipmentSession | null }> {
+  const response = await fetch(`${apiUrl}/equipment/sessions/current`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return readJson(response, "Could not load your equipment session.");
+}
+
+export async function startEquipmentSession(accessToken: string, code: string): Promise<EquipmentSession> {
+  const response = await fetch(`${apiUrl}/equipment/sessions`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ code }),
+  });
+  return readJson(response, "Could not start this machine.");
+}
+
+export async function endEquipmentSession(accessToken: string): Promise<{ ended: boolean }> {
+  const response = await fetch(`${apiUrl}/equipment/sessions/current/end`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return readJson(response, "Could not end this session.");
+}
+
 export async function register(details: RegisterDetails): Promise<MemberSession> {
   const response = await fetch(`${apiUrl}/auth/register`, {
     method: "POST",

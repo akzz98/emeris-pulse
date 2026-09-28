@@ -9,5 +9,6 @@ dist/
 Thumbs.db
 coverage/
 
-# Local deploy tracker. Keep it off the hand-in.
+# Local deploy tracker.
 docs/hosting-checklist.md
+.azure-hosting.local
