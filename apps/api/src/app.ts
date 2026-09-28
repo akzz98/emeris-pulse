@@ -18,6 +18,8 @@ const defaultOrigins = ["http://localhost:5173", "http://localhost:5174", "http:
 
 export function createApp() {
   const app = express();
+  // App Service forwards the client address. One hop is trusted so each person has their own limit.
+  app.set("trust proxy", 1);
   const origins = (process.env.CORS_ORIGINS ?? defaultOrigins.join(","))
     .split(",")
     .map((origin) => origin.trim())
@@ -37,6 +39,7 @@ export function createApp() {
       },
     }),
   );
+  // Only these app origins may call the API. Any other origin receives no allow-origin header.
   app.use(cors({ origin: origins }));
   app.use(express.json());
   app.use(healthRouter);
