@@ -134,6 +134,50 @@ export class EquipmentRepository {
     return row ? mapEquipment(row) : null;
   }
 
+  async lockTicket(
+    transaction: sql.Transaction,
+    ticketId: number,
+  ): Promise<{ id: number; status: TicketStatus; equipmentId: number } | null> {
+    const result = await transaction.request().input("ticketId", sql.Int, ticketId).query<{
+      Id: number;
+      Status: TicketStatus;
+      EquipmentId: number;
+    }>(`
+      SELECT Id, Status, EquipmentId
+      FROM dbo.MaintenanceTickets WITH (UPDLOCK, HOLDLOCK)
+      WHERE Id = @ticketId
+    `);
+    const row = result.recordset[0];
+    return row ? { id: row.Id, status: row.Status, equipmentId: row.EquipmentId } : null;
+  }
+
+  async otherOpenTickets(transaction: sql.Transaction, equipmentId: number, ticketId: number): Promise<number> {
+    const result = await transaction
+      .request()
+      .input("equipmentId", sql.Int, equipmentId)
+      .input("ticketId", sql.Int, ticketId)
+      .query<{ OpenCount: number }>(`
+        SELECT COUNT(*) AS OpenCount
+        FROM dbo.MaintenanceTickets WITH (UPDLOCK, HOLDLOCK)
+        WHERE EquipmentId = @equipmentId
+          AND Id <> @ticketId
+          AND Status IN (N'Open', N'InProgress')
+      `);
+    return Number(result.recordset[0]?.OpenCount ?? 0);
+  }
+
+  async closeTicket(transaction: sql.Transaction, ticketId: number, status: TicketStatus): Promise<void> {
+    await transaction
+      .request()
+      .input("ticketId", sql.Int, ticketId)
+      .input("status", sql.NVarChar(16), status)
+      .query(`
+        UPDATE dbo.MaintenanceTickets
+        SET Status = @status, ClosedAt = SYSUTCDATETIME()
+        WHERE Id = @ticketId
+      `);
+  }
+
   async setStatus(transaction: sql.Transaction, equipmentId: number, status: EquipmentStatus): Promise<void> {
     await transaction
       .request()

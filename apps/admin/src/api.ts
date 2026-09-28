@@ -185,6 +185,17 @@ export async function getTicketQueue(accessToken: string): Promise<{ tickets: Op
   return readAdmin(response, "Could not load the ticket queue.");
 }
 
+export async function closeTicket(
+  accessToken: string,
+  ticketId: number,
+): Promise<{ name: string; returned: boolean; equipmentStatus: "Available" | "OutOfService" }> {
+  const response = await fetch(`${apiUrl}/equipment/tickets/${ticketId}/close`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return readAdmin(response, "Could not close this ticket.");
+}
+
 export async function takeEquipmentOutOfService(
   accessToken: string,
   equipmentId: number,

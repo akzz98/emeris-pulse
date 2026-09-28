@@ -10,10 +10,11 @@ import {
   reportStudioFaultHandler,
   startSessionHandler,
   studioEquipmentHandler,
+  closeTicketHandler,
   takeOutOfServiceHandler,
   ticketQueueHandler,
 } from "./equipmentController.js";
-import { equipmentIdParams, faultSchema, startSessionSchema, studioFaultSchema } from "./equipmentSchemas.js";
+import { equipmentIdParams, faultSchema, startSessionSchema, studioFaultSchema, ticketIdParams } from "./equipmentSchemas.js";
 
 export const equipmentRouter = Router();
 
@@ -21,6 +22,13 @@ const instructor = authorize("Instructor");
 const facility = authorize("FacilityManager", "GymAdmin", "SystemAdmin");
 
 equipmentRouter.get("/equipment/tickets", authenticate, facility, asyncHandler(ticketQueueHandler));
+equipmentRouter.post(
+  "/equipment/tickets/:ticketId/close",
+  authenticate,
+  facility,
+  validateParams(ticketIdParams),
+  asyncHandler(closeTicketHandler),
+);
 equipmentRouter.post(
   "/equipment/:equipmentId/out-of-service",
   authenticate,

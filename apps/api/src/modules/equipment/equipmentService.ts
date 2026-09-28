@@ -144,6 +144,49 @@ export async function takeOutOfService(equipmentId: number) {
   }
 }
 
+// Closing the last open ticket returns the machine. Another open fault keeps it off the floor.
+export async function closeTicket(ticketId: number) {
+  const pool = await getPool();
+  const transaction = new sql.Transaction(pool);
+  await transaction.begin();
+  try {
+    const ticket = await equipment.lockTicket(transaction, ticketId);
+    if (!ticket) {
+      throw new HttpError(404, "TICKET_NOT_FOUND", "That ticket does not exist.");
+    }
+    const machine = await equipment.lockById(transaction, ticket.equipmentId);
+    if (!machine) {
+      throw new HttpError(404, "EQUIPMENT_NOT_FOUND", "That machine is not on the floor.");
+    }
+
+    const status = new MaintenanceTicket(ticket.status).close();
+    await equipment.closeTicket(transaction, ticket.id, status);
+
+    const others = await equipment.otherOpenTickets(transaction, machine.id, ticket.id);
+    let equipmentStatus = machine.status;
+    let returned = false;
+    if (others === 0 && machine.status === "OutOfService") {
+      equipmentStatus = new Equipment(machine.status).returnToService();
+      await equipment.setStatus(transaction, machine.id, equipmentStatus);
+      returned = true;
+    }
+
+    await transaction.commit();
+    return {
+      id: ticket.id,
+      status,
+      equipmentId: machine.id,
+      code: machine.code,
+      name: machine.name,
+      equipmentStatus,
+      returned,
+    };
+  } catch (error) {
+    await transaction.rollback();
+    throw error;
+  }
+}
+
 export async function endSession(userId: number) {
   const ended = await equipment.endOpenSession(userId);
   if (!ended) {

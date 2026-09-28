@@ -10,3 +10,11 @@ test("available equipment can be taken out of service", () => {
 test("equipment already out of service cannot be taken out again", () => {
   assert.throws(() => new Equipment("OutOfService").takeOutOfService(), DomainError);
 });
+
+test("out-of-service equipment can be returned", () => {
+  assert.equal(new Equipment("OutOfService").returnToService(), "Available");
+});
+
+test("available equipment cannot be returned again", () => {
+  assert.throws(() => new Equipment("Available").returnToService(), DomainError);
+});

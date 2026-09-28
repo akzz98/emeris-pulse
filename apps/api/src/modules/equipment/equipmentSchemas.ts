@@ -33,3 +33,7 @@ export type StudioFaultInput = z.infer<typeof studioFaultSchema>;
 export const equipmentIdParams = z.object({
   equipmentId: z.coerce.number().int().positive(),
 });
+
+export const ticketIdParams = z.object({
+  ticketId: z.coerce.number().int().positive(),
+});

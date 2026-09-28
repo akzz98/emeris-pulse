@@ -42,3 +42,9 @@
 .maintenance-list p:last-of-type {
   margin-bottom: 0.75rem;
 }
+
+.maintenance-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}

@@ -6,12 +6,13 @@ import {
   listEquipment,
   listStudioEquipment,
   listTicketQueue,
+  closeTicket,
   reportFault,
   reportUnsafeStudio,
   startSession,
   takeOutOfService,
 } from "./equipmentService.js";
-import { equipmentIdParams, faultSchema, startSessionSchema, studioFaultSchema } from "./equipmentSchemas.js";
+import { equipmentIdParams, faultSchema, startSessionSchema, studioFaultSchema, ticketIdParams } from "./equipmentSchemas.js";
 
 export async function listEquipmentHandler(_req: Request, res: Response) {
   res.status(200).json(await listEquipment());
@@ -46,6 +47,12 @@ export async function reportStudioFaultHandler(req: Request, res: Response) {
 
 export async function ticketQueueHandler(_req: Request, res: Response) {
   res.status(200).json(await listTicketQueue());
+}
+
+export async function closeTicketHandler(req: Request, res: Response) {
+  requireUser(req);
+  const params = ticketIdParams.parse(res.locals.params);
+  res.status(200).json(await closeTicket(params.ticketId));
 }
 
 export async function takeOutOfServiceHandler(req: Request, res: Response) {

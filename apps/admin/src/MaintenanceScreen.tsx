@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { AppShell, Button, EmptyState, ErrorState, LoadingState, type AppNavItem } from "@emeris/ui";
-import { getTicketQueue, takeEquipmentOutOfService, type AdminSession, type OpenTicket } from "./api";
+import { closeTicket, getTicketQueue, takeEquipmentOutOfService, type AdminSession, type OpenTicket } from "./api";
 import "./maintenance.css";
 
 type MaintenanceScreenProps = {
@@ -28,6 +28,7 @@ export function MaintenanceScreen({ session, nav, onSignOut }: MaintenanceScreen
   const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<number | null>(null);
+  const [closingId, setClosingId] = useState<number | null>(null);
   const area = session.user.role === "FacilityManager" ? "Facility" : "Admin";
 
   async function load() {
@@ -66,6 +67,32 @@ export function MaintenanceScreen({ session, nav, onSignOut }: MaintenanceScreen
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session.accessToken, onSignOut]);
 
+  async function onClose(ticket: OpenTicket) {
+    setClosingId(ticket.id);
+    setError(null);
+    setNotice(null);
+    try {
+      const closed = await closeTicket(session.accessToken, ticket.id);
+      await load();
+      setNotice(
+        closed.returned
+          ? `${closed.name} is back in service.`
+          : closed.equipmentStatus === "OutOfService"
+            ? `The ticket is closed. ${closed.name} stays out of service while another ticket is open.`
+            : `The ticket for ${closed.name} is closed.`,
+      );
+    } catch (caught) {
+      const message = caught instanceof Error ? caught.message : "Could not close this ticket.";
+      if (message === "UNAUTHENTICATED") {
+        onSignOut();
+        return;
+      }
+      setError(message);
+    } finally {
+      setClosingId(null);
+    }
+  }
+
   async function onTakeOut(ticket: OpenTicket) {
     setBusyId(ticket.equipmentId);
     setError(null);
@@ -90,7 +117,7 @@ export function MaintenanceScreen({ session, nav, onSignOut }: MaintenanceScreen
     <AppShell area={area} nav={nav} onSignOut={onSignOut}>
       <header className="maintenance-heading">
         <h1>Maintenance</h1>
-        <p>Open tickets waiting for the facility team. Taking a machine out of service stops new sessions on it.</p>
+        <p>Open tickets waiting for the facility team. Closing the last ticket for a machine puts it back in service.</p>
       </header>
       {loading ? <LoadingState title="Loading tickets" message="Checking the open queue." /> : null}
       {error ? <ErrorState title="Queue not updated" message={error} /> : null}
@@ -115,11 +142,20 @@ export function MaintenanceScreen({ session, nav, onSignOut }: MaintenanceScreen
                 Reported by {ticket.reportedBy} · {formatWhen(ticket.openedAt)}
               </p>
               <p>{ticket.equipmentStatus === "Available" ? "Available" : "Out of service"}</p>
-              {ticket.equipmentStatus === "Available" ? (
-                <Button type="button" disabled={busyId === ticket.equipmentId} onClick={() => void onTakeOut(ticket)}>
-                  {busyId === ticket.equipmentId ? "Updating…" : "Take out of service"}
+              <div className="maintenance-actions">
+                {ticket.equipmentStatus === "Available" ? (
+                  <Button type="button" disabled={busyId !== null || closingId !== null} onClick={() => void onTakeOut(ticket)}>
+                    {busyId === ticket.equipmentId ? "Updating…" : "Take out of service"}
+                  </Button>
+                ) : null}
+                <Button type="button" disabled={busyId !== null || closingId !== null} onClick={() => void onClose(ticket)}>
+                  {closingId === ticket.id
+                    ? "Closing…"
+                    : ticket.equipmentStatus === "OutOfService"
+                      ? "Close and return"
+                      : "Close ticket"}
                 </Button>
-              ) : null}
+              </div>
             </li>
           ))}
         </ul>
