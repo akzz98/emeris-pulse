@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { authenticate, authorize } from "../../http/authenticate.js";
 import { asyncHandler } from "../../http/asyncHandler.js";
-import { validateBody } from "../../http/validate.js";
+import { validateBody, validateParams } from "../../http/validate.js";
 import {
   currentSessionHandler,
   endSessionHandler,
@@ -10,12 +10,24 @@ import {
   reportStudioFaultHandler,
   startSessionHandler,
   studioEquipmentHandler,
+  takeOutOfServiceHandler,
+  ticketQueueHandler,
 } from "./equipmentController.js";
-import { faultSchema, startSessionSchema, studioFaultSchema } from "./equipmentSchemas.js";
+import { equipmentIdParams, faultSchema, startSessionSchema, studioFaultSchema } from "./equipmentSchemas.js";
 
 export const equipmentRouter = Router();
 
 const instructor = authorize("Instructor");
+const facility = authorize("FacilityManager", "GymAdmin", "SystemAdmin");
+
+equipmentRouter.get("/equipment/tickets", authenticate, facility, asyncHandler(ticketQueueHandler));
+equipmentRouter.post(
+  "/equipment/:equipmentId/out-of-service",
+  authenticate,
+  facility,
+  validateParams(equipmentIdParams),
+  asyncHandler(takeOutOfServiceHandler),
+);
 
 equipmentRouter.get("/equipment/studio", authenticate, instructor, asyncHandler(studioEquipmentHandler));
 equipmentRouter.post(

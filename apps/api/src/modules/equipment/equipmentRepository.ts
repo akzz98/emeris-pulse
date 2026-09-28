@@ -1,8 +1,7 @@
 import sql from "mssql";
+import type { EquipmentStatus } from "../../domain/equipment.js";
 import type { TicketStatus } from "../../domain/maintenance.js";
 import { getPool } from "../../db/pool.js";
-
-export type EquipmentStatus = "Available" | "OutOfService";
 
 export type EquipmentItem = {
   id: number;
@@ -44,6 +43,33 @@ function asUtc(value: string | Date): string {
   }
   return value.endsWith("Z") ? value : `${value}Z`;
 }
+
+export type OpenTicket = {
+  id: number;
+  status: TicketStatus;
+  description: string;
+  openedAt: string;
+  equipmentId: number;
+  code: string;
+  name: string;
+  location: string;
+  equipmentStatus: EquipmentStatus;
+  reportedBy: string;
+};
+
+type OpenTicketRow = {
+  Id: number;
+  Status: TicketStatus;
+  Description: string;
+  OpenedAt: string | Date;
+  EquipmentId: number;
+  Code: string;
+  Name: string;
+  Location: string;
+  EquipmentStatus: EquipmentStatus;
+  FirstName: string;
+  LastName: string;
+};
 
 function mapEquipment(row: EquipmentRow): EquipmentItem {
   return {
@@ -96,6 +122,28 @@ export class EquipmentRepository {
       ORDER BY Code
     `);
     return result.recordset.map(mapEquipment);
+  }
+
+  async lockById(transaction: sql.Transaction, equipmentId: number): Promise<EquipmentItem | null> {
+    const result = await transaction.request().input("equipmentId", sql.Int, equipmentId).query<EquipmentRow>(`
+      SELECT Id, Code, Name, Location, Status
+      FROM dbo.Equipment WITH (UPDLOCK, HOLDLOCK)
+      WHERE Id = @equipmentId
+    `);
+    const row = result.recordset[0];
+    return row ? mapEquipment(row) : null;
+  }
+
+  async setStatus(transaction: sql.Transaction, equipmentId: number, status: EquipmentStatus): Promise<void> {
+    await transaction
+      .request()
+      .input("equipmentId", sql.Int, equipmentId)
+      .input("status", sql.NVarChar(16), status)
+      .query(`
+        UPDATE dbo.Equipment
+        SET Status = @status
+        WHERE Id = @equipmentId
+      `);
   }
 
   async lockByCode(transaction: sql.Transaction, code: string): Promise<EquipmentItem | null> {
@@ -170,6 +218,41 @@ export class EquipmentRepository {
       WHERE EquipmentId = @equipmentId AND Status IN (N'Open', N'InProgress')
     `);
     return result.recordset.length > 0;
+  }
+
+  async listOpenTickets(): Promise<OpenTicket[]> {
+    const pool = await getPool();
+    const result = await pool.request().query<OpenTicketRow>(`
+      SELECT
+        t.Id,
+        t.Status,
+        t.Description,
+        CONVERT(varchar(33), t.OpenedAt, 127) AS OpenedAt,
+        e.Id AS EquipmentId,
+        e.Code,
+        e.Name,
+        e.Location,
+        e.Status AS EquipmentStatus,
+        u.FirstName,
+        u.LastName
+      FROM dbo.MaintenanceTickets t
+      INNER JOIN dbo.Equipment e ON e.Id = t.EquipmentId
+      INNER JOIN dbo.Users u ON u.Id = t.ReportedByUserId
+      WHERE t.Status IN (N'Open', N'InProgress')
+      ORDER BY t.OpenedAt, t.Id
+    `);
+    return result.recordset.map((row) => ({
+      id: row.Id,
+      status: row.Status,
+      description: row.Description,
+      openedAt: asUtc(row.OpenedAt),
+      equipmentId: row.EquipmentId,
+      code: row.Code,
+      name: row.Name,
+      location: row.Location,
+      equipmentStatus: row.EquipmentStatus,
+      reportedBy: `${row.FirstName} ${row.LastName}`,
+    }));
   }
 
   async openTicketForEquipment(equipmentId: number): Promise<boolean> {

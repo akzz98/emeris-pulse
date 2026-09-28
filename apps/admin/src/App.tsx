@@ -3,13 +3,14 @@ import type { AppNavItem } from "@emeris/ui";
 import { AccessLogScreen } from "./AccessLogScreen";
 import { DashboardScreen } from "./DashboardScreen";
 import { LoginScreen } from "./LoginScreen";
+import { MaintenanceScreen } from "./MaintenanceScreen";
 import { ScanScreen } from "./ScanScreen";
 import { TemporaryPassScreen } from "./TemporaryPassScreen";
 import { TimetableScreen } from "./TimetableScreen";
 import { clearSession, loadSession, saveSession } from "./session";
 import type { AdminSession } from "./api";
 
-type AdminScreen = "dashboard" | "scan" | "logs" | "temporary" | "timetable";
+type AdminScreen = "dashboard" | "scan" | "logs" | "temporary" | "timetable" | "maintenance";
 
 function adminNav(current: AdminScreen, onSelect: (screen: AdminScreen) => void, role: string): AppNavItem[] {
   const dashboard: AppNavItem = {
@@ -17,9 +18,14 @@ function adminNav(current: AdminScreen, onSelect: (screen: AdminScreen) => void,
     current: current === "dashboard",
     onSelect: () => onSelect("dashboard"),
   };
-  // The facility manager watches crowding. Desk actions stay with the gym administrator.
+  const maintenance: AppNavItem = {
+    label: "Maintenance",
+    current: current === "maintenance",
+    onSelect: () => onSelect("maintenance"),
+  };
+  // The facility manager watches crowding and the ticket queue. Desk actions stay with the gym administrator.
   if (role === "FacilityManager") {
-    return [dashboard];
+    return [dashboard, maintenance];
   }
   return [
     dashboard,
@@ -27,6 +33,7 @@ function adminNav(current: AdminScreen, onSelect: (screen: AdminScreen) => void,
     { label: "Access logs", current: current === "logs", onSelect: () => onSelect("logs") },
     { label: "Temporary pass", current: current === "temporary", onSelect: () => onSelect("temporary") },
     { label: "Timetable", current: current === "timetable", onSelect: () => onSelect("timetable") },
+    maintenance,
   ];
 }
 
@@ -56,6 +63,10 @@ export function App() {
 
   if (screen === "dashboard") {
     return <DashboardScreen session={session} nav={nav} onSignOut={onSignOut} />;
+  }
+
+  if (screen === "maintenance") {
+    return <MaintenanceScreen session={session} nav={nav} onSignOut={onSignOut} />;
   }
 
   if (screen === "timetable") {

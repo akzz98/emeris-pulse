@@ -5,11 +5,13 @@ import {
   endSession,
   listEquipment,
   listStudioEquipment,
+  listTicketQueue,
   reportFault,
   reportUnsafeStudio,
   startSession,
+  takeOutOfService,
 } from "./equipmentService.js";
-import { faultSchema, startSessionSchema, studioFaultSchema } from "./equipmentSchemas.js";
+import { equipmentIdParams, faultSchema, startSessionSchema, studioFaultSchema } from "./equipmentSchemas.js";
 
 export async function listEquipmentHandler(_req: Request, res: Response) {
   res.status(200).json(await listEquipment());
@@ -40,6 +42,16 @@ export async function reportStudioFaultHandler(req: Request, res: Response) {
   const user = requireUser(req);
   const body = studioFaultSchema.parse(req.body);
   res.status(201).json(await reportUnsafeStudio(user.id, body.code, body.description));
+}
+
+export async function ticketQueueHandler(_req: Request, res: Response) {
+  res.status(200).json(await listTicketQueue());
+}
+
+export async function takeOutOfServiceHandler(req: Request, res: Response) {
+  requireUser(req);
+  const params = equipmentIdParams.parse(res.locals.params);
+  res.status(200).json(await takeOutOfService(params.equipmentId));
 }
 
 export async function endSessionHandler(req: Request, res: Response) {

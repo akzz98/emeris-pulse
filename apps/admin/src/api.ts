@@ -165,6 +165,37 @@ async function readAdmin<T>(response: Response, fallback: string): Promise<T> {
   return body;
 }
 
+export type OpenTicket = {
+  id: number;
+  status: "Open" | "InProgress" | "Closed";
+  description: string;
+  openedAt: string;
+  equipmentId: number;
+  code: string;
+  name: string;
+  location: string;
+  equipmentStatus: "Available" | "OutOfService";
+  reportedBy: string;
+};
+
+export async function getTicketQueue(accessToken: string): Promise<{ tickets: OpenTicket[] }> {
+  const response = await fetch(`${apiUrl}/equipment/tickets`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return readAdmin(response, "Could not load the ticket queue.");
+}
+
+export async function takeEquipmentOutOfService(
+  accessToken: string,
+  equipmentId: number,
+): Promise<{ name: string; status: "OutOfService" }> {
+  const response = await fetch(`${apiUrl}/equipment/${equipmentId}/out-of-service`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return readAdmin(response, "Could not take this machine out of service.");
+}
+
 export async function getManagedClasses(
   accessToken: string,
 ): Promise<{ classes: ManagedClass[]; instructors: InstructorOption[] }> {

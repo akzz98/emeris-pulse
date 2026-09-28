@@ -1,4 +1,5 @@
 import sql from "mssql";
+import { Equipment } from "../../domain/equipment.js";
 import { MaintenanceTicket } from "../../domain/maintenance.js";
 import { getPool } from "../../db/pool.js";
 import { HttpError } from "../../http/httpError.js";
@@ -113,6 +114,30 @@ export async function reportUnsafeStudio(userId: number, code: string, descripti
       status,
       description,
     };
+  } catch (error) {
+    await transaction.rollback();
+    throw error;
+  }
+}
+
+// The queue is tickets still being dealt with. Closed tickets stay off this list.
+export async function listTicketQueue() {
+  return { tickets: await equipment.listOpenTickets() };
+}
+
+export async function takeOutOfService(equipmentId: number) {
+  const pool = await getPool();
+  const transaction = new sql.Transaction(pool);
+  await transaction.begin();
+  try {
+    const machine = await equipment.lockById(transaction, equipmentId);
+    if (!machine) {
+      throw new HttpError(404, "EQUIPMENT_NOT_FOUND", "That machine is not on the floor.");
+    }
+    const status = new Equipment(machine.status).takeOutOfService();
+    await equipment.setStatus(transaction, machine.id, status);
+    await transaction.commit();
+    return { id: machine.id, code: machine.code, name: machine.name, status };
   } catch (error) {
     await transaction.rollback();
     throw error;
