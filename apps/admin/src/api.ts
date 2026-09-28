@@ -94,6 +94,27 @@ export type Occupancy = {
   members: Array<{ firstName: string; lastName: string; enteredAt: string }>;
 };
 
+export type Utilisation = {
+  visitsToday: number;
+  visitsThisWeek: number;
+  peakHours: number[];
+  hours: Array<{ hour: number; visits: number }>;
+};
+
+export async function getUtilisation(accessToken: string): Promise<Utilisation> {
+  const response = await fetch(`${apiUrl}/access/utilisation`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  const body = (await response.json()) as Utilisation & { error?: { message?: string } };
+  if (response.status === 401) {
+    throw new Error("UNAUTHENTICATED");
+  }
+  if (!response.ok) {
+    throw new Error(body.error?.message ?? "Could not load utilisation.");
+  }
+  return body;
+}
+
 export async function getOccupancy(accessToken: string): Promise<Occupancy> {
   const response = await fetch(`${apiUrl}/access/occupancy`, {
     headers: { Authorization: `Bearer ${accessToken}` },
@@ -163,6 +184,85 @@ async function readAdmin<T>(response: Response, fallback: string): Promise<T> {
     throw new Error(body.error?.message ?? fallback);
   }
   return body;
+}
+
+export type ClassFill = {
+  id: number;
+  title: string;
+  startsAt: string;
+  location: string;
+  capacity: number;
+  filled: number;
+  fillRate: number;
+};
+
+export type ClassFillReport = {
+  page: number;
+  pageSize: number;
+  total: number;
+  filled: number;
+  seats: number;
+  fillRate: number;
+  classes: ClassFill[];
+};
+
+export type DowntimeMachine = {
+  id: number;
+  code: string;
+  name: string;
+  location: string;
+  status: "Available" | "OutOfService";
+  openTickets: number;
+  openSince: string | null;
+  hoursDown: number | null;
+};
+
+export type DowntimeReport = {
+  page: number;
+  pageSize: number;
+  total: number;
+  outOfService: number;
+  machines: DowntimeMachine[];
+};
+
+export async function getClassFill(accessToken: string, page: number): Promise<ClassFillReport> {
+  // One class per page so a short timetable still has a next page.
+  const response = await fetch(`${apiUrl}/reports/class-fill?page=${page}&pageSize=1`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return readAdmin(response, "Could not load the class fill report.");
+}
+
+export type WellnessChallenge = {
+  id: number;
+  title: string;
+  startsOn: string;
+  endsOn: string;
+  phase: "Open" | "Upcoming" | "Ended";
+  participants: number;
+};
+
+export type WellnessReport = {
+  page: number;
+  pageSize: number;
+  total: number;
+  people: number;
+  enrolments: number;
+  challenges: WellnessChallenge[];
+};
+
+export async function getWellnessParticipation(accessToken: string, page: number): Promise<WellnessReport> {
+  const response = await fetch(`${apiUrl}/reports/wellness?page=${page}&pageSize=1`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return readAdmin(response, "Could not load the wellness report.");
+}
+
+export async function getEquipmentDowntime(accessToken: string, page: number): Promise<DowntimeReport> {
+  const response = await fetch(`${apiUrl}/reports/equipment-downtime?page=${page}&pageSize=1`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return readAdmin(response, "Could not load the downtime report.");
 }
 
 export type OpenTicket = {

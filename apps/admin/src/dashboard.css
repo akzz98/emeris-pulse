@@ -46,6 +46,49 @@
   color: var(--ep-muted, #4d5e66);
 }
 
+.utilisation {
+  margin-top: 1.25rem;
+  background: var(--ep-white, #ffffff);
+  border: 1px solid var(--ep-line, #d5e0e4);
+  border-radius: 0.6rem;
+  padding: 1rem 1.1rem;
+}
+
+.utilisation h2 {
+  margin: 0;
+  color: var(--ep-teal, #004559);
+  font-size: 1.15rem;
+}
+
+.utilisation p {
+  margin: 0.35rem 0 0;
+  color: var(--ep-muted, #4d5e66);
+}
+
+.utilisation-counts {
+  color: var(--ep-teal, #004559);
+  font-weight: 700;
+}
+
+.utilisation ul {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+}
+
+.utilisation li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.45rem 0;
+  border-top: 1px solid var(--ep-line, #d5e0e4);
+}
+
+.utilisation li.is-peak span:first-child {
+  font-weight: 700;
+  color: var(--ep-teal, #004559);
+}
+
 .closure {
   margin-top: 1.25rem;
   background: var(--ep-white, #ffffff);

@@ -81,6 +81,38 @@ export class AccessEventRepository {
     }));
   }
 
+  // Granted visits only. The hint keeps the date range on IX_AccessEvents_OccurredAt.
+  // Hours are shifted to campus time (UTC+2) so a morning arrival is not counted as the night before.
+  async utilisation(): Promise<{ visitsToday: number; visitsThisWeek: number; hours: Array<{ hour: number; visits: number }> }> {
+    const pool = await getPool();
+    const today = await pool.request().query<{ Visits: number }>(`
+      SELECT COUNT(*) AS Visits
+      FROM dbo.AccessEvents WITH (INDEX(IX_AccessEvents_OccurredAt))
+      WHERE Result = N'Granted'
+        AND OccurredAt >= DATEADD(
+          hour,
+          -2,
+          CAST(CAST(DATEADD(hour, 2, SYSUTCDATETIME()) AS DATE) AS DATETIME2)
+        )
+    `);
+    const week = await pool.request().query<{ HourOfDay: number; Visits: number }>(`
+      SELECT
+        DATEPART(hour, DATEADD(hour, 2, OccurredAt)) AS HourOfDay,
+        COUNT(*) AS Visits
+      FROM dbo.AccessEvents WITH (INDEX(IX_AccessEvents_OccurredAt))
+      WHERE Result = N'Granted'
+        AND OccurredAt >= DATEADD(day, -7, SYSUTCDATETIME())
+      GROUP BY DATEPART(hour, DATEADD(hour, 2, OccurredAt))
+    `);
+    const counts = new Map(week.recordset.map((row) => [Number(row.HourOfDay), Number(row.Visits)]));
+    const hours = Array.from({ length: 24 }, (_, hour) => ({ hour, visits: counts.get(hour) ?? 0 }));
+    return {
+      visitsToday: Number(today.recordset[0]?.Visits ?? 0),
+      visitsThisWeek: hours.reduce((sum, hour) => sum + hour.visits, 0),
+      hours,
+    };
+  }
+
   // Newest scans first. OccurredAt is indexed, and OFFSET keeps each page small.
   async page(page: number, pageSize: number): Promise<{ total: number; events: AccessLogEntry[] }> {
     const pool = await getPool();
