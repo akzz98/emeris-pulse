@@ -186,6 +186,54 @@ async function readAdmin<T>(response: Response, fallback: string): Promise<T> {
   return body;
 }
 
+export type ClassFill = {
+  id: number;
+  title: string;
+  startsAt: string;
+  location: string;
+  capacity: number;
+  filled: number;
+  fillRate: number;
+};
+
+export type ClassFillReport = {
+  filled: number;
+  seats: number;
+  fillRate: number;
+  classes: ClassFill[];
+};
+
+export type DowntimeMachine = {
+  id: number;
+  code: string;
+  name: string;
+  location: string;
+  status: "Available" | "OutOfService";
+  openTickets: number;
+  openSince: string | null;
+  hoursDown: number | null;
+};
+
+export type DowntimeReport = {
+  total: number;
+  outOfService: number;
+  machines: DowntimeMachine[];
+};
+
+export async function getClassFill(accessToken: string): Promise<ClassFillReport> {
+  const response = await fetch(`${apiUrl}/reports/class-fill`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return readAdmin(response, "Could not load the class fill report.");
+}
+
+export async function getEquipmentDowntime(accessToken: string): Promise<DowntimeReport> {
+  const response = await fetch(`${apiUrl}/reports/equipment-downtime`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return readAdmin(response, "Could not load the downtime report.");
+}
+
 export type OpenTicket = {
   id: number;
   status: "Open" | "InProgress" | "Closed";

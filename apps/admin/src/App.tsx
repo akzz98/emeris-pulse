@@ -6,13 +6,14 @@ import { ChallengeScreen } from "./ChallengeScreen";
 import { DashboardScreen } from "./DashboardScreen";
 import { LoginScreen } from "./LoginScreen";
 import { MaintenanceScreen } from "./MaintenanceScreen";
+import { ReportsScreen } from "./ReportsScreen";
 import { ScanScreen } from "./ScanScreen";
 import { TemporaryPassScreen } from "./TemporaryPassScreen";
 import { TimetableScreen } from "./TimetableScreen";
 import { clearSession, loadSession, saveSession } from "./session";
 import type { AdminSession } from "./api";
 
-type AdminScreen = "dashboard" | "scan" | "logs" | "temporary" | "timetable" | "maintenance" | "challenges" | "broadcast";
+type AdminScreen = "dashboard" | "scan" | "logs" | "temporary" | "timetable" | "maintenance" | "challenges" | "broadcast" | "reports";
 
 function adminNav(current: AdminScreen, onSelect: (screen: AdminScreen) => void, role: string): AppNavItem[] {
   const dashboard: AppNavItem = {
@@ -20,17 +21,23 @@ function adminNav(current: AdminScreen, onSelect: (screen: AdminScreen) => void,
     current: current === "dashboard",
     onSelect: () => onSelect("dashboard"),
   };
+  const reports: AppNavItem = {
+    label: "Reports",
+    current: current === "reports",
+    onSelect: () => onSelect("reports"),
+  };
   const maintenance: AppNavItem = {
     label: "Maintenance",
     current: current === "maintenance",
     onSelect: () => onSelect("maintenance"),
   };
-  // The facility manager watches crowding and the ticket queue. Desk actions stay with the gym administrator.
+  // The facility manager watches crowding, reports, and the ticket queue. Desk actions stay with the gym administrator.
   if (role === "FacilityManager") {
-    return [dashboard, maintenance];
+    return [dashboard, reports, maintenance];
   }
   return [
     dashboard,
+    reports,
     { label: "Scan entry", current: current === "scan", onSelect: () => onSelect("scan") },
     { label: "Access logs", current: current === "logs", onSelect: () => onSelect("logs") },
     { label: "Temporary pass", current: current === "temporary", onSelect: () => onSelect("temporary") },
@@ -67,6 +74,10 @@ export function App() {
 
   if (screen === "dashboard") {
     return <DashboardScreen session={session} nav={nav} onSignOut={onSignOut} />;
+  }
+
+  if (screen === "reports") {
+    return <ReportsScreen session={session} nav={nav} onSignOut={onSignOut} />;
   }
 
   if (screen === "maintenance") {

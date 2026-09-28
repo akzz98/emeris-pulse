@@ -9,6 +9,7 @@ import { classRouter } from "./modules/classes/classRoutes.js";
 import { equipmentRouter } from "./modules/equipment/equipmentRoutes.js";
 import { membershipRouter } from "./modules/memberships/membershipRoutes.js";
 import { noticesRouter } from "./modules/notices/noticesRoutes.js";
+import { reportsRouter } from "./modules/reports/reportsRoutes.js";
 import { userRouter } from "./modules/users/userRoutes.js";
 import { wellnessRouter } from "./modules/wellness/wellnessRoutes.js";
 import { healthRouter } from "./routes/health.js";
@@ -35,6 +36,7 @@ export function createApp() {
   app.use(membershipRouter);
   app.use(userRouter);
   app.use(wellnessRouter);
+  app.use(reportsRouter);
   app.use((_req, res) => {
     res.status(404).json(errorBody("NOT_FOUND", "That route does not exist."));
   });
