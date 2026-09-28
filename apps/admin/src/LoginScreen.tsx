@@ -31,7 +31,7 @@ export function LoginScreen({ onSignedIn }: LoginScreenProps) {
     <AppShell area="Admin">
       <form className="login-form" onSubmit={onSubmit}>
         <h1>Sign in</h1>
-        <p className="form-note">Gym administrators use this desk for scans and the access log.</p>
+        <p className="form-note">Gym administrators and facility managers sign in here.</p>
         {error ? <ErrorState title="Could not sign in" message={error} /> : null}
         <TextField id="admin-email" label="Email" type="email" autoComplete="username" value={email} onChange={(event) => setEmail(event.target.value)} required />
         <TextField id="admin-password" label="Password" type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} required />

@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 import { requireUser } from "../../http/authenticate.js";
 import { accessLogQuerySchema, redeemPassSchema, temporaryPassSchema } from "./accessPassSchemas.js";
-import { issueStandardPass, issueTemporaryPass, listAccessLog, redeemPass } from "./accessPassService.js";
+import { getOccupancy, issueStandardPass, issueTemporaryPass, listAccessLog, redeemPass } from "./accessPassService.js";
 
 export async function issuePassHandler(req: Request, res: Response) {
   const user = requireUser(req);
@@ -16,6 +16,10 @@ export async function redeemPassHandler(req: Request, res: Response) {
 export async function listAccessLogHandler(_req: Request, res: Response) {
   const query = accessLogQuerySchema.parse(res.locals.query);
   res.status(200).json(await listAccessLog(query));
+}
+
+export async function occupancyHandler(_req: Request, res: Response) {
+  res.status(200).json(await getOccupancy());
 }
 
 export async function issueTemporaryPassHandler(req: Request, res: Response) {

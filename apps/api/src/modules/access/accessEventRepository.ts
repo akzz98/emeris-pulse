@@ -3,6 +3,18 @@ import { getPool } from "../../db/pool.js";
 
 export type AccessResult = "Granted" | "Refused";
 
+export type Occupant = {
+  firstName: string;
+  lastName: string;
+  enteredAt: string;
+};
+
+type OccupantRow = {
+  FirstName: string;
+  LastName: string;
+  EnteredAt: Date;
+};
+
 export type AccessLogEntry = {
   id: number;
   occurredAt: string;
@@ -42,6 +54,31 @@ export class AccessEventRepository {
         INSERT INTO dbo.AccessEvents (UserId, PassId, OccurredAt, Result, Reason)
         VALUES (@userId, @passId, SYSUTCDATETIME(), @result, @reason)
       `);
+  }
+
+  // No exit scan exists yet. A granted entry counts as still on the floor for the visit window.
+  async occupants(windowMinutes: number): Promise<Occupant[]> {
+    const pool = await getPool();
+    const result = await pool
+      .request()
+      .input("windowMinutes", sql.Int, windowMinutes)
+      .query<OccupantRow>(`
+        SELECT
+          u.FirstName,
+          u.LastName,
+          MAX(e.OccurredAt) AS EnteredAt
+        FROM dbo.AccessEvents e
+        INNER JOIN dbo.Users u ON u.Id = e.UserId
+        WHERE e.Result = N'Granted'
+          AND e.OccurredAt >= DATEADD(minute, -@windowMinutes, SYSUTCDATETIME())
+        GROUP BY u.Id, u.FirstName, u.LastName
+        ORDER BY MAX(e.OccurredAt) DESC
+      `);
+    return result.recordset.map((row) => ({
+      firstName: row.FirstName,
+      lastName: row.LastName,
+      enteredAt: new Date(row.EnteredAt).toISOString(),
+    }));
   }
 
   // Newest scans first. OccurredAt is indexed, and OFFSET keeps each page small.

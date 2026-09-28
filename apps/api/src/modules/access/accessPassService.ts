@@ -147,6 +147,14 @@ export async function issueTemporaryPass(input: TemporaryPassInput) {
   };
 }
 
+// A typical campus visit. After this, the member is no longer counted as on the floor.
+const occupancyWindowMinutes = 90;
+
+export async function getOccupancy() {
+  const members = await events.occupants(occupancyWindowMinutes);
+  return { windowMinutes: occupancyWindowMinutes, onFloor: members.length, members };
+}
+
 export async function listAccessLog(query: AccessLogQuery) {
   const page = await events.page(query.page, query.pageSize);
   return { page: query.page, pageSize: query.pageSize, ...page };

@@ -88,6 +88,26 @@ export async function issueTemporaryPass(accessToken: string, email: string): Pr
   return body;
 }
 
+export type Occupancy = {
+  windowMinutes: number;
+  onFloor: number;
+  members: Array<{ firstName: string; lastName: string; enteredAt: string }>;
+};
+
+export async function getOccupancy(accessToken: string): Promise<Occupancy> {
+  const response = await fetch(`${apiUrl}/access/occupancy`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  const body = (await response.json()) as Occupancy & { error?: { message?: string } };
+  if (response.status === 401) {
+    throw new Error("UNAUTHENTICATED");
+  }
+  if (!response.ok) {
+    throw new Error(body.error?.message ?? "Could not load occupancy.");
+  }
+  return body;
+}
+
 export type RedeemResult = {
   result: "Granted";
 };
