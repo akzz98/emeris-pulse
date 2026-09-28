@@ -75,6 +75,12 @@ function readPassToken(token: string): { userId: number; jti: string } {
 
 export async function redeemPass(input: RedeemPassInput) {
   const claim = readPassToken(input.token);
+  // Pending, frozen, and expired memberships cannot enter, even with a signed code that has not been used.
+  const membership = await getMyMembership(claim.userId);
+  if (!membership.canEnter) {
+    throw new HttpError(403, "ENTRY_REFUSED", "Entry is refused because this membership is not active.");
+  }
+
   const consumed = await passes.consumeOnce(claim.jti, claim.userId);
   if (consumed) {
     return { result: "Accepted" as const };
