@@ -106,6 +106,23 @@ export class UserRepository {
       `);
   }
 
+  async listDirectory(): Promise<Array<Omit<UserRecord, "passwordHash" | "phone">>> {
+    const pool = await getPool();
+    const result = await pool.request().query<Omit<UserRow, "PasswordHash" | "Phone">>(`
+      SELECT Id, Email, Role, CampusIdentifier, FirstName, LastName
+      FROM dbo.Users
+      ORDER BY LastName, FirstName, Id
+    `);
+    return result.recordset.map((row) => ({
+      id: row.Id,
+      email: row.Email,
+      role: row.Role,
+      campusIdentifier: row.CampusIdentifier,
+      firstName: row.FirstName,
+      lastName: row.LastName,
+    }));
+  }
+
   async updateRole(id: number, role: Role) {
     const pool = await getPool();
     const result = await pool

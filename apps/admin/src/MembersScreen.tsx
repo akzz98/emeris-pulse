@@ -1,6 +1,14 @@
 import { useEffect, useState } from "react";
-import { AppShell, Button, EmptyState, ErrorState, LoadingState, type AppNavItem } from "@emeris/ui";
-import { approveMembership, getPendingMemberships, type AdminSession, type PendingMembership } from "./api";
+import { AppShell, Button, ErrorState, LoadingState, type AppNavItem } from "@emeris/ui";
+import {
+  approveMembership,
+  freezeMembership,
+  getActiveMemberships,
+  getFrozenMemberships,
+  getPendingMemberships,
+  type AdminSession,
+  type DeskMembership,
+} from "./api";
 import "./members.css";
 
 type MembersScreenProps = {
@@ -18,15 +26,23 @@ function formatDay(value: string): string {
 }
 
 export function MembersScreen({ session, nav, onSignOut }: MembersScreenProps) {
-  const [memberships, setMemberships] = useState<PendingMembership[] | null>(null);
+  const [pending, setPending] = useState<DeskMembership[] | null>(null);
+  const [activeMembers, setActiveMembers] = useState<DeskMembership[] | null>(null);
+  const [frozen, setFrozen] = useState<DeskMembership[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<number | null>(null);
 
   async function load() {
-    const next = await getPendingMemberships(session.accessToken);
-    setMemberships(next.memberships);
+    const [waiting, current, paused] = await Promise.all([
+      getPendingMemberships(session.accessToken),
+      getActiveMemberships(session.accessToken),
+      getFrozenMemberships(session.accessToken),
+    ]);
+    setPending(waiting.memberships);
+    setActiveMembers(current.memberships);
+    setFrozen(paused.memberships);
   }
 
   useEffect(() => {
@@ -42,7 +58,7 @@ export function MembersScreen({ session, nav, onSignOut }: MembersScreenProps) {
         if (!active) {
           return;
         }
-        const message = caught instanceof Error ? caught.message : "Could not load memberships waiting for approval.";
+        const message = caught instanceof Error ? caught.message : "Could not load memberships.";
         if (message === "UNAUTHENTICATED") {
           onSignOut();
           return;
@@ -60,16 +76,27 @@ export function MembersScreen({ session, nav, onSignOut }: MembersScreenProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session.accessToken, onSignOut]);
 
-  async function onApprove(membership: PendingMembership) {
+  async function run(membership: DeskMembership, action: "approve" | "freeze" | "activate") {
     setBusyId(membership.userId);
     setError(null);
     setNotice(null);
+    const name = `${membership.firstName} ${membership.lastName}`;
     try {
-      await approveMembership(session.accessToken, membership.userId);
+      if (action === "freeze") {
+        await freezeMembership(session.accessToken, membership.userId);
+      } else {
+        await approveMembership(session.accessToken, membership.userId);
+      }
       await load();
-      setNotice(`${membership.firstName} ${membership.lastName} can now enter the gym.`);
+      if (action === "freeze") {
+        setNotice(`${name} is frozen and cannot enter until the membership is activated again.`);
+      } else if (action === "activate") {
+        setNotice(`${name} can enter the gym again.`);
+      } else {
+        setNotice(`${name} can now enter the gym.`);
+      }
     } catch (caught) {
-      const message = caught instanceof Error ? caught.message : "Could not approve this membership.";
+      const message = caught instanceof Error ? caught.message : "Could not update this membership.";
       if (message === "UNAUTHENTICATED") {
         onSignOut();
         return;
@@ -80,41 +107,76 @@ export function MembersScreen({ session, nav, onSignOut }: MembersScreenProps) {
     }
   }
 
+  const groups = [
+    {
+      title: "Waiting for approval",
+      empty: "No one is waiting.",
+      memberships: pending,
+      action: "approve" as const,
+      label: "Approve",
+      busy: "Approving…",
+      detail: "Waiting for approval",
+    },
+    {
+      title: "Active memberships",
+      empty: "No active memberships.",
+      memberships: activeMembers,
+      action: "freeze" as const,
+      label: "Freeze",
+      busy: "Freezing…",
+      detail: "Can enter the gym",
+    },
+    {
+      title: "Frozen memberships",
+      empty: "No frozen memberships.",
+      memberships: frozen,
+      action: "activate" as const,
+      label: "Activate",
+      busy: "Activating…",
+      detail: "Cannot enter until activated",
+    },
+  ];
+
   return (
     <AppShell area="Admin" nav={nav} onSignOut={onSignOut}>
       <header className="members-heading">
         <h1>Members</h1>
-        <p>New profiles stay pending until a gym administrator approves them.</p>
+        <p>Approve a new profile, freeze an active membership, or activate a frozen one.</p>
       </header>
-      {loading ? <LoadingState title="Loading members" message="Checking who is waiting for approval." /> : null}
-      {error ? <ErrorState title="Membership not approved" message={error} /> : null}
+      {loading ? <LoadingState title="Loading members" message="Checking pending, active, and frozen memberships." /> : null}
+      {error ? <ErrorState title="Membership not updated" message={error} /> : null}
       {notice ? (
         <p className="members-notice" role="status">
           {notice}
         </p>
       ) : null}
-      {memberships && memberships.length === 0 ? (
-        <EmptyState title="No one is waiting" message="Every new profile has been approved." />
-      ) : null}
-      {memberships && memberships.length > 0 ? (
-        <ul className="members-list">
-          {memberships.map((membership) => (
-            <li key={membership.userId}>
-              <h2>
-                {membership.firstName} {membership.lastName}
-              </h2>
-              <p>{membership.email}</p>
-              <p>
-                {membership.campusIdentifier} · {membership.memberType} · expires {formatDay(membership.expiryDate)}
-              </p>
-              <p>Waiting for approval</p>
-              <Button type="button" disabled={busyId !== null} onClick={() => void onApprove(membership)}>
-                {busyId === membership.userId ? "Approving…" : "Approve"}
-              </Button>
-            </li>
-          ))}
-        </ul>
-      ) : null}
+      {!loading && pending && activeMembers && frozen
+        ? groups.map((group) => (
+            <section className="members-section" key={group.title}>
+              <h2>{group.title}</h2>
+              {group.memberships && group.memberships.length === 0 ? <p>{group.empty}</p> : null}
+              {group.memberships && group.memberships.length > 0 ? (
+                <ul className="members-list">
+                  {group.memberships.map((membership) => (
+                    <li key={membership.userId}>
+                      <h2>
+                        {membership.firstName} {membership.lastName}
+                      </h2>
+                      <p>{membership.email}</p>
+                      <p>
+                        {membership.campusIdentifier} · {membership.memberType} · expires {formatDay(membership.expiryDate)}
+                      </p>
+                      <p>{group.detail}</p>
+                      <Button type="button" disabled={busyId !== null} onClick={() => void run(membership, group.action)}>
+                        {busyId === membership.userId ? group.busy : group.label}
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </section>
+          ))
+        : null}
     </AppShell>
   );
 }

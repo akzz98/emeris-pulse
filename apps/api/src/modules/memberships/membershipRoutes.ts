@@ -7,6 +7,8 @@ import {
   activateMembershipHandler,
   freezeMembershipHandler,
   getMyMembershipHandler,
+  listActiveMembershipsHandler,
+  listFrozenMembershipsHandler,
   listPendingMembershipsHandler,
 } from "./membershipController.js";
 
@@ -18,6 +20,18 @@ membershipRouter.get(
   authenticate,
   authorize("GymAdmin", "SystemAdmin"),
   asyncHandler(listPendingMembershipsHandler),
+);
+membershipRouter.get(
+  "/memberships/active",
+  authenticate,
+  authorize("GymAdmin", "SystemAdmin"),
+  asyncHandler(listActiveMembershipsHandler),
+);
+membershipRouter.get(
+  "/memberships/frozen",
+  authenticate,
+  authorize("GymAdmin", "SystemAdmin"),
+  asyncHandler(listFrozenMembershipsHandler),
 );
 membershipRouter.post(
   "/memberships/:userId/activate",

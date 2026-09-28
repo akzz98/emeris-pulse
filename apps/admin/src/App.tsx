@@ -8,13 +8,25 @@ import { LoginScreen } from "./LoginScreen";
 import { MembersScreen } from "./MembersScreen";
 import { MaintenanceScreen } from "./MaintenanceScreen";
 import { ReportsScreen } from "./ReportsScreen";
+import { RolesScreen } from "./RolesScreen";
 import { ScanScreen } from "./ScanScreen";
 import { TemporaryPassScreen } from "./TemporaryPassScreen";
 import { TimetableScreen } from "./TimetableScreen";
 import { clearSession, loadSession, saveSession } from "./session";
 import type { AdminSession } from "./api";
 
-type AdminScreen = "dashboard" | "scan" | "logs" | "members" | "temporary" | "timetable" | "maintenance" | "challenges" | "broadcast" | "reports";
+type AdminScreen =
+  | "dashboard"
+  | "scan"
+  | "logs"
+  | "members"
+  | "roles"
+  | "temporary"
+  | "timetable"
+  | "maintenance"
+  | "challenges"
+  | "broadcast"
+  | "reports";
 
 function adminNav(current: AdminScreen, onSelect: (screen: AdminScreen) => void, role: string): AppNavItem[] {
   const dashboard: AppNavItem = {
@@ -42,6 +54,9 @@ function adminNav(current: AdminScreen, onSelect: (screen: AdminScreen) => void,
     { label: "Scan entry", current: current === "scan", onSelect: () => onSelect("scan") },
     { label: "Access logs", current: current === "logs", onSelect: () => onSelect("logs") },
     { label: "Members", current: current === "members", onSelect: () => onSelect("members") },
+    ...(role === "SystemAdmin"
+      ? [{ label: "Roles", current: current === "roles", onSelect: () => onSelect("roles") }]
+      : []),
     { label: "Temporary pass", current: current === "temporary", onSelect: () => onSelect("temporary") },
     { label: "Timetable", current: current === "timetable", onSelect: () => onSelect("timetable") },
     { label: "Challenges", current: current === "challenges", onSelect: () => onSelect("challenges") },
@@ -100,6 +115,10 @@ export function App() {
 
   if (screen === "members") {
     return <MembersScreen session={session} nav={nav} onSignOut={onSignOut} />;
+  }
+
+  if (screen === "roles" && session.user.role === "SystemAdmin") {
+    return <RolesScreen session={session} nav={nav} onSignOut={onSignOut} />;
   }
 
   if (screen === "temporary") {

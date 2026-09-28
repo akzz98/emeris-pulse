@@ -40,6 +40,10 @@ export async function updateMyContact(userId: number, input: ContactInput) {
   return publicUser({ ...user, ...next });
 }
 
+export async function listAccounts() {
+  return users.listDirectory();
+}
+
 export async function assignRole(actorId: number, targetId: number, role: Role) {
   if (actorId === targetId) {
     throw new HttpError(409, "INVALID_STATE", "You cannot change your own role.");

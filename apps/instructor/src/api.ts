@@ -1,4 +1,78 @@
+import { clearSession, loadSession, saveSession } from "./session";
+
 const apiUrl = import.meta.env.VITE_API_URL ?? "http://localhost:4000";
+
+let refreshInFlight: Promise<string | null> | null = null;
+
+function bearerFrom(init?: RequestInit): string | null {
+  if (!init?.headers) {
+    return null;
+  }
+  const value = new Headers(init.headers).get("Authorization");
+  if (!value?.startsWith("Bearer ")) {
+    return null;
+  }
+  return value.slice("Bearer ".length);
+}
+
+async function refreshAccessToken(): Promise<string | null> {
+  const current = loadSession();
+  if (!current?.refreshToken) {
+    clearSession();
+    return null;
+  }
+  if (!refreshInFlight) {
+    const refreshToken = current.refreshToken;
+    refreshInFlight = (async () => {
+      const response = await fetch(`${apiUrl}/auth/refresh`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refreshToken }),
+      });
+      if (!response.ok) {
+        clearSession();
+        return null;
+      }
+      const body = (await response.json()) as {
+        accessToken: string;
+        refreshToken: string;
+        user: NonNullable<ReturnType<typeof loadSession>>["user"];
+      };
+      saveSession({
+        accessToken: body.accessToken,
+        refreshToken: body.refreshToken,
+        user: body.user,
+      });
+      return body.accessToken;
+    })().finally(() => {
+      refreshInFlight = null;
+    });
+  }
+  return refreshInFlight;
+}
+
+async function authorized(url: string, init: RequestInit = {}): Promise<Response> {
+  const stored = loadSession();
+  const token = stored?.accessToken ?? bearerFrom(init);
+  const send = (accessToken: string) => {
+    const headers = new Headers(init.headers);
+    headers.set("Authorization", "Bearer " + accessToken);
+    return fetch(url, { ...init, headers });
+  };
+  if (!token) {
+    return fetch(url, init);
+  }
+  const response = await send(token);
+  if (response.status !== 401) {
+    return response;
+  }
+  const next = await refreshAccessToken();
+  if (!next) {
+    return response;
+  }
+  return send(next);
+}
+
 
 export type InstructorSession = {
   accessToken: string;
@@ -43,7 +117,7 @@ export type Roster = {
 };
 
 export async function getRoster(accessToken: string): Promise<Roster> {
-  const response = await fetch(`${apiUrl}/classes/roster`, {
+  const response = await authorized(`${apiUrl}/classes/roster`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   const body = (await response.json()) as Roster & { error?: { message?: string } };
@@ -83,7 +157,7 @@ export type AttendanceClass = {
 };
 
 export async function getAttendance(accessToken: string): Promise<{ classes: AttendanceClass[] }> {
-  const response = await fetch(`${apiUrl}/classes/attendance`, {
+  const response = await authorized(`${apiUrl}/classes/attendance`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return readJson(response, "Could not load attendance.");
@@ -95,7 +169,7 @@ export async function recordAttendance(
   userId: number,
   mark: "Attended" | "Absent",
 ): Promise<void> {
-  const response = await fetch(`${apiUrl}/classes/${classId}/attendance`, {
+  const response = await authorized(`${apiUrl}/classes/${classId}/attendance`, {
     method: "POST",
     headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
     body: JSON.stringify({ userId, mark }),
@@ -113,7 +187,7 @@ export type Trend = {
 };
 
 export async function getTrends(accessToken: string): Promise<{ classes: Trend[] }> {
-  const response = await fetch(`${apiUrl}/classes/trends`, {
+  const response = await authorized(`${apiUrl}/classes/trends`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return readJson(response, "Could not load attendance trends.");
@@ -130,7 +204,7 @@ export type InstructorClass = {
 };
 
 export async function getMyClasses(accessToken: string): Promise<{ classes: InstructorClass[] }> {
-  const response = await fetch(`${apiUrl}/classes/mine`, {
+  const response = await authorized(`${apiUrl}/classes/mine`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return readJson(response, "Could not load your classes.");
@@ -145,7 +219,7 @@ export type StudioMachine = {
 };
 
 export async function getStudioEquipment(accessToken: string): Promise<{ equipment: StudioMachine[] }> {
-  const response = await fetch(`${apiUrl}/equipment/studio`, {
+  const response = await authorized(`${apiUrl}/equipment/studio`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return readJson(response, "Could not load studio equipment.");
@@ -156,7 +230,7 @@ export async function reportStudioFault(
   code: string,
   description: string,
 ): Promise<{ name: string }> {
-  const response = await fetch(`${apiUrl}/equipment/studio/tickets`, {
+  const response = await authorized(`${apiUrl}/equipment/studio/tickets`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -172,7 +246,7 @@ export async function messageBookedMembers(
   classId: number,
   message: string,
 ): Promise<{ notified: number }> {
-  const response = await fetch(`${apiUrl}/classes/${classId}/message`, {
+  const response = await authorized(`${apiUrl}/classes/${classId}/message`, {
     method: "POST",
     headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
     body: JSON.stringify({ message }),
@@ -181,7 +255,7 @@ export async function messageBookedMembers(
 }
 
 export async function cancelClass(accessToken: string, classId: number): Promise<{ notified: number }> {
-  const response = await fetch(`${apiUrl}/classes/${classId}/cancel`, {
+  const response = await authorized(`${apiUrl}/classes/${classId}/cancel`, {
     method: "POST",
     headers: { Authorization: `Bearer ${accessToken}` },
   });

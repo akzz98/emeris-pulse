@@ -1,5 +1,5 @@
 import { todayLocal } from "../../domain/dates.js";
-import { Membership } from "../../domain/membership.js";
+import { Membership, type MembershipStatus } from "../../domain/membership.js";
 import { HttpError } from "../../http/httpError.js";
 import { presentMembership } from "../auth/authService.js";
 import { MembershipRepository } from "./membershipRepository.js";
@@ -21,8 +21,8 @@ async function loadCurrent(userId: number) {
   return { record, today };
 }
 
-export async function listPendingMemberships() {
-  const records = await memberships.listPending();
+async function listMemberships(status: MembershipStatus) {
+  const records = await memberships.listByStatus(status);
   const today = todayLocal();
   return records.map((record) => ({
     ...presentMembership(record, today),
@@ -31,6 +31,18 @@ export async function listPendingMemberships() {
     firstName: record.firstName,
     lastName: record.lastName,
   }));
+}
+
+export async function listPendingMemberships() {
+  return listMemberships("Pending");
+}
+
+export async function listActiveMemberships() {
+  return listMemberships("Active");
+}
+
+export async function listFrozenMemberships() {
+  return listMemberships("Frozen");
 }
 
 export async function getMyMembership(userId: number) {

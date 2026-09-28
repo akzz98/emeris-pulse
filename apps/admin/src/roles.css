@@ -1,20 +1,20 @@
-.members-heading h1 {
+.roles-heading h1 {
   margin: 0;
   color: var(--ep-teal, #004559);
   font-size: 1.5rem;
 }
 
-.members-heading p {
+.roles-heading p {
   margin: 0.25rem 0 1rem;
   color: var(--ep-muted, #4d5e66);
 }
 
-.members-notice {
+.roles-notice {
   margin: 0 0 1rem;
   color: var(--ep-success, #0d6b4c);
 }
 
-.members-list {
+.roles-list {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -22,38 +22,36 @@
   gap: 0.75rem;
 }
 
-.members-list li {
+.roles-list li {
   background: var(--ep-white, #ffffff);
   border: 1px solid var(--ep-line, #d5e0e4);
   border-radius: 0.6rem;
   padding: 0.9rem 1rem;
 }
 
-.members-section {
-  margin: 0 0 1.5rem;
-}
-
-.members-section > h2 {
-  margin: 0 0 0.75rem;
-  color: var(--ep-teal, #004559);
-  font-size: 1.15rem;
-}
-
-.members-section > p {
-  margin: 0;
-  color: var(--ep-muted, #4d5e66);
-}
-
-.members-list h2 {
+.roles-list h2 {
   margin: 0;
   color: var(--ep-teal, #004559);
   font-size: 1.1rem;
 }
 
-.members-list p {
+.roles-list p {
   margin: 0.2rem 0 0;
 }
 
-.members-list p:last-of-type {
+.roles-list label {
+  display: block;
+  margin: 0.75rem 0 0.35rem;
+  font-weight: 600;
+}
+
+.roles-list select {
+  display: block;
+  width: min(100%, 18rem);
   margin-bottom: 0.75rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--ep-line, #d5e0e4);
+  border-radius: 0.4rem;
+  background: var(--ep-white, #ffffff);
+  color: var(--ep-ink, #1c2b31);
 }

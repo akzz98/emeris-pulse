@@ -80,9 +80,12 @@ export class MembershipRepository {
     return mapMembership(result.recordset[0]);
   }
 
-  async listPending(): Promise<PendingMembershipRecord[]> {
+  async listByStatus(status: MembershipStatus): Promise<PendingMembershipRecord[]> {
     const pool = await getPool();
-    const result = await pool.request().query<
+    const result = await pool
+      .request()
+      .input("status", sql.NVarChar(16), status)
+      .query<
       MembershipRow & {
         Email: string;
         CampusIdentifier: string;
@@ -96,8 +99,8 @@ export class MembershipRepository {
              u.Email, u.CampusIdentifier, u.FirstName, u.LastName
       FROM dbo.Memberships AS m
       INNER JOIN dbo.Users AS u ON u.Id = m.UserId
-      WHERE m.Status = N'Pending'
-      ORDER BY m.Id
+      WHERE m.Status = @status
+      ORDER BY u.LastName, u.FirstName, m.Id
     `);
     return result.recordset.map((row) => ({
       ...mapMembership(row),

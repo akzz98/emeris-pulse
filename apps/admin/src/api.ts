@@ -1,4 +1,78 @@
+import { clearSession, loadSession, saveSession } from "./session";
+
 const apiUrl = import.meta.env.VITE_API_URL ?? "http://localhost:4000";
+
+let refreshInFlight: Promise<string | null> | null = null;
+
+function bearerFrom(init?: RequestInit): string | null {
+  if (!init?.headers) {
+    return null;
+  }
+  const value = new Headers(init.headers).get("Authorization");
+  if (!value?.startsWith("Bearer ")) {
+    return null;
+  }
+  return value.slice("Bearer ".length);
+}
+
+async function refreshAccessToken(): Promise<string | null> {
+  const current = loadSession();
+  if (!current?.refreshToken) {
+    clearSession();
+    return null;
+  }
+  if (!refreshInFlight) {
+    const refreshToken = current.refreshToken;
+    refreshInFlight = (async () => {
+      const response = await fetch(`${apiUrl}/auth/refresh`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refreshToken }),
+      });
+      if (!response.ok) {
+        clearSession();
+        return null;
+      }
+      const body = (await response.json()) as {
+        accessToken: string;
+        refreshToken: string;
+        user: NonNullable<ReturnType<typeof loadSession>>["user"];
+      };
+      saveSession({
+        accessToken: body.accessToken,
+        refreshToken: body.refreshToken,
+        user: body.user,
+      });
+      return body.accessToken;
+    })().finally(() => {
+      refreshInFlight = null;
+    });
+  }
+  return refreshInFlight;
+}
+
+async function authorized(url: string, init: RequestInit = {}): Promise<Response> {
+  const stored = loadSession();
+  const token = stored?.accessToken ?? bearerFrom(init);
+  const send = (accessToken: string) => {
+    const headers = new Headers(init.headers);
+    headers.set("Authorization", "Bearer " + accessToken);
+    return fetch(url, { ...init, headers });
+  };
+  if (!token) {
+    return fetch(url, init);
+  }
+  const response = await send(token);
+  if (response.status !== 401) {
+    return response;
+  }
+  const next = await refreshAccessToken();
+  if (!next) {
+    return response;
+  }
+  return send(next);
+}
+
 
 export type AdminSession = {
   accessToken: string;
@@ -48,7 +122,7 @@ export type AccessLog = {
 
 export async function getAccessLog(accessToken: string, page: number): Promise<AccessLog> {
   // Three rows per page so the desk can move through the log.
-  const response = await fetch(`${apiUrl}/access/events?page=${page}&pageSize=3`, {
+  const response = await authorized(`${apiUrl}/access/events?page=${page}&pageSize=3`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   const body = (await response.json()) as AccessLog & { error?: { message?: string } };
@@ -70,7 +144,7 @@ export type TemporaryPass = {
 };
 
 export async function issueTemporaryPass(accessToken: string, email: string): Promise<TemporaryPass> {
-  const response = await fetch(`${apiUrl}/access/passes/temporary`, {
+  const response = await authorized(`${apiUrl}/access/passes/temporary`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -102,7 +176,7 @@ export type Utilisation = {
 };
 
 export async function getUtilisation(accessToken: string): Promise<Utilisation> {
-  const response = await fetch(`${apiUrl}/access/utilisation`, {
+  const response = await authorized(`${apiUrl}/access/utilisation`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   const body = (await response.json()) as Utilisation & { error?: { message?: string } };
@@ -116,7 +190,7 @@ export async function getUtilisation(accessToken: string): Promise<Utilisation> 
 }
 
 export async function getOccupancy(accessToken: string): Promise<Occupancy> {
-  const response = await fetch(`${apiUrl}/access/occupancy`, {
+  const response = await authorized(`${apiUrl}/access/occupancy`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   const body = (await response.json()) as Occupancy & { error?: { message?: string } };
@@ -227,7 +301,7 @@ export type DowntimeReport = {
 
 export async function getClassFill(accessToken: string, page: number): Promise<ClassFillReport> {
   // One class per page so a short timetable still has a next page.
-  const response = await fetch(`${apiUrl}/reports/class-fill?page=${page}&pageSize=1`, {
+  const response = await authorized(`${apiUrl}/reports/class-fill?page=${page}&pageSize=1`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return readAdmin(response, "Could not load the class fill report.");
@@ -252,14 +326,14 @@ export type WellnessReport = {
 };
 
 export async function getWellnessParticipation(accessToken: string, page: number): Promise<WellnessReport> {
-  const response = await fetch(`${apiUrl}/reports/wellness?page=${page}&pageSize=1`, {
+  const response = await authorized(`${apiUrl}/reports/wellness?page=${page}&pageSize=1`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return readAdmin(response, "Could not load the wellness report.");
 }
 
 export async function getEquipmentDowntime(accessToken: string, page: number): Promise<DowntimeReport> {
-  const response = await fetch(`${apiUrl}/reports/equipment-downtime?page=${page}&pageSize=1`, {
+  const response = await authorized(`${apiUrl}/reports/equipment-downtime?page=${page}&pageSize=1`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return readAdmin(response, "Could not load the downtime report.");
@@ -279,7 +353,7 @@ export type OpenTicket = {
 };
 
 export async function getTicketQueue(accessToken: string): Promise<{ tickets: OpenTicket[] }> {
-  const response = await fetch(`${apiUrl}/equipment/tickets`, {
+  const response = await authorized(`${apiUrl}/equipment/tickets`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return readAdmin(response, "Could not load the ticket queue.");
@@ -289,7 +363,7 @@ export async function closeTicket(
   accessToken: string,
   ticketId: number,
 ): Promise<{ name: string; returned: boolean; equipmentStatus: "Available" | "OutOfService" }> {
-  const response = await fetch(`${apiUrl}/equipment/tickets/${ticketId}/close`, {
+  const response = await authorized(`${apiUrl}/equipment/tickets/${ticketId}/close`, {
     method: "POST",
     headers: { Authorization: `Bearer ${accessToken}` },
   });
@@ -300,7 +374,7 @@ export async function takeEquipmentOutOfService(
   accessToken: string,
   equipmentId: number,
 ): Promise<{ name: string; status: "OutOfService" }> {
-  const response = await fetch(`${apiUrl}/equipment/${equipmentId}/out-of-service`, {
+  const response = await authorized(`${apiUrl}/equipment/${equipmentId}/out-of-service`, {
     method: "POST",
     headers: { Authorization: `Bearer ${accessToken}` },
   });
@@ -325,14 +399,14 @@ export type ChallengeDraft = {
 };
 
 export async function getManagedChallenges(accessToken: string): Promise<{ challenges: ManagedChallenge[] }> {
-  const response = await fetch(`${apiUrl}/challenges/manage`, {
+  const response = await authorized(`${apiUrl}/challenges/manage`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return readAdmin(response, "Could not load challenges.");
 }
 
 export async function createChallenge(accessToken: string, draft: ChallengeDraft): Promise<{ id: number; title: string }> {
-  const response = await fetch(`${apiUrl}/challenges`, {
+  const response = await authorized(`${apiUrl}/challenges`, {
     method: "POST",
     headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
     body: JSON.stringify(draft),
@@ -343,14 +417,14 @@ export async function createChallenge(accessToken: string, draft: ChallengeDraft
 export async function getManagedClasses(
   accessToken: string,
 ): Promise<{ classes: ManagedClass[]; instructors: InstructorOption[] }> {
-  const response = await fetch(`${apiUrl}/classes/manage`, {
+  const response = await authorized(`${apiUrl}/classes/manage`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return readAdmin(response, "Could not load the timetable.");
 }
 
 export async function publishClass(accessToken: string, draft: ClassDraft): Promise<{ id: number }> {
-  const response = await fetch(`${apiUrl}/classes`, {
+  const response = await authorized(`${apiUrl}/classes`, {
     method: "POST",
     headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
     body: JSON.stringify(draft),
@@ -363,7 +437,7 @@ export async function updateClass(
   classId: number,
   draft: ClassDraft,
 ): Promise<{ notified: number }> {
-  const response = await fetch(`${apiUrl}/classes/${classId}`, {
+  const response = await authorized(`${apiUrl}/classes/${classId}`, {
     method: "PATCH",
     headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
     body: JSON.stringify(draft),
@@ -375,7 +449,7 @@ export async function broadcastNotice(
   accessToken: string,
   notice: { title: string; message: string; roles: string[] },
 ): Promise<{ notified: number }> {
-  const response = await fetch(`${apiUrl}/notices/broadcast`, {
+  const response = await authorized(`${apiUrl}/notices/broadcast`, {
     method: "POST",
     headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
     body: JSON.stringify(notice),
@@ -383,37 +457,89 @@ export async function broadcastNotice(
   return readAdmin(response, "Could not send this broadcast.");
 }
 
-export type PendingMembership = {
+export type DeskMembership = {
   userId: number;
   firstName: string;
   lastName: string;
   email: string;
   campusIdentifier: string;
   memberType: "Student" | "Staff";
-  status: "Pending";
+  status: "Pending" | "Active" | "Frozen";
   expiryDate: string;
 };
 
-export async function getPendingMemberships(accessToken: string): Promise<{ memberships: PendingMembership[] }> {
-  const response = await fetch(`${apiUrl}/memberships/pending`, {
+async function getDeskMemberships(
+  accessToken: string,
+  status: "pending" | "active" | "frozen",
+): Promise<{ memberships: DeskMembership[] }> {
+  const response = await authorized(`${apiUrl}/memberships/${status}`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
-  return readAdmin(response, "Could not load memberships waiting for approval.");
+  return readAdmin(response, "Could not load memberships.");
+}
+
+export function getPendingMemberships(accessToken: string) {
+  return getDeskMemberships(accessToken, "pending");
+}
+
+export function getActiveMemberships(accessToken: string) {
+  return getDeskMemberships(accessToken, "active");
+}
+
+export function getFrozenMemberships(accessToken: string) {
+  return getDeskMemberships(accessToken, "frozen");
 }
 
 export async function approveMembership(accessToken: string, userId: number): Promise<void> {
-  const response = await fetch(`${apiUrl}/memberships/${userId}/activate`, {
+  const response = await authorized(`${apiUrl}/memberships/${userId}/activate`, {
     method: "POST",
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   await readAdmin(response, "Could not approve this membership.");
 }
 
+export async function freezeMembership(accessToken: string, userId: number): Promise<void> {
+  const response = await authorized(`${apiUrl}/memberships/${userId}/freeze`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  await readAdmin(response, "Could not freeze this membership.");
+}
+
+export type DirectoryAccount = {
+  id: number;
+  email: string;
+  role: "Student" | "Staff" | "Instructor" | "GymAdmin" | "FacilityManager" | "SystemAdmin";
+  campusIdentifier: string;
+  firstName: string;
+  lastName: string;
+};
+
+export async function getAccounts(accessToken: string): Promise<{ users: DirectoryAccount[] }> {
+  const response = await authorized(`${apiUrl}/users`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return readAdmin(response, "Could not load accounts.");
+}
+
+export async function assignAccountRole(
+  accessToken: string,
+  userId: number,
+  role: DirectoryAccount["role"],
+): Promise<DirectoryAccount> {
+  const response = await authorized(`${apiUrl}/users/${userId}/role`, {
+    method: "PATCH",
+    headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ role }),
+  });
+  return readAdmin(response, "Could not change this role.");
+}
+
 export async function announceClosure(
   accessToken: string,
   closure: { startsOn: string; endsOn: string; reason: string },
 ): Promise<{ notified: number }> {
-  const response = await fetch(`${apiUrl}/notices/closure`, {
+  const response = await authorized(`${apiUrl}/notices/closure`, {
     method: "POST",
     headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
     body: JSON.stringify(closure),

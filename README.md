@@ -12,6 +12,10 @@ Digital platform for the Emeris campus gym. Members use a phone app for access, 
 
 Login is email and password with a 15-minute JWT and a hashed refresh token. Campus Microsoft Entra ID is not available to this group, so the app issues its own tokens. Each user still has a campus identifier. QR access is implemented. NFC stays a future hardware step.
 
+## POPIA
+
+Membership, access, and wellness data are used only for gym operations. They are not used for marketing or shared outside the gym.
+
 ## Live sites
 
 Every live address is HTTPS. Azure terminates TLS on `azurewebsites.net`.
