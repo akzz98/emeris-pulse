@@ -19,6 +19,10 @@
   margin-bottom: 1.25rem;
 }
 
+.equipment-fault {
+  margin-top: 1rem;
+}
+
 .equipment-open h2,
 .equipment-list h2 {
   margin: 0;

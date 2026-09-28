@@ -1,4 +1,5 @@
 import sql from "mssql";
+import type { TicketStatus } from "../../domain/maintenance.js";
 import { getPool } from "../../db/pool.js";
 
 export type EquipmentStatus = "Available" | "OutOfService";
@@ -148,6 +149,37 @@ export class EquipmentRepository {
     `);
     const row = result.recordset[0];
     return row ? mapSession(row) : null;
+  }
+
+  async openTicketForEquipment(equipmentId: number): Promise<boolean> {
+    const pool = await getPool();
+    const result = await pool.request().input("equipmentId", sql.Int, equipmentId).query<{ Id: number }>(`
+      SELECT TOP 1 Id
+      FROM dbo.MaintenanceTickets
+      WHERE EquipmentId = @equipmentId AND Status IN (N'Open', N'InProgress')
+    `);
+    return result.recordset.length > 0;
+  }
+
+  async insertTicket(
+    equipmentId: number,
+    userId: number,
+    description: string,
+    status: TicketStatus,
+  ): Promise<{ id: number }> {
+    const pool = await getPool();
+    const result = await pool
+      .request()
+      .input("equipmentId", sql.Int, equipmentId)
+      .input("userId", sql.Int, userId)
+      .input("status", sql.NVarChar(16), status)
+      .input("description", sql.NVarChar(400), description)
+      .query<{ Id: number }>(`
+        INSERT INTO dbo.MaintenanceTickets (EquipmentId, ReportedByUserId, Status, Description)
+        OUTPUT INSERTED.Id
+        VALUES (@equipmentId, @userId, @status, @description)
+      `);
+    return { id: result.recordset[0].Id };
   }
 
   async endOpenSession(userId: number): Promise<boolean> {

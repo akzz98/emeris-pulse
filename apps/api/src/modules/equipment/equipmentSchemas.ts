@@ -11,3 +11,9 @@ export const startSessionSchema = z.object({
 });
 
 export type StartSessionInput = z.infer<typeof startSessionSchema>;
+
+export const faultSchema = z.object({
+  description: z.string().trim().min(1).max(400),
+});
+
+export type FaultInput = z.infer<typeof faultSchema>;

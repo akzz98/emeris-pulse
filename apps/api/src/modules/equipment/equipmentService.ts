@@ -1,4 +1,5 @@
 import sql from "mssql";
+import { MaintenanceTicket } from "../../domain/maintenance.js";
 import { getPool } from "../../db/pool.js";
 import { HttpError } from "../../http/httpError.js";
 import { getMyMembership } from "../memberships/membershipService.js";
@@ -54,6 +55,29 @@ export async function startSession(userId: number, code: string) {
     await transaction.rollback();
     throw error;
   }
+}
+
+// The fault is for the machine in the current session. A second open ticket is refused.
+export async function reportFault(userId: number, description: string) {
+  await requireActiveMember(userId);
+  const session = await equipment.openSessionForUser(userId);
+  if (!session) {
+    throw new HttpError(404, "SESSION_NOT_FOUND", "Start a session on the machine before reporting a fault.");
+  }
+  const alreadyOpen = await equipment.openTicketForEquipment(session.equipmentId);
+  if (alreadyOpen) {
+    throw new HttpError(409, "TICKET_ALREADY_OPEN", "A ticket is already open for this machine.");
+  }
+  const status = MaintenanceTicket.report();
+  const ticket = await equipment.insertTicket(session.equipmentId, userId, description, status);
+  return {
+    id: ticket.id,
+    equipmentId: session.equipmentId,
+    code: session.code,
+    name: session.name,
+    status,
+    description,
+  };
 }
 
 export async function endSession(userId: number) {

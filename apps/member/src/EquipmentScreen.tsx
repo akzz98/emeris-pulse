@@ -4,6 +4,7 @@ import {
   endEquipmentSession,
   getCurrentEquipmentSession,
   getEquipment,
+  reportEquipmentFault,
   startEquipmentSession,
   type EquipmentSession,
   type FloorMachine,
@@ -29,10 +30,11 @@ export function EquipmentScreen({ session, nav, onSignOut }: EquipmentScreenProp
   const [machines, setMachines] = useState<FloorMachine[] | null>(null);
   const [open, setOpen] = useState<EquipmentSession | null>(null);
   const [code, setCode] = useState("");
+  const [fault, setFault] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<"start" | "end" | "report" | null>(null);
 
   async function load() {
     const [floor, current] = await Promise.all([
@@ -73,7 +75,7 @@ export function EquipmentScreen({ session, nav, onSignOut }: EquipmentScreenProp
 
   async function onStart(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setBusy(true);
+    setBusy("start");
     setError(null);
     setNotice(null);
     try {
@@ -89,12 +91,33 @@ export function EquipmentScreen({ session, nav, onSignOut }: EquipmentScreenProp
       }
       setError(message);
     } finally {
-      setBusy(false);
+      setBusy(null);
+    }
+  }
+
+  async function onReport(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setBusy("report");
+    setError(null);
+    setNotice(null);
+    try {
+      const ticket = await reportEquipmentFault(session.accessToken, fault);
+      setFault("");
+      setNotice(`A maintenance ticket is open for ${ticket.name}.`);
+    } catch (caught) {
+      const message = caught instanceof Error ? caught.message : "Could not report this fault.";
+      if (message === "UNAUTHENTICATED") {
+        onSignOut();
+        return;
+      }
+      setError(message);
+    } finally {
+      setBusy(null);
     }
   }
 
   async function onEnd() {
-    setBusy(true);
+    setBusy("end");
     setError(null);
     setNotice(null);
     try {
@@ -109,7 +132,7 @@ export function EquipmentScreen({ session, nav, onSignOut }: EquipmentScreenProp
       }
       setError(message);
     } finally {
-      setBusy(false);
+      setBusy(null);
     }
   }
 
@@ -134,9 +157,22 @@ export function EquipmentScreen({ session, nav, onSignOut }: EquipmentScreenProp
           <p>
             Started at {formatWhen(open.startedAt)} · {open.location}
           </p>
-          <Button type="button" disabled={busy} onClick={() => void onEnd()}>
-            {busy ? "Ending…" : "End session"}
+          <Button type="button" disabled={busy !== null} onClick={() => void onEnd()}>
+            {busy === "end" ? "Ending…" : "End session"}
           </Button>
+          <form className="equipment-fault" onSubmit={(event) => void onReport(event)}>
+            <TextField
+              id="fault-description"
+              label="What is wrong?"
+              value={fault}
+              onChange={(event) => setFault(event.target.value)}
+              maxLength={400}
+              required
+            />
+            <Button type="submit" disabled={busy !== null}>
+              {busy === "report" ? "Sending…" : "Report a fault"}
+            </Button>
+          </form>
         </section>
       ) : (
         <form className="equipment-form" onSubmit={(event) => void onStart(event)}>
@@ -148,8 +184,8 @@ export function EquipmentScreen({ session, nav, onSignOut }: EquipmentScreenProp
             autoComplete="off"
             required
           />
-          <Button type="submit" disabled={busy}>
-            {busy ? "Starting…" : "Start session"}
+          <Button type="submit" disabled={busy !== null}>
+            {busy === "start" ? "Starting…" : "Start session"}
           </Button>
         </form>
       )}
@@ -166,7 +202,7 @@ export function EquipmentScreen({ session, nav, onSignOut }: EquipmentScreenProp
               </p>
               <p>{machine.status === "Available" ? "Available" : "Out of service"}</p>
               {machine.status === "Available" && !open ? (
-                <Button type="button" disabled={busy} onClick={() => setCode(machine.code)}>
+                <Button type="button" disabled={busy !== null} onClick={() => setCode(machine.code)}>
                   Use this code
                 </Button>
               ) : null}

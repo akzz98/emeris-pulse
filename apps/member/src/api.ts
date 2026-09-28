@@ -264,6 +264,27 @@ export async function startEquipmentSession(accessToken: string, code: string): 
   return readJson(response, "Could not start this machine.");
 }
 
+export type MaintenanceTicket = {
+  id: number;
+  equipmentId: number;
+  code: string;
+  name: string;
+  status: "Open";
+  description: string;
+};
+
+export async function reportEquipmentFault(accessToken: string, description: string): Promise<MaintenanceTicket> {
+  const response = await fetch(`${apiUrl}/equipment/sessions/current/fault`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ description }),
+  });
+  return readJson(response, "Could not report this fault.");
+}
+
 export async function endEquipmentSession(accessToken: string): Promise<{ ended: boolean }> {
   const response = await fetch(`${apiUrl}/equipment/sessions/current/end`, {
     method: "POST",

@@ -6,9 +6,10 @@ import {
   currentSessionHandler,
   endSessionHandler,
   listEquipmentHandler,
+  reportFaultHandler,
   startSessionHandler,
 } from "./equipmentController.js";
-import { startSessionSchema } from "./equipmentSchemas.js";
+import { faultSchema, startSessionSchema } from "./equipmentSchemas.js";
 
 export const equipmentRouter = Router();
 
@@ -19,5 +20,11 @@ equipmentRouter.post(
   authenticate,
   validateBody(startSessionSchema),
   asyncHandler(startSessionHandler),
+);
+equipmentRouter.post(
+  "/equipment/sessions/current/fault",
+  authenticate,
+  validateBody(faultSchema),
+  asyncHandler(reportFaultHandler),
 );
 equipmentRouter.post("/equipment/sessions/current/end", authenticate, asyncHandler(endSessionHandler));
