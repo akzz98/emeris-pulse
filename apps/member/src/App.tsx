@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { AccessScreen } from "./AccessScreen";
 import { HomeScreen } from "./HomeScreen";
 import { LoginScreen } from "./LoginScreen";
 import { MembershipScreen } from "./MembershipScreen";
@@ -43,6 +44,10 @@ export function App() {
 
   if (screen === "membership") {
     return <MembershipScreen session={session} nav={nav} onSignOut={onSignOut} />;
+  }
+
+  if (screen === "access") {
+    return <AccessScreen session={session} nav={nav} onSignOut={onSignOut} />;
   }
 
   if (screen === "profile") {

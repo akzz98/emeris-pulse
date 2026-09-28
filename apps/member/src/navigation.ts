@@ -1,12 +1,13 @@
 import type { AppNavItem } from "@emeris/ui";
 
-export type MemberScreen = "home" | "membership" | "profile";
+export type MemberScreen = "home" | "membership" | "access" | "profile";
 
 // Labels match the Part 1 member screens that are built.
-// QR / cardless access, Class timetable, Book a class, Equipment, Wellness, and Notifications join this list with those names.
+// Class timetable, Book a class, Equipment, Wellness, and Notifications join this list with those names.
 const memberScreens: Array<{ id: MemberScreen; label: string }> = [
   { id: "home", label: "Home" },
   { id: "membership", label: "Membership" },
+  { id: "access", label: "QR / cardless access" },
   { id: "profile", label: "Profile" },
 ];
 

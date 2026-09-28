@@ -115,6 +115,28 @@ export async function updateProfile(
   return readProfile(response, "Could not save your profile.");
 }
 
+export type AccessPass = {
+  token: string;
+  expiresAt: string;
+  expiresIn: number;
+  kind: "Standard";
+};
+
+export async function issueAccessPass(accessToken: string): Promise<AccessPass> {
+  const response = await fetch(`${apiUrl}/access/passes`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  const body = (await response.json()) as AccessPass & { error?: { message?: string } };
+  if (response.status === 401) {
+    throw new Error("UNAUTHENTICATED");
+  }
+  if (!response.ok) {
+    throw new Error(body.error?.message ?? "Could not issue a pass.");
+  }
+  return body;
+}
+
 export async function getMembership(accessToken: string): Promise<MembershipDetails> {
   const response = await fetch(`${apiUrl}/memberships/me`, {
     headers: { Authorization: `Bearer ${accessToken}` },
