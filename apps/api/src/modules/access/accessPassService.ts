@@ -2,9 +2,11 @@ import jwt from "jsonwebtoken";
 import { HttpError } from "../../http/httpError.js";
 import { getMyMembership } from "../memberships/membershipService.js";
 import type { RedeemPassInput } from "./accessPassSchemas.js";
+import { AccessEventRepository } from "./accessEventRepository.js";
 import { AccessPassRepository, newPassId } from "./accessPassRepository.js";
 
 const passes = new AccessPassRepository();
+const events = new AccessEventRepository();
 
 // Short enough that a screenshot of the code cannot be reused later in the day.
 const passTtlSeconds = 60;
@@ -78,16 +80,31 @@ export async function redeemPass(input: RedeemPassInput) {
   // Pending, frozen, and expired memberships cannot enter, even with a signed code that has not been used.
   const membership = await getMyMembership(claim.userId);
   if (!membership.canEnter) {
+    const pass = await passes.findByJti(claim.jti);
+    await events.insert({
+      userId: claim.userId,
+      passId: pass?.id ?? null,
+      result: "Refused",
+      reason: "Membership is not active.",
+    });
     throw new HttpError(403, "ENTRY_REFUSED", "Entry is refused because this membership is not active.");
   }
 
-  const consumed = await passes.consumeOnce(claim.jti, claim.userId);
-  if (consumed) {
-    return { result: "Accepted" as const };
+  const passId = await passes.consumeOnce(claim.jti, claim.userId);
+  if (passId) {
+    // Granted and refused scans are both stored so the access log has a row for this door check.
+    await events.insert({ userId: claim.userId, passId, result: "Granted", reason: null });
+    return { result: "Granted" as const };
   }
 
   const existing = await passes.findByJti(claim.jti);
   if (existing?.usedAt && existing.userId === claim.userId) {
+    await events.insert({
+      userId: claim.userId,
+      passId: existing.id,
+      result: "Refused",
+      reason: "Pass already used.",
+    });
     throw new HttpError(409, "PASS_ALREADY_USED", "This pass has already been used.");
   }
   throw new HttpError(401, "PASS_INVALID", "This pass is not valid.");

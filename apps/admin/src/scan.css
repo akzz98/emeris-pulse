@@ -1,0 +1,30 @@
+.scan-form h1 {
+  margin: 0 0 0.25rem;
+  color: var(--ep-teal, #004559);
+  font-size: 1.5rem;
+}
+
+.scan-note {
+  margin: 0 0 1rem;
+  color: var(--ep-muted, #4d5e66);
+}
+
+.scan-form .ep-state {
+  margin-bottom: 1rem;
+}
+
+.scan-form textarea {
+  font: inherit;
+  color: var(--ep-ink, #142026);
+  background: var(--ep-white, #ffffff);
+  border: 1px solid var(--ep-line, #d5e0e4);
+  border-radius: 0.4rem;
+  padding: 0.6rem 0.7rem;
+  resize: vertical;
+}
+
+.scan-form textarea:focus-visible {
+  outline: var(--ep-focus, 2px solid #0b6e8a);
+  outline-offset: 2px;
+  border-color: var(--ep-teal, #004559);
+}

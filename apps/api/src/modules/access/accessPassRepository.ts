@@ -57,18 +57,19 @@ export class AccessPassRepository {
   }
 
   // One update wins. A second scan finds UsedAt already set and is rejected.
-  async consumeOnce(jti: string, userId: number): Promise<boolean> {
+  async consumeOnce(jti: string, userId: number): Promise<number | null> {
     const pool = await getPool();
     const result = await pool
       .request()
       .input("jti", sql.NVarChar(64), jti)
       .input("userId", sql.Int, userId)
-      .query(`
+      .query<{ Id: number }>(`
         UPDATE dbo.AccessPasses
         SET UsedAt = SYSUTCDATETIME()
+        OUTPUT INSERTED.Id
         WHERE Jti = @jti AND UserId = @userId AND UsedAt IS NULL AND ExpiresAt > SYSUTCDATETIME()
       `);
-    return result.rowsAffected[0] === 1;
+    return result.recordset[0]?.Id ?? null;
   }
 }
 
