@@ -54,6 +54,32 @@ export type ActivitySummary = {
   }>;
 };
 
+// Membership shown on the member screen. termDays is 120 for students and 365 for staff.
+export type MembershipDetails = {
+  id: number;
+  userId: number;
+  status: "Pending" | "Active" | "Frozen" | "Expired";
+  memberType: "Student" | "Staff";
+  startDate: string;
+  expiryDate: string;
+  termDays: number;
+  canEnter: boolean;
+};
+
+export async function getMembership(accessToken: string): Promise<MembershipDetails> {
+  const response = await fetch(`${apiUrl}/memberships/me`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  const body = (await response.json()) as MembershipDetails & { error?: { message?: string } };
+  if (response.status === 401) {
+    throw new Error("UNAUTHENTICATED");
+  }
+  if (!response.ok) {
+    throw new Error(body.error?.message ?? "Could not load your membership.");
+  }
+  return body;
+}
+
 export async function getActivitySummary(accessToken: string): Promise<ActivitySummary> {
   const response = await fetch(`${apiUrl}/activity/me`, {
     headers: { Authorization: `Bearer ${accessToken}` },

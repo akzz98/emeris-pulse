@@ -6,6 +6,7 @@ import type { MemberSession } from "./session";
 
 type HomeScreenProps = {
   session: MemberSession;
+  onOpenMembership: () => void;
   onSignOut: () => void;
 };
 
@@ -17,7 +18,7 @@ function formatWhen(iso: string): string {
   return date.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 }
 
-export function HomeScreen({ session, onSignOut }: HomeScreenProps) {
+export function HomeScreen({ session, onOpenMembership, onSignOut }: HomeScreenProps) {
   const [summary, setSummary] = useState<ActivitySummary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -59,6 +60,9 @@ export function HomeScreen({ session, onSignOut }: HomeScreenProps) {
         <h1>Hello, {session.user.firstName}</h1>
         <p>Your activity at Emeris Pulse.</p>
       </header>
+      <button type="button" className="text-button" onClick={onOpenMembership}>
+        View membership
+      </button>
       {loading ? <LoadingState title="Loading activity" message="Fetching your visits, classes, and challenges." /> : null}
       {error ? <ErrorState title="Activity unavailable" message={error} /> : null}
       {summary ? (
