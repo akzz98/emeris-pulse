@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AppShell, EmptyState, ErrorState, LoadingState, type AppNavItem } from "@emeris/ui";
+import { AppShell, Button, EmptyState, ErrorState, LoadingState, type AppNavItem } from "@emeris/ui";
 import {
   getClassFill,
   getEquipmentDowntime,
@@ -39,6 +39,36 @@ function formatDay(value: string): string {
   return date.toLocaleDateString(undefined, { day: "numeric", month: "short" });
 }
 
+function ReportPager({
+  page,
+  pageSize,
+  total,
+  onPage,
+}: {
+  page: number;
+  pageSize: number;
+  total: number;
+  onPage: (page: number) => void;
+}) {
+  if (total <= 0) {
+    return null;
+  }
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
+  return (
+    <div className="report-pager">
+      <Button onClick={() => onPage(page - 1)} disabled={page <= 1}>
+        Previous
+      </Button>
+      <p>
+        Page {page} of {pageCount}
+      </p>
+      <Button onClick={() => onPage(page + 1)} disabled={page >= pageCount}>
+        Next
+      </Button>
+    </div>
+  );
+}
+
 function downLabel(hours: number | null): string {
   if (hours === null) {
     return "Out of service";
@@ -57,13 +87,15 @@ export function ReportsScreen({ session, nav, onSignOut }: ReportsScreenProps) {
   const [downtimeError, setDowntimeError] = useState<string | null>(null);
   const [wellnessError, setWellnessError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [fillPage, setFillPage] = useState(1);
+  const [downtimePage, setDowntimePage] = useState(1);
+  const [wellnessPage, setWellnessPage] = useState(1);
 
   useEffect(() => {
     let active = true;
-    setLoading(true);
     async function load() {
       try {
-        const next = await getClassFill(session.accessToken);
+        const next = await getClassFill(session.accessToken, fillPage);
         if (active) {
           setFill(next);
           setFillError(null);
@@ -80,7 +112,7 @@ export function ReportsScreen({ session, nav, onSignOut }: ReportsScreenProps) {
         setFillError(message);
       }
       try {
-        const next = await getEquipmentDowntime(session.accessToken);
+        const next = await getEquipmentDowntime(session.accessToken, downtimePage);
         if (active) {
           setDowntime(next);
           setDowntimeError(null);
@@ -97,7 +129,7 @@ export function ReportsScreen({ session, nav, onSignOut }: ReportsScreenProps) {
         setDowntimeError(message);
       }
       try {
-        const next = await getWellnessParticipation(session.accessToken);
+        const next = await getWellnessParticipation(session.accessToken, wellnessPage);
         if (active) {
           setWellness(next);
           setWellnessError(null);
@@ -122,10 +154,10 @@ export function ReportsScreen({ session, nav, onSignOut }: ReportsScreenProps) {
     return () => {
       active = false;
     };
-  }, [session.accessToken, onSignOut]);
+  }, [session.accessToken, onSignOut, fillPage, downtimePage, wellnessPage]);
 
   const area = session.user.role === "FacilityManager" ? "Facility" : "Admin";
-  const down = downtime?.machines.filter((item) => item.status === "OutOfService") ?? [];
+  const down = downtime?.machines ?? [];
 
   return (
     <AppShell area={area} nav={nav} onSignOut={onSignOut}>
@@ -157,6 +189,7 @@ export function ReportsScreen({ session, nav, onSignOut }: ReportsScreenProps) {
                 </li>
               ))}
             </ul>
+            <ReportPager page={fill.page} pageSize={fill.pageSize} total={fill.total} onPage={setFillPage} />
           </>
         ) : null}
       </section>
@@ -167,7 +200,7 @@ export function ReportsScreen({ session, nav, onSignOut }: ReportsScreenProps) {
         {downtime && downtime.total === 0 ? (
           <EmptyState title="No equipment" message="Machines appear here once they are registered." />
         ) : null}
-        {downtime && downtime.total > 0 && down.length === 0 ? (
+        {downtime && downtime.total > 0 && downtime.outOfService === 0 ? (
           <EmptyState title="No downtime" message="Every machine is available." />
         ) : null}
         {downtime && down.length > 0 ? (
@@ -188,6 +221,12 @@ export function ReportsScreen({ session, nav, onSignOut }: ReportsScreenProps) {
                 </li>
               ))}
             </ul>
+            <ReportPager
+              page={downtime.page}
+              pageSize={downtime.pageSize}
+              total={downtime.outOfService}
+              onPage={setDowntimePage}
+            />
           </>
         ) : null}
       </section>
@@ -215,6 +254,7 @@ export function ReportsScreen({ session, nav, onSignOut }: ReportsScreenProps) {
                 </li>
               ))}
             </ul>
+            <ReportPager page={wellness.page} pageSize={wellness.pageSize} total={wellness.total} onPage={setWellnessPage} />
           </>
         ) : null}
       </section>

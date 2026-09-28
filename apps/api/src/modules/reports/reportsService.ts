@@ -20,37 +20,41 @@ function hoursDown(openSince: string | null): number | null {
   return Math.max(0, Math.floor((Date.now() - opened) / (60 * 60 * 1000)));
 }
 
-export async function classFillReport() {
-  const classes = await reports.classFill();
-  const filled = classes.reduce((sum, item) => sum + item.filled, 0);
-  const seats = classes.reduce((sum, item) => sum + item.capacity, 0);
+export async function classFillReport(page: number, pageSize: number) {
+  const report = await reports.classFill(page, pageSize);
   return {
-    filled,
-    seats,
-    fillRate: rate(filled, seats),
-    classes: classes.map((item) => ({ ...item, fillRate: rate(item.filled, item.capacity) })),
+    page,
+    pageSize,
+    total: report.total,
+    filled: report.filled,
+    seats: report.seats,
+    fillRate: rate(report.filled, report.seats),
+    classes: report.classes.map((item) => ({ ...item, fillRate: rate(item.filled, item.capacity) })),
   };
 }
 
-export async function equipmentDowntimeReport() {
-  const machines = await reports.equipmentDowntime();
-  const listed = machines.map((item) => ({
-    ...item,
-    hoursDown: item.status === "OutOfService" ? hoursDown(item.openSince) : null,
-  }));
+export async function equipmentDowntimeReport(page: number, pageSize: number) {
+  const report = await reports.equipmentDowntime(page, pageSize);
   return {
-    total: listed.length,
-    outOfService: listed.filter((item) => item.status === "OutOfService").length,
-    machines: listed,
+    page,
+    pageSize,
+    total: report.total,
+    outOfService: report.outOfService,
+    machines: report.machines.map((item) => ({
+      ...item,
+      hoursDown: hoursDown(item.openSince),
+    })),
   };
 }
 
-export async function wellnessParticipationReport() {
-  const report = await reports.wellnessParticipation();
-  const enrolments = report.challenges.reduce((sum, item) => sum + item.participants, 0);
+export async function wellnessParticipationReport(page: number, pageSize: number) {
+  const report = await reports.wellnessParticipation(page, pageSize);
   return {
+    page,
+    pageSize,
+    total: report.total,
     people: report.people,
-    enrolments,
+    enrolments: report.enrolments,
     challenges: report.challenges,
   };
 }

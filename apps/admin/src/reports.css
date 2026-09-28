@@ -46,6 +46,19 @@
   padding-top: 0.65rem;
 }
 
+.report-pager {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.9rem;
+}
+
+.report-pager p {
+  margin: 0;
+  color: var(--ep-teal, #004559);
+  font-weight: 700;
+}
+
 .report h3 {
   margin: 0;
   color: var(--ep-teal, #004559);

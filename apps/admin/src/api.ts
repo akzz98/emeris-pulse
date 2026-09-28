@@ -197,6 +197,9 @@ export type ClassFill = {
 };
 
 export type ClassFillReport = {
+  page: number;
+  pageSize: number;
+  total: number;
   filled: number;
   seats: number;
   fillRate: number;
@@ -215,13 +218,16 @@ export type DowntimeMachine = {
 };
 
 export type DowntimeReport = {
+  page: number;
+  pageSize: number;
   total: number;
   outOfService: number;
   machines: DowntimeMachine[];
 };
 
-export async function getClassFill(accessToken: string): Promise<ClassFillReport> {
-  const response = await fetch(`${apiUrl}/reports/class-fill`, {
+export async function getClassFill(accessToken: string, page: number): Promise<ClassFillReport> {
+  // One class per page so a short timetable still has a next page.
+  const response = await fetch(`${apiUrl}/reports/class-fill?page=${page}&pageSize=1`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return readAdmin(response, "Could not load the class fill report.");
@@ -237,20 +243,23 @@ export type WellnessChallenge = {
 };
 
 export type WellnessReport = {
+  page: number;
+  pageSize: number;
+  total: number;
   people: number;
   enrolments: number;
   challenges: WellnessChallenge[];
 };
 
-export async function getWellnessParticipation(accessToken: string): Promise<WellnessReport> {
-  const response = await fetch(`${apiUrl}/reports/wellness`, {
+export async function getWellnessParticipation(accessToken: string, page: number): Promise<WellnessReport> {
+  const response = await fetch(`${apiUrl}/reports/wellness?page=${page}&pageSize=1`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return readAdmin(response, "Could not load the wellness report.");
 }
 
-export async function getEquipmentDowntime(accessToken: string): Promise<DowntimeReport> {
-  const response = await fetch(`${apiUrl}/reports/equipment-downtime`, {
+export async function getEquipmentDowntime(accessToken: string, page: number): Promise<DowntimeReport> {
+  const response = await fetch(`${apiUrl}/reports/equipment-downtime?page=${page}&pageSize=1`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return readAdmin(response, "Could not load the downtime report.");

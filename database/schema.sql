@@ -222,3 +222,23 @@ BEGIN
     );
 END
 GO
+
+-- Report pages filter by status or start date, then take one page. These indexes are created
+-- even when the tables already exist, so an older database picks them up.
+IF NOT EXISTS (
+    SELECT 1 FROM sys.indexes
+    WHERE name = N'IX_ClassSessions_Status_StartsAt' AND object_id = OBJECT_ID(N'dbo.ClassSessions')
+)
+BEGIN
+    CREATE INDEX IX_ClassSessions_Status_StartsAt ON dbo.ClassSessions (Status, StartsAt DESC, Id DESC);
+END
+GO
+
+IF NOT EXISTS (
+    SELECT 1 FROM sys.indexes
+    WHERE name = N'IX_Challenges_StartsOn' AND object_id = OBJECT_ID(N'dbo.Challenges')
+)
+BEGIN
+    CREATE INDEX IX_Challenges_StartsOn ON dbo.Challenges (StartsOn DESC, Id DESC);
+END
+GO
