@@ -52,6 +52,11 @@ export type ActivitySummary = {
     detail: string;
     occurredAt: string;
   }>;
+  prompts: Array<{
+    kind: "class" | "wellness";
+    title: string;
+    message: string;
+  }>;
 };
 
 // Membership shown on the member screen. termDays is 120 for students and 365 for staff.

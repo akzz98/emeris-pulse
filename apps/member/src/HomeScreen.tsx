@@ -64,6 +64,21 @@ export function HomeScreen({ session, nav, onSignOut }: HomeScreenProps) {
       {error ? <ErrorState title="Activity unavailable" message={error} /> : null}
       {summary ? (
         <>
+          {summary.prompts.length > 0 ? (
+            <section className="workday-prompts" aria-labelledby="workday-prompts-heading">
+              <h2 id="workday-prompts-heading">Workday prompts</h2>
+              <ul>
+                {summary.prompts.map((prompt) => (
+                  <li key={`${prompt.kind}-${prompt.title}`}>
+                    <p>
+                      <strong>{prompt.title}</strong>
+                      <span>{prompt.message}</span>
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
           <section aria-labelledby="activity-summary-heading">
             <h2 id="activity-summary-heading" className="visually-hidden">
               Activity summary

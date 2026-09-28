@@ -107,4 +107,72 @@ export class ActivityRepository {
       occurredAt: asUtc(row.OccurredAt),
     }));
   }
+
+  // Classes that start between 06:00 and 17:00, so prompts fit a working day.
+  async upcomingWorkdayClasses(userId: number): Promise<WorkdayClass[]> {
+    const pool = await getPool();
+    const result = await pool.request().input("userId", sql.Int, userId).query<WorkdayClassRow>(`
+      SELECT TOP 2
+        cs.Title,
+        cs.Location,
+        CONVERT(varchar(33), cs.StartsAt, 126) AS StartsAt,
+        CASE WHEN b.Id IS NULL THEN 0 ELSE 1 END AS Booked
+      FROM dbo.ClassSessions cs
+      LEFT JOIN dbo.Bookings b
+        ON b.ClassSessionId = cs.Id AND b.UserId = @userId AND b.Status = N'Booked'
+      WHERE cs.Status = N'Scheduled'
+        AND cs.StartsAt >= CAST(GETDATE() AS DATETIME2)
+        AND DATEPART(HOUR, cs.StartsAt) BETWEEN 6 AND 17
+      ORDER BY cs.StartsAt
+    `);
+    return result.recordset.map((row) => ({
+      title: row.Title,
+      location: row.Location,
+      startsAt: row.StartsAt,
+      booked: Number(row.Booked) === 1,
+    }));
+  }
+
+  async openChallenges(userId: number): Promise<OpenChallenge[]> {
+    const pool = await getPool();
+    const result = await pool.request().input("userId", sql.Int, userId).query<OpenChallengeRow>(`
+      SELECT TOP 1
+        c.Title,
+        CASE WHEN ce.Id IS NULL THEN 0 ELSE 1 END AS Joined
+      FROM dbo.Challenges c
+      LEFT JOIN dbo.ChallengeEnrolments ce
+        ON ce.ChallengeId = c.Id AND ce.UserId = @userId
+      WHERE c.StartsOn <= CAST(GETDATE() AS DATE)
+        AND c.EndsOn >= CAST(GETDATE() AS DATE)
+      ORDER BY c.StartsOn
+    `);
+    return result.recordset.map((row) => ({
+      title: row.Title,
+      joined: Number(row.Joined) === 1,
+    }));
+  }
 }
+
+export type WorkdayClass = {
+  title: string;
+  location: string;
+  startsAt: string;
+  booked: boolean;
+};
+
+export type OpenChallenge = {
+  title: string;
+  joined: boolean;
+};
+
+type WorkdayClassRow = {
+  Title: string;
+  Location: string;
+  StartsAt: string;
+  Booked: number;
+};
+
+type OpenChallengeRow = {
+  Title: string;
+  Joined: number;
+};
