@@ -44,3 +44,13 @@ export async function equipmentDowntimeReport() {
     machines: listed,
   };
 }
+
+export async function wellnessParticipationReport() {
+  const report = await reports.wellnessParticipation();
+  const enrolments = report.challenges.reduce((sum, item) => sum + item.participants, 0);
+  return {
+    people: report.people,
+    enrolments,
+    challenges: report.challenges,
+  };
+}

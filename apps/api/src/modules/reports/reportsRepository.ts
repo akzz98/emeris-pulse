@@ -16,6 +16,15 @@ export type ClassFillRow = {
   filled: number;
 };
 
+export type WellnessRow = {
+  id: number;
+  title: string;
+  startsOn: string;
+  endsOn: string;
+  phase: "Open" | "Upcoming" | "Ended";
+  participants: number;
+};
+
 export type DowntimeRow = {
   id: number;
   code: string;
@@ -105,5 +114,51 @@ export class ReportsRepository {
       openTickets: Number(row.OpenTickets),
       openSince: asUtc(row.OpenSince),
     }));
+  }
+
+  // One row per challenge. A person who joins two challenges is counted on each.
+  // The per-challenge count uses UQ_ChallengeEnrolments_Challenge_User.
+  async wellnessParticipation(): Promise<{ challenges: WellnessRow[]; people: number }> {
+    const pool = await getPool();
+    const challenges = await pool.request().query<{
+      Id: number;
+      Title: string;
+      StartsOn: string;
+      EndsOn: string;
+      Phase: "Open" | "Upcoming" | "Ended";
+      Participants: number;
+    }>(`
+      SELECT
+        c.Id,
+        c.Title,
+        CONVERT(char(10), c.StartsOn, 23) AS StartsOn,
+        CONVERT(char(10), c.EndsOn, 23) AS EndsOn,
+        CASE
+          WHEN c.EndsOn < CAST(GETDATE() AS DATE) THEN N'Ended'
+          WHEN c.StartsOn > CAST(GETDATE() AS DATE) THEN N'Upcoming'
+          ELSE N'Open'
+        END AS Phase,
+        (
+          SELECT COUNT(*)
+          FROM dbo.ChallengeEnrolments ce
+          WHERE ce.ChallengeId = c.Id
+        ) AS Participants
+      FROM dbo.Challenges c
+      ORDER BY c.StartsOn DESC, c.Id DESC
+    `);
+    const people = await pool.request().query<{ People: number }>(`
+      SELECT COUNT(DISTINCT UserId) AS People FROM dbo.ChallengeEnrolments
+    `);
+    return {
+      people: Number(people.recordset[0]?.People ?? 0),
+      challenges: challenges.recordset.map((row) => ({
+        id: row.Id,
+        title: row.Title,
+        startsOn: row.StartsOn,
+        endsOn: row.EndsOn,
+        phase: row.Phase,
+        participants: Number(row.Participants),
+      })),
+    };
   }
 }

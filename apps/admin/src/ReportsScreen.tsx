@@ -3,9 +3,11 @@ import { AppShell, EmptyState, ErrorState, LoadingState, type AppNavItem } from 
 import {
   getClassFill,
   getEquipmentDowntime,
+  getWellnessParticipation,
   type AdminSession,
   type ClassFillReport,
   type DowntimeReport,
+  type WellnessReport,
 } from "./api";
 import "./reports.css";
 
@@ -29,6 +31,14 @@ function formatWhen(value: string): string {
   });
 }
 
+function formatDay(value: string): string {
+  const date = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+  return date.toLocaleDateString(undefined, { day: "numeric", month: "short" });
+}
+
 function downLabel(hours: number | null): string {
   if (hours === null) {
     return "Out of service";
@@ -42,8 +52,10 @@ function downLabel(hours: number | null): string {
 export function ReportsScreen({ session, nav, onSignOut }: ReportsScreenProps) {
   const [fill, setFill] = useState<ClassFillReport | null>(null);
   const [downtime, setDowntime] = useState<DowntimeReport | null>(null);
+  const [wellness, setWellness] = useState<WellnessReport | null>(null);
   const [fillError, setFillError] = useState<string | null>(null);
   const [downtimeError, setDowntimeError] = useState<string | null>(null);
+  const [wellnessError, setWellnessError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -83,6 +95,23 @@ export function ReportsScreen({ session, nav, onSignOut }: ReportsScreenProps) {
           return;
         }
         setDowntimeError(message);
+      }
+      try {
+        const next = await getWellnessParticipation(session.accessToken);
+        if (active) {
+          setWellness(next);
+          setWellnessError(null);
+        }
+      } catch (caught) {
+        if (!active) {
+          return;
+        }
+        const message = caught instanceof Error ? caught.message : "Could not load the wellness report.";
+        if (message === "UNAUTHENTICATED") {
+          onSignOut();
+          return;
+        }
+        setWellnessError(message);
       } finally {
         if (active) {
           setLoading(false);
@@ -102,9 +131,9 @@ export function ReportsScreen({ session, nav, onSignOut }: ReportsScreenProps) {
     <AppShell area={area} nav={nav} onSignOut={onSignOut}>
       <header className="reports-heading">
         <h1>Reports</h1>
-        <p>How full the classes are, and which machines are out of service.</p>
+        <p>How full the classes are, which machines are out of service, and who joined a challenge.</p>
       </header>
-      {loading ? <LoadingState title="Loading reports" message="Checking bookings and maintenance." /> : null}
+      {loading ? <LoadingState title="Loading reports" message="Checking bookings, maintenance, and challenges." /> : null}
       <section className="report" aria-labelledby="fill-heading">
         <h2 id="fill-heading">Class fill rate</h2>
         <p>A held seat counts. A waitlisted member does not.</p>
@@ -156,6 +185,33 @@ export function ReportsScreen({ session, nav, onSignOut }: ReportsScreenProps) {
                   <p>
                     {downLabel(item.hoursDown)} · {item.openTickets === 1 ? "1 open ticket" : `${item.openTickets} open tickets`}
                   </p>
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : null}
+      </section>
+      <section className="report" aria-labelledby="wellness-heading">
+        <h2 id="wellness-heading">Wellness participation</h2>
+        <p>Each person is counted on every challenge they joined.</p>
+        {wellnessError ? <ErrorState title="Wellness report unavailable" message={wellnessError} /> : null}
+        {wellness && wellness.challenges.length === 0 ? (
+          <EmptyState title="No challenges" message="Campus challenges appear here once they are published." />
+        ) : null}
+        {wellness && wellness.challenges.length > 0 ? (
+          <>
+            <p className="report-summary">
+              {wellness.people === 1 ? "1 person joined" : `${wellness.people} people joined`} ·{" "}
+              {wellness.enrolments === 1 ? "1 enrolment" : `${wellness.enrolments} enrolments`}
+            </p>
+            <ul>
+              {wellness.challenges.map((item) => (
+                <li key={item.id}>
+                  <h3>{item.title}</h3>
+                  <p>
+                    {formatDay(item.startsOn)} – {formatDay(item.endsOn)} · {item.phase}
+                  </p>
+                  <p>{item.participants === 1 ? "1 person joined" : `${item.participants} people joined`}</p>
                 </li>
               ))}
             </ul>

@@ -227,6 +227,28 @@ export async function getClassFill(accessToken: string): Promise<ClassFillReport
   return readAdmin(response, "Could not load the class fill report.");
 }
 
+export type WellnessChallenge = {
+  id: number;
+  title: string;
+  startsOn: string;
+  endsOn: string;
+  phase: "Open" | "Upcoming" | "Ended";
+  participants: number;
+};
+
+export type WellnessReport = {
+  people: number;
+  enrolments: number;
+  challenges: WellnessChallenge[];
+};
+
+export async function getWellnessParticipation(accessToken: string): Promise<WellnessReport> {
+  const response = await fetch(`${apiUrl}/reports/wellness`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return readAdmin(response, "Could not load the wellness report.");
+}
+
 export async function getEquipmentDowntime(accessToken: string): Promise<DowntimeReport> {
   const response = await fetch(`${apiUrl}/reports/equipment-downtime`, {
     headers: { Authorization: `Bearer ${accessToken}` },
