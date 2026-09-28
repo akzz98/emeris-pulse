@@ -147,6 +147,18 @@ export async function issueTemporaryPass(input: TemporaryPassInput) {
   };
 }
 
+// Peak hours are the campus hours with the most granted visits. A tie keeps every matching hour.
+export async function getUtilisation() {
+  const usage = await events.utilisation();
+  const busiest = Math.max(...usage.hours.map((hour) => hour.visits));
+  return {
+    visitsToday: usage.visitsToday,
+    visitsThisWeek: usage.visitsThisWeek,
+    peakHours: busiest === 0 ? [] : usage.hours.filter((hour) => hour.visits === busiest).map((hour) => hour.hour),
+    hours: usage.hours.filter((hour) => hour.visits > 0),
+  };
+}
+
 // A typical campus visit. After this, the member is no longer counted as on the floor.
 const occupancyWindowMinutes = 90;
 

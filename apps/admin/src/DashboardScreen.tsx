@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useState } from "react";
-import { AppShell, Button, ErrorState, LoadingState, TextField, type AppNavItem } from "@emeris/ui";
-import { announceClosure, getOccupancy, type AdminSession, type Occupancy } from "./api";
+import { AppShell, Button, EmptyState, ErrorState, LoadingState, TextField, type AppNavItem } from "@emeris/ui";
+import { announceClosure, getOccupancy, getUtilisation, type AdminSession, type Occupancy, type Utilisation } from "./api";
 import "./dashboard.css";
 
 type DashboardScreenProps = {
@@ -8,6 +8,18 @@ type DashboardScreenProps = {
   nav: AppNavItem[];
   onSignOut: () => void;
 };
+
+function formatHour(hour: number): string {
+  return `${String(hour).padStart(2, "0")}:00`;
+}
+
+function peakLabel(hours: number[]): string {
+  const labels = hours.map(formatHour);
+  if (labels.length === 1) {
+    return `Busiest hour is ${labels[0]}.`;
+  }
+  return `Busiest hours are ${labels.slice(0, -1).join(", ")} and ${labels[labels.length - 1]}.`;
+}
 
 function formatWhen(iso: string): string {
   const date = new Date(iso);
@@ -19,7 +31,9 @@ function formatWhen(iso: string): string {
 
 export function DashboardScreen({ session, nav, onSignOut }: DashboardScreenProps) {
   const [occupancy, setOccupancy] = useState<Occupancy | null>(null);
+  const [utilisation, setUtilisation] = useState<Utilisation | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [utilisationError, setUtilisationError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [closure, setClosure] = useState({ startsOn: "", endsOn: "", reason: "" });
   const [closureNotice, setClosureNotice] = useState<string | null>(null);
@@ -46,6 +60,23 @@ export function DashboardScreen({ session, nav, onSignOut }: DashboardScreenProp
           return;
         }
         setError(message);
+      }
+      try {
+        const next = await getUtilisation(session.accessToken);
+        if (active) {
+          setUtilisation(next);
+          setUtilisationError(null);
+        }
+      } catch (caught) {
+        if (!active) {
+          return;
+        }
+        const message = caught instanceof Error ? caught.message : "Could not load utilisation.";
+        if (message === "UNAUTHENTICATED") {
+          onSignOut();
+          return;
+        }
+        setUtilisationError(message);
       } finally {
         if (active) {
           setLoading(false);
@@ -95,9 +126,9 @@ export function DashboardScreen({ session, nav, onSignOut }: DashboardScreenProp
     <AppShell area={area} nav={nav} onSignOut={onSignOut}>
       <header className="dashboard-heading">
         <h1>Dashboard</h1>
-        <p>Who is on the floor, counted from granted entrance scans.</p>
+        <p>Who is on the floor, and which hours the granted visits fall into.</p>
       </header>
-      {loading ? <LoadingState title="Loading occupancy" message="Checking the latest entries." /> : null}
+      {loading ? <LoadingState title="Loading dashboard" message="Checking the floor and recent visits." /> : null}
       {error ? <ErrorState title="Occupancy unavailable" message={error} /> : null}
       {occupancy ? (
         <section className="occupancy" aria-labelledby="occupancy-heading">
@@ -124,6 +155,30 @@ export function DashboardScreen({ session, nav, onSignOut }: DashboardScreenProp
           )}
         </section>
       ) : null}
+      <section className="utilisation" aria-labelledby="utilisation-heading">
+        <h2 id="utilisation-heading">Utilisation</h2>
+        <p>Granted visits only. Hours are campus time.</p>
+        {utilisationError ? <ErrorState title="Utilisation unavailable" message={utilisationError} /> : null}
+        {utilisation && utilisation.visitsThisWeek === 0 ? (
+          <EmptyState title="No visits" message="Granted entrance scans from the last 7 days appear here." />
+        ) : null}
+        {utilisation && utilisation.visitsThisWeek > 0 ? (
+          <>
+            <p className="utilisation-counts">
+              {utilisation.visitsToday} today · {utilisation.visitsThisWeek} in the last 7 days
+            </p>
+            <p>{peakLabel(utilisation.peakHours)}</p>
+            <ul>
+              {utilisation.hours.map((hour) => (
+                <li key={hour.hour} className={utilisation.peakHours.includes(hour.hour) ? "is-peak" : undefined}>
+                  <span>{formatHour(hour.hour)}</span>
+                  <span>{hour.visits === 1 ? "1 visit" : `${hour.visits} visits`}</span>
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : null}
+      </section>
       <section className="closure" aria-labelledby="closure-heading">
         <h2 id="closure-heading">Gym closure</h2>
         <p>Tell members who have a class on the closed days. Other members are not notified.</p>

@@ -94,6 +94,27 @@ export type Occupancy = {
   members: Array<{ firstName: string; lastName: string; enteredAt: string }>;
 };
 
+export type Utilisation = {
+  visitsToday: number;
+  visitsThisWeek: number;
+  peakHours: number[];
+  hours: Array<{ hour: number; visits: number }>;
+};
+
+export async function getUtilisation(accessToken: string): Promise<Utilisation> {
+  const response = await fetch(`${apiUrl}/access/utilisation`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  const body = (await response.json()) as Utilisation & { error?: { message?: string } };
+  if (response.status === 401) {
+    throw new Error("UNAUTHENTICATED");
+  }
+  if (!response.ok) {
+    throw new Error(body.error?.message ?? "Could not load utilisation.");
+  }
+  return body;
+}
+
 export async function getOccupancy(accessToken: string): Promise<Occupancy> {
   const response = await fetch(`${apiUrl}/access/occupancy`, {
     headers: { Authorization: `Bearer ${accessToken}` },
