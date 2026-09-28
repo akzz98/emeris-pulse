@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { AccessScreen } from "./AccessScreen";
+import { BookScreen } from "./BookScreen";
 import { HomeScreen } from "./HomeScreen";
 import { LoginScreen } from "./LoginScreen";
 import { MembershipScreen } from "./MembershipScreen";
 import { ProfileScreen } from "./ProfileScreen";
 import { RegisterScreen } from "./RegisterScreen";
+import { TimetableScreen } from "./TimetableScreen";
 import { memberNav, type MemberScreen } from "./navigation";
 import { clearSession, loadSession, saveSession, type MemberSession } from "./session";
 import { Splash } from "./Splash";
@@ -48,6 +50,14 @@ export function App() {
 
   if (screen === "access") {
     return <AccessScreen session={session} nav={nav} onSignOut={onSignOut} />;
+  }
+
+  if (screen === "timetable") {
+    return <TimetableScreen session={session} nav={nav} onSignOut={onSignOut} />;
+  }
+
+  if (screen === "book") {
+    return <BookScreen session={session} nav={nav} onSignOut={onSignOut} />;
   }
 
   if (screen === "profile") {

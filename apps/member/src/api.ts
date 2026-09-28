@@ -165,6 +165,54 @@ export async function getActivitySummary(accessToken: string): Promise<ActivityS
   return body;
 }
 
+export type ClassSession = {
+  id: number;
+  title: string;
+  instructorName: string;
+  startsAt: string;
+  endsAt: string;
+  location: string;
+  capacity: number;
+  bookedCount: number;
+  seatsLeft: number;
+  status: "Scheduled" | "Cancelled" | "Completed";
+  myStatus: "Booked" | "Waitlisted" | null;
+};
+
+async function readJson<T>(response: Response, fallback: string): Promise<T> {
+  const body = (await response.json()) as T & { error?: { message?: string } };
+  if (response.status === 401) {
+    throw new Error("UNAUTHENTICATED");
+  }
+  if (!response.ok) {
+    throw new Error(body.error?.message ?? fallback);
+  }
+  return body;
+}
+
+export async function getTimetable(accessToken: string): Promise<{ classes: ClassSession[] }> {
+  const response = await fetch(`${apiUrl}/classes/timetable`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return readJson(response, "Could not load the timetable.");
+}
+
+export async function bookClass(accessToken: string, classId: number): Promise<{ status: string; seatsLeft: number }> {
+  const response = await fetch(`${apiUrl}/classes/${classId}/bookings`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return readJson(response, "Could not book this class.");
+}
+
+export async function cancelBooking(accessToken: string, classId: number): Promise<{ status: string; seatsLeft: number }> {
+  const response = await fetch(`${apiUrl}/classes/${classId}/bookings/me`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return readJson(response, "Could not cancel this booking.");
+}
+
 export async function register(details: RegisterDetails): Promise<MemberSession> {
   const response = await fetch(`${apiUrl}/auth/register`, {
     method: "POST",

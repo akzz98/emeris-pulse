@@ -5,6 +5,7 @@ import { errorBody, errorHandler } from "./http/errorHandler.js";
 import { accessRouter } from "./modules/access/accessPassRoutes.js";
 import { activityRouter } from "./modules/activity/activityRoutes.js";
 import { authRouter } from "./modules/auth/authRoutes.js";
+import { classRouter } from "./modules/classes/classRoutes.js";
 import { membershipRouter } from "./modules/memberships/membershipRoutes.js";
 import { userRouter } from "./modules/users/userRoutes.js";
 import { healthRouter } from "./routes/health.js";
@@ -24,6 +25,7 @@ export function createApp() {
   app.use(healthRouter);
   app.use(authRouter);
   app.use(activityRouter);
+  app.use(classRouter);
   app.use(accessRouter);
   app.use(membershipRouter);
   app.use(userRouter);
