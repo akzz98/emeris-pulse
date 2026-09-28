@@ -1,0 +1,21 @@
+{
+  "name": "emeris-pulse",
+  "private": true,
+  "version": "0.0.1",
+  "description": "Emeris Pulse campus gym platform",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:member": "npm run dev -w @emeris/member",
+    "dev:instructor": "npm run dev -w @emeris/instructor",
+    "dev:admin": "npm run dev -w @emeris/admin",
+    "dev:api": "npm run dev -w @emeris/api",
+    "build": "npm run build -w @emeris/api && npm run build -w @emeris/member && npm run build -w @emeris/instructor && npm run build -w @emeris/admin",
+    "typecheck": "npm run typecheck -w @emeris/api && npm run typecheck -w @emeris/member && npm run typecheck -w @emeris/instructor && npm run typecheck -w @emeris/admin"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

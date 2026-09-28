@@ -1,0 +1,185 @@
+:root {
+  --ep-teal: #004559;
+  --ep-teal-dark: #003344;
+  --ep-ink: #142026;
+  --ep-muted: #4d5e66;
+  --ep-surface: #f3f6f7;
+  --ep-white: #ffffff;
+  --ep-line: #d5e0e4;
+  --ep-danger: #8c1d32;
+  --ep-danger-bg: #fdecef;
+  --ep-success: #0d6b4c;
+  --ep-success-bg: #e7f6ef;
+  --ep-font: "Segoe UI", "Source Sans 3", sans-serif;
+  --ep-focus: 2px solid #0b6e8a;
+  color: var(--ep-ink);
+  background: var(--ep-surface);
+  font-family: var(--ep-font);
+  font-size: 100%;
+  line-height: 1.5;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+.ep-skip {
+  position: absolute;
+  left: 0.75rem;
+  top: -3rem;
+  background: var(--ep-white);
+  color: var(--ep-teal);
+  padding: 0.4rem 0.7rem;
+  border-radius: 0.25rem;
+}
+
+.ep-skip:focus {
+  top: 0.75rem;
+  outline: var(--ep-focus);
+  outline-offset: 2px;
+}
+
+.ep-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: var(--ep-white);
+  border-bottom: 4px solid var(--ep-teal);
+  padding: 0.85rem 1.25rem;
+}
+
+.ep-logo {
+  height: 2.5rem;
+  width: auto;
+}
+
+.ep-product {
+  margin: 0;
+  color: var(--ep-teal);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.ep-area {
+  margin: 0;
+  color: var(--ep-muted);
+  font-size: 0.9rem;
+}
+
+.ep-main {
+  max-width: 42rem;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 3rem;
+}
+
+.ep-button {
+  appearance: none;
+  border: 0;
+  border-radius: 0.4rem;
+  background: var(--ep-teal);
+  color: var(--ep-white);
+  font: inherit;
+  font-weight: 650;
+  padding: 0.65rem 1rem;
+  cursor: pointer;
+  box-shadow: 0 1px 0 rgb(0 0 0 / 12%);
+}
+
+.ep-button:hover {
+  background: var(--ep-teal-dark);
+}
+
+.ep-button:focus-visible {
+  outline: var(--ep-focus);
+  outline-offset: 3px;
+}
+
+.ep-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.ep-link {
+  color: var(--ep-teal);
+  font-weight: 650;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+.ep-link:hover {
+  color: var(--ep-teal-dark);
+}
+
+.ep-link:focus-visible {
+  outline: var(--ep-focus);
+  outline-offset: 3px;
+}
+
+.ep-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+}
+
+.ep-field label {
+  font-weight: 650;
+}
+
+.ep-field input {
+  font: inherit;
+  color: var(--ep-ink);
+  background: var(--ep-white);
+  border: 1px solid var(--ep-line);
+  border-radius: 0.4rem;
+  padding: 0.6rem 0.7rem;
+}
+
+.ep-field input:focus-visible {
+  outline: var(--ep-focus);
+  outline-offset: 2px;
+  border-color: var(--ep-teal);
+}
+
+.ep-state {
+  background: var(--ep-white);
+  border: 1px solid var(--ep-line);
+  border-radius: 0.6rem;
+  padding: 1.25rem;
+}
+
+.ep-state h1,
+.ep-state h2 {
+  margin: 0 0 0.35rem;
+  font-size: 1.35rem;
+  color: var(--ep-teal);
+}
+
+.ep-state p {
+  margin: 0;
+  color: var(--ep-ink);
+}
+
+.ep-state-error {
+  background: var(--ep-danger-bg);
+  border-color: #f0c2cb;
+}
+
+.ep-state-error h2 {
+  color: var(--ep-danger);
+}
+
+.ep-state-success {
+  background: var(--ep-success-bg);
+  border-color: #b7e4cf;
+}
+
+.ep-state-success h2 {
+  color: var(--ep-success);
+}
