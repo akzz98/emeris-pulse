@@ -40,6 +40,56 @@
   font-size: 0.9rem;
 }
 
+/* Four columns do not fit a phone, so each scan stacks and the page does not scroll sideways. */
+@media (max-width: 40rem) {
+  .access-log {
+    overflow-x: visible;
+  }
+
+  .access-log table,
+  .access-log tbody,
+  .access-log tr,
+  .access-log td {
+    display: block;
+    width: auto;
+  }
+
+  .access-log table {
+    background: transparent;
+    border: 0;
+  }
+
+  .access-log thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .access-log tr {
+    background: var(--ep-white, #ffffff);
+    border: 1px solid var(--ep-line, #d5e0e4);
+    border-radius: 0.6rem;
+    margin-bottom: 0.75rem;
+    padding: 0.75rem 0.9rem;
+  }
+
+  .access-log td {
+    border: 0;
+    padding: 0.1rem 0;
+  }
+
+  .access-log td:first-child {
+    color: var(--ep-teal, #004559);
+    font-weight: 650;
+  }
+}
+
 .log-pager {
   display: flex;
   align-items: center;
