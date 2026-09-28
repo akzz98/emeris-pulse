@@ -4,15 +4,31 @@ import { getPool } from "../../db/pool.js";
 
 export type AccessPassRecord = {
   id: number;
+  userId: number;
   jti: string;
   expiresAt: Date;
+  usedAt: Date | null;
 };
 
 type PassRow = {
   Id: number;
+  UserId: number;
   Jti: string;
   ExpiresAt: Date;
+  UsedAt: Date | null;
 };
+
+const passColumns = `Id, UserId, Jti, ExpiresAt, UsedAt`;
+
+function mapPass(row: PassRow): AccessPassRecord {
+  return {
+    id: row.Id,
+    userId: row.UserId,
+    jti: row.Jti,
+    expiresAt: row.ExpiresAt,
+    usedAt: row.UsedAt,
+  };
+}
 
 export class AccessPassRepository {
   async insert(userId: number, jti: string, expiresAt: Date): Promise<AccessPassRecord> {
@@ -24,11 +40,35 @@ export class AccessPassRepository {
       .input("expiresAt", sql.DateTime2, expiresAt)
       .query<PassRow>(`
         INSERT INTO dbo.AccessPasses (UserId, Jti, Kind, ExpiresAt)
-        OUTPUT INSERTED.Id, INSERTED.Jti, INSERTED.ExpiresAt
+        OUTPUT INSERTED.Id, INSERTED.UserId, INSERTED.Jti, INSERTED.ExpiresAt, INSERTED.UsedAt
         VALUES (@userId, @jti, N'Standard', @expiresAt)
       `);
+    return mapPass(result.recordset[0]);
+  }
+
+  async findByJti(jti: string): Promise<AccessPassRecord | null> {
+    const pool = await getPool();
+    const result = await pool
+      .request()
+      .input("jti", sql.NVarChar(64), jti)
+      .query<PassRow>(`SELECT ${passColumns} FROM dbo.AccessPasses WHERE Jti = @jti`);
     const row = result.recordset[0];
-    return { id: row.Id, jti: row.Jti, expiresAt: row.ExpiresAt };
+    return row ? mapPass(row) : null;
+  }
+
+  // One update wins. A second scan finds UsedAt already set and is rejected.
+  async consumeOnce(jti: string, userId: number): Promise<boolean> {
+    const pool = await getPool();
+    const result = await pool
+      .request()
+      .input("jti", sql.NVarChar(64), jti)
+      .input("userId", sql.Int, userId)
+      .query(`
+        UPDATE dbo.AccessPasses
+        SET UsedAt = SYSUTCDATETIME()
+        WHERE Jti = @jti AND UserId = @userId AND UsedAt IS NULL AND ExpiresAt > SYSUTCDATETIME()
+      `);
+    return result.rowsAffected[0] === 1;
   }
 }
 

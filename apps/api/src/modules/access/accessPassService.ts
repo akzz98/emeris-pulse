@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
 import { HttpError } from "../../http/httpError.js";
 import { getMyMembership } from "../memberships/membershipService.js";
+import type { RedeemPassInput } from "./accessPassSchemas.js";
 import { AccessPassRepository, newPassId } from "./accessPassRepository.js";
 
 const passes = new AccessPassRepository();
@@ -43,4 +44,45 @@ export async function issueStandardPass(userId: number) {
     expiresIn: passTtlSeconds,
     kind: "Standard" as const,
   };
+}
+
+function readPassToken(token: string): { userId: number; jti: string } {
+  try {
+    const payload = jwt.verify(token, secret());
+    if (
+      typeof payload === "string" ||
+      payload.purpose !== "access" ||
+      typeof payload.jti !== "string" ||
+      typeof payload.sub !== "string"
+    ) {
+      throw new HttpError(401, "PASS_INVALID", "This pass is not valid.");
+    }
+    const userId = Number(payload.sub);
+    if (!Number.isInteger(userId)) {
+      throw new HttpError(401, "PASS_INVALID", "This pass is not valid.");
+    }
+    return { userId, jti: payload.jti };
+  } catch (error) {
+    if (error instanceof HttpError) {
+      throw error;
+    }
+    if (error instanceof jwt.TokenExpiredError) {
+      throw new HttpError(401, "PASS_EXPIRED", "This pass has expired.");
+    }
+    throw new HttpError(401, "PASS_INVALID", "This pass is not valid.");
+  }
+}
+
+export async function redeemPass(input: RedeemPassInput) {
+  const claim = readPassToken(input.token);
+  const consumed = await passes.consumeOnce(claim.jti, claim.userId);
+  if (consumed) {
+    return { result: "Accepted" as const };
+  }
+
+  const existing = await passes.findByJti(claim.jti);
+  if (existing?.usedAt && existing.userId === claim.userId) {
+    throw new HttpError(409, "PASS_ALREADY_USED", "This pass has already been used.");
+  }
+  throw new HttpError(401, "PASS_INVALID", "This pass is not valid.");
 }
