@@ -17,6 +17,15 @@ function publicUser(user: NonNullable<Awaited<ReturnType<UserRepository["findByI
   };
 }
 
+// Returns the signed-in member's contact details. Email and the campus identifier are not editable here.
+export async function getMyProfile(userId: number) {
+  const user = await users.findById(userId);
+  if (!user) {
+    throw new HttpError(404, "USER_NOT_FOUND", "Account not found.");
+  }
+  return publicUser(user);
+}
+
 export async function updateMyContact(userId: number, input: ContactInput) {
   const user = await users.findById(userId);
   if (!user) {

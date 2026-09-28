@@ -9,7 +9,15 @@
   color: var(--ep-muted, #4d5e66);
 }
 
-.text-button {
+.home-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.25rem;
+}
+
+.home-links .text-button {
+  margin-bottom: 1rem;
+}
   appearance: none;
   border: 0;
   background: none;

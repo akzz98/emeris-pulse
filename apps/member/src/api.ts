@@ -66,6 +66,50 @@ export type MembershipDetails = {
   canEnter: boolean;
 };
 
+// Contact details the member can change. Email and campus identifier stay fixed.
+export type MemberProfile = {
+  id: number;
+  email: string;
+  role: string;
+  campusIdentifier: string;
+  firstName: string;
+  lastName: string;
+  phone: string | null;
+};
+
+async function readProfile(response: Response, fallback: string): Promise<MemberProfile> {
+  const body = (await response.json()) as MemberProfile & { error?: { message?: string } };
+  if (response.status === 401) {
+    throw new Error("UNAUTHENTICATED");
+  }
+  if (!response.ok) {
+    throw new Error(body.error?.message ?? fallback);
+  }
+  return body;
+}
+
+export async function getProfile(accessToken: string): Promise<MemberProfile> {
+  const response = await fetch(`${apiUrl}/me`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return readProfile(response, "Could not load your profile.");
+}
+
+export async function updateProfile(
+  accessToken: string,
+  details: { firstName: string; lastName: string; phone: string | null },
+): Promise<MemberProfile> {
+  const response = await fetch(`${apiUrl}/me`, {
+    method: "PATCH",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(details),
+  });
+  return readProfile(response, "Could not save your profile.");
+}
+
 export async function getMembership(accessToken: string): Promise<MembershipDetails> {
   const response = await fetch(`${apiUrl}/memberships/me`, {
     headers: { Authorization: `Bearer ${accessToken}` },
