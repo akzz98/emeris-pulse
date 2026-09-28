@@ -10,7 +10,10 @@ async function readJson(response: Response): Promise<Record<string, unknown>> {
 }
 
 async function withServer(run: (base: string) => Promise<void>): Promise<void> {
-  const server: Server = createApp().listen(0, "127.0.0.1");
+  const app = createApp();
+  const server = await new Promise<Server>((resolve) => {
+    const listening = app.listen(0, "127.0.0.1", () => resolve(listening));
+  });
   const address = server.address();
   if (address === null || typeof address === "string") {
     server.close();
