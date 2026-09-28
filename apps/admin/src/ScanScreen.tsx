@@ -1,9 +1,14 @@
 import { FormEvent, useState } from "react";
-import { AppShell, Button, ErrorState, SuccessBanner } from "@emeris/ui";
+import { AppShell, Button, ErrorState, SuccessBanner, type AppNavItem } from "@emeris/ui";
 import { redeemPass } from "./api";
 import "./scan.css";
 
-export function ScanScreen() {
+type ScanScreenProps = {
+  nav: AppNavItem[];
+  onSignOut: () => void;
+};
+
+export function ScanScreen({ nav, onSignOut }: ScanScreenProps) {
   // The entrance screen redeems the signed code from the member's pass.
   const [token, setToken] = useState("");
   const [granted, setGranted] = useState(false);
@@ -27,7 +32,7 @@ export function ScanScreen() {
   }
 
   return (
-    <AppShell area="Admin">
+    <AppShell area="Admin" nav={nav} onSignOut={onSignOut}>
       <form className="scan-form" onSubmit={onSubmit}>
         <h1>Scan entry</h1>
         <p className="scan-note">Paste the member’s signed pass. Each scan is stored as an access event.</p>

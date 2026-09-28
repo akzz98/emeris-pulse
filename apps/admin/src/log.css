@@ -1,0 +1,64 @@
+.log-heading h1 {
+  margin: 0;
+  color: var(--ep-teal, #004559);
+  font-size: 1.5rem;
+}
+
+.log-heading p {
+  margin: 0.25rem 0 1rem;
+  color: var(--ep-muted, #4d5e66);
+}
+
+.access-log {
+  overflow-x: auto;
+}
+
+.access-log table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--ep-white, #ffffff);
+  border: 1px solid var(--ep-line, #d5e0e4);
+  border-radius: 0.6rem;
+}
+
+.access-log th,
+.access-log td {
+  padding: 0.7rem 0.8rem;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--ep-line, #d5e0e4);
+}
+
+.access-log th {
+  color: var(--ep-teal, #004559);
+  font-size: 0.9rem;
+}
+
+.access-log td span {
+  display: block;
+  color: var(--ep-muted, #4d5e66);
+  font-size: 0.9rem;
+}
+
+.log-pager {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.log-pager p {
+  margin: 0;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

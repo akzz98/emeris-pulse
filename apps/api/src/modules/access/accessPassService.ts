@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
 import { HttpError } from "../../http/httpError.js";
 import { getMyMembership } from "../memberships/membershipService.js";
-import type { RedeemPassInput } from "./accessPassSchemas.js";
+import type { AccessLogQuery, RedeemPassInput } from "./accessPassSchemas.js";
 import { AccessEventRepository } from "./accessEventRepository.js";
 import { AccessPassRepository, newPassId } from "./accessPassRepository.js";
 
@@ -108,4 +108,9 @@ export async function redeemPass(input: RedeemPassInput) {
     throw new HttpError(409, "PASS_ALREADY_USED", "This pass has already been used.");
   }
   throw new HttpError(401, "PASS_INVALID", "This pass is not valid.");
+}
+
+export async function listAccessLog(query: AccessLogQuery) {
+  const page = await events.page(query.page, query.pageSize);
+  return { page: query.page, pageSize: query.pageSize, ...page };
 }

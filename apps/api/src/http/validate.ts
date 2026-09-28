@@ -14,6 +14,18 @@ export function validateBody<T>(schema: ZodType<T>) {
   };
 }
 
+export function validateQuery<T>(schema: ZodType<T>) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const parsed = schema.safeParse(req.query);
+    if (!parsed.success) {
+      next(new HttpError(400, "VALIDATION_ERROR", "Request query is invalid.", parsed.error.flatten()));
+      return;
+    }
+    res.locals.query = parsed.data;
+    next();
+  };
+}
+
 export function validateParams<T>(schema: ZodType<T>) {
   return (req: Request, res: Response, next: NextFunction) => {
     const parsed = schema.safeParse(req.params);
