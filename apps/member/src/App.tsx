@@ -8,6 +8,7 @@ import { MembershipScreen } from "./MembershipScreen";
 import { ProfileScreen } from "./ProfileScreen";
 import { RegisterScreen } from "./RegisterScreen";
 import { TimetableScreen } from "./TimetableScreen";
+import { WellnessScreen } from "./WellnessScreen";
 import { memberNav, type MemberScreen } from "./navigation";
 import { clearSession, loadSession, saveSession, type MemberSession } from "./session";
 import { Splash } from "./Splash";
@@ -63,6 +64,10 @@ export function App() {
 
   if (screen === "equipment") {
     return <EquipmentScreen session={session} nav={nav} onSignOut={onSignOut} />;
+  }
+
+  if (screen === "wellness") {
+    return <WellnessScreen session={session} nav={nav} onSignOut={onSignOut} />;
   }
 
   if (screen === "profile") {

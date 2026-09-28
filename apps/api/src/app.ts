@@ -9,6 +9,7 @@ import { classRouter } from "./modules/classes/classRoutes.js";
 import { equipmentRouter } from "./modules/equipment/equipmentRoutes.js";
 import { membershipRouter } from "./modules/memberships/membershipRoutes.js";
 import { userRouter } from "./modules/users/userRoutes.js";
+import { wellnessRouter } from "./modules/wellness/wellnessRoutes.js";
 import { healthRouter } from "./routes/health.js";
 
 const defaultOrigins = ["http://localhost:5173", "http://localhost:5174", "http://localhost:5175"];
@@ -31,6 +32,7 @@ export function createApp() {
   app.use(accessRouter);
   app.use(membershipRouter);
   app.use(userRouter);
+  app.use(wellnessRouter);
   app.use((_req, res) => {
     res.status(404).json(errorBody("NOT_FOUND", "That route does not exist."));
   });

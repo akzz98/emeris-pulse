@@ -293,6 +293,30 @@ export async function endEquipmentSession(accessToken: string): Promise<{ ended:
   return readJson(response, "Could not end this session.");
 }
 
+export type CampusChallenge = {
+  id: number;
+  title: string;
+  description: string;
+  startsOn: string;
+  endsOn: string;
+  joined: boolean;
+};
+
+export async function getChallenges(accessToken: string): Promise<{ challenges: CampusChallenge[] }> {
+  const response = await fetch(`${apiUrl}/challenges`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return readJson(response, "Could not load challenges.");
+}
+
+export async function joinChallenge(accessToken: string, challengeId: number): Promise<{ title: string }> {
+  const response = await fetch(`${apiUrl}/challenges/${challengeId}/join`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return readJson(response, "Could not join this challenge.");
+}
+
 export async function register(details: RegisterDetails): Promise<MemberSession> {
   const response = await fetch(`${apiUrl}/auth/register`, {
     method: "POST",
