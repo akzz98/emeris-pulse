@@ -1,3 +1,4 @@
+import { participationStreak } from "../../domain/streak.js";
 import { MembershipRepository } from "../memberships/membershipRepository.js";
 import { ActivityRepository, type ActivityCounts, type RecentActivity } from "./activityRepository.js";
 
@@ -11,6 +12,7 @@ export type WorkdayPrompt = {
 };
 
 export type ActivitySummary = ActivityCounts & {
+  streak: number;
   recent: RecentActivity[];
   prompts: WorkdayPrompt[];
 };
@@ -60,10 +62,16 @@ async function workdayPrompts(userId: number, visits: number): Promise<WorkdayPr
 }
 
 export async function getMyActivity(userId: number): Promise<ActivitySummary> {
-  const [counts, recent] = await Promise.all([
+  const [counts, recent, participation] = await Promise.all([
     activity.countsForUser(userId),
     activity.recentForUser(userId),
+    activity.participationDays(userId),
   ]);
   const prompts = await workdayPrompts(userId, counts.visits);
-  return { ...counts, recent, prompts };
+  return {
+    ...counts,
+    streak: participationStreak(participation.days, participation.today),
+    recent,
+    prompts,
+  };
 }

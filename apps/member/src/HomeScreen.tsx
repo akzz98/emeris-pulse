@@ -83,7 +83,14 @@ export function HomeScreen({ session, nav, onSignOut }: HomeScreenProps) {
             <h2 id="activity-summary-heading" className="visually-hidden">
               Activity summary
             </h2>
+            <p className="streak-note">
+              {summary.streak === 1 ? "1 day" : `${summary.streak} days`} in a row with a gym visit or a class.
+            </p>
             <dl className="activity-stats">
+              <div>
+                <dt>Streak</dt>
+                <dd>{summary.streak}</dd>
+              </div>
               <div>
                 <dt>Visits</dt>
                 <dd>{summary.visits}</dd>

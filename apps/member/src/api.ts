@@ -46,6 +46,7 @@ export type ActivitySummary = {
   classesBooked: number;
   equipmentSessions: number;
   challengesJoined: number;
+  streak: number;
   recent: Array<{
     kind: "visit" | "class" | "equipment" | "challenge";
     title: string;

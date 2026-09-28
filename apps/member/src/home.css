@@ -57,6 +57,11 @@
   border: 0;
 }
 
+.streak-note {
+  margin: 0 0 0.75rem;
+  color: var(--ep-muted, #4d5e66);
+}
+
 .activity-stats {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

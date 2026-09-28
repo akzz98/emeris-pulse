@@ -58,6 +58,37 @@ export class ActivityRepository {
     };
   }
 
+  // Visit days come from granted scans. Class days come from a booked or attended class on or before today.
+  async participationDays(userId: number): Promise<{ today: string; days: string[] }> {
+    const pool = await getPool();
+    const result = await pool.request().input("userId", sql.Int, userId).query<{ Today: string; Day: string | null }>(`
+      SELECT CONVERT(char(10), CAST(GETDATE() AS DATE), 23) AS Today, Day
+      FROM (
+        SELECT CONVERT(char(10), OccurredAt, 23) AS Day
+        FROM dbo.AccessEvents
+        WHERE UserId = @userId
+          AND Result = N'Granted'
+          AND CAST(OccurredAt AS DATE) <= CAST(GETDATE() AS DATE)
+        UNION
+        SELECT CONVERT(char(10), cs.StartsAt, 23)
+        FROM dbo.Bookings b
+        INNER JOIN dbo.ClassSessions cs ON cs.Id = b.ClassSessionId
+        WHERE b.UserId = @userId
+          AND b.Status IN (N'Booked', N'Attended')
+          AND CAST(cs.StartsAt AS DATE) <= CAST(GETDATE() AS DATE)
+      ) AS Days
+    `);
+    const today = result.recordset[0]?.Today ?? "";
+    const days = result.recordset.flatMap((row) => (row.Day ? [row.Day] : []));
+    if (today) {
+      return { today, days };
+    }
+    const fallback = await pool.request().query<{ Today: string }>(`
+      SELECT CONVERT(char(10), CAST(GETDATE() AS DATE), 23) AS Today
+    `);
+    return { today: fallback.recordset[0].Today, days: [] };
+  }
+
   async recentForUser(userId: number): Promise<RecentActivity[]> {
     const pool = await getPool();
     const result = await pool.request().input("userId", sql.Int, userId).query<RecentRow>(`
