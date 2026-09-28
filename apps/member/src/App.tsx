@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AppShell, Button, SuccessBanner } from "@emeris/ui";
+import { HomeScreen } from "./HomeScreen";
 import { LoginScreen } from "./LoginScreen";
 import { RegisterScreen } from "./RegisterScreen";
 import { clearSession, loadSession, saveSession, type MemberSession } from "./session";
@@ -31,21 +31,12 @@ export function App() {
   }
 
   return (
-    <AppShell area="Member">
-      <div className="signed-in">
-        <SuccessBanner
-          title={`Signed in as ${session.user.firstName}`}
-          message="Your home, membership, and profile screens come next."
-        />
-        <Button
-          onClick={() => {
-            clearSession();
-            setSession(null);
-          }}
-        >
-          Sign out
-        </Button>
-      </div>
-    </AppShell>
+    <HomeScreen
+      session={session}
+      onSignOut={() => {
+        clearSession();
+        setSession(null);
+      }}
+    />
   );
 }

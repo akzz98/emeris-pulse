@@ -2,6 +2,7 @@ import cors from "cors";
 import express from "express";
 import helmet from "helmet";
 import { errorBody, errorHandler } from "./http/errorHandler.js";
+import { activityRouter } from "./modules/activity/activityRoutes.js";
 import { authRouter } from "./modules/auth/authRoutes.js";
 import { membershipRouter } from "./modules/memberships/membershipRoutes.js";
 import { userRouter } from "./modules/users/userRoutes.js";
@@ -21,6 +22,7 @@ export function createApp() {
   app.use(express.json());
   app.use(healthRouter);
   app.use(authRouter);
+  app.use(activityRouter);
   app.use(membershipRouter);
   app.use(userRouter);
   app.use((_req, res) => {

@@ -41,6 +41,33 @@ export type RegisterDetails = {
   phone?: string;
 };
 
+export type ActivitySummary = {
+  visits: number;
+  classesBooked: number;
+  equipmentSessions: number;
+  challengesJoined: number;
+  recent: Array<{
+    kind: "visit" | "class" | "equipment" | "challenge";
+    title: string;
+    detail: string;
+    occurredAt: string;
+  }>;
+};
+
+export async function getActivitySummary(accessToken: string): Promise<ActivitySummary> {
+  const response = await fetch(`${apiUrl}/activity/me`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  const body = (await response.json()) as ActivitySummary & { error?: { message?: string } };
+  if (response.status === 401) {
+    throw new Error("UNAUTHENTICATED");
+  }
+  if (!response.ok) {
+    throw new Error(body.error?.message ?? "Could not load your activity.");
+  }
+  return body;
+}
+
 export async function register(details: RegisterDetails): Promise<MemberSession> {
   const response = await fetch(`${apiUrl}/auth/register`, {
     method: "POST",

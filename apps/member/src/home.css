@@ -1,0 +1,94 @@
+.home-heading h1 {
+  margin: 0;
+  color: var(--ep-teal, #004559);
+  font-size: 1.5rem;
+}
+
+.home-heading p {
+  margin: 0.25rem 0 1rem;
+  color: var(--ep-muted, #4d5e66);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.activity-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 0 0 1.25rem;
+}
+
+.activity-stats div {
+  background: var(--ep-white, #ffffff);
+  border: 1px solid var(--ep-line, #d5e0e4);
+  border-radius: 0.6rem;
+  padding: 0.9rem 1rem;
+}
+
+.activity-stats dt {
+  color: var(--ep-muted, #4d5e66);
+}
+
+.activity-stats dd {
+  margin: 0.15rem 0 0;
+  color: var(--ep-teal, #004559);
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.activity-recent {
+  background: var(--ep-white, #ffffff);
+  border: 1px solid var(--ep-line, #d5e0e4);
+  border-radius: 0.6rem;
+  padding: 1rem 1.1rem;
+}
+
+.activity-recent h2 {
+  margin: 0 0 0.5rem;
+  color: var(--ep-teal, #004559);
+  font-size: 1.1rem;
+}
+
+.activity-recent p {
+  margin: 0;
+}
+
+.activity-recent ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.activity-recent li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.7rem 0;
+  border-top: 1px solid var(--ep-line, #d5e0e4);
+}
+
+.activity-recent li p {
+  display: flex;
+  flex-direction: column;
+}
+
+.activity-recent li span,
+.activity-recent time {
+  color: var(--ep-muted, #4d5e66);
+  font-size: 0.9rem;
+}
+
+.home-actions {
+  margin-top: 1rem;
+}
