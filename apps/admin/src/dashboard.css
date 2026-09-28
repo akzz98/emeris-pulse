@@ -45,3 +45,26 @@
 .occupancy li span:last-child {
   color: var(--ep-muted, #4d5e66);
 }
+
+.closure {
+  margin-top: 1.25rem;
+  background: var(--ep-white, #ffffff);
+  border: 1px solid var(--ep-line, #d5e0e4);
+  border-radius: 0.6rem;
+  padding: 1rem 1.1rem;
+}
+
+.closure h2 {
+  margin: 0;
+  color: var(--ep-teal, #004559);
+  font-size: 1.15rem;
+}
+
+.closure p {
+  margin: 0.35rem 0 0.75rem;
+  color: var(--ep-muted, #4d5e66);
+}
+
+.closure-notice {
+  color: var(--ep-success, #0d6b4c);
+}

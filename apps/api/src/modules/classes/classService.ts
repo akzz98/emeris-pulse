@@ -16,6 +16,34 @@ function classWhen(startsAt: string): string {
   return `${dayLabel} at ${timePart}`;
 }
 
+function sameMinute(left: string, right: string): boolean {
+  return left.slice(0, 16) === right.slice(0, 16);
+}
+
+// Capacity is not listed. A larger room does not change where or when the member should arrive.
+function classChangeNotice(
+  before: { title: string; location: string; startsAt: string; endsAt: string; instructorId: number },
+  after: { title: string; location: string; startsAt: string; endsAt: string; instructorId: number },
+): string | null {
+  const parts: string[] = [];
+  if (before.title !== after.title) {
+    parts.push(`it is now called ${after.title}`);
+  }
+  if (!sameMinute(before.startsAt, after.startsAt) || !sameMinute(before.endsAt, after.endsAt)) {
+    parts.push(`it starts ${classWhen(after.startsAt)}`);
+  }
+  if (before.location !== after.location) {
+    parts.push(`it is in ${after.location}`);
+  }
+  if (before.instructorId !== after.instructorId) {
+    parts.push("the instructor has changed");
+  }
+  if (parts.length === 0) {
+    return null;
+  }
+  return `${before.title} has changed: ${parts.join(", ")}.`;
+}
+
 function reminderBody(title: string, location: string, startsAt: string): string {
   return `${title} at ${location} starts ${classWhen(startsAt)}. Arrive a few minutes early.`;
 }
@@ -318,8 +346,24 @@ export async function updateClass(classId: number, input: PublishClassInput) {
       capacity: input.capacity,
       location: input.location,
     });
+    // Booked and waitlisted members are told before the edit commits, so a saved change is never silent.
+    const notice = classChangeNotice(session, {
+      title: input.title,
+      location: input.location,
+      startsAt,
+      endsAt,
+      instructorId,
+    });
+    let notified = 0;
+    if (notice) {
+      const userIds = await classes.peopleToNotify(transaction, classId);
+      for (const userId of userIds) {
+        await classes.insertNotification(transaction, userId, "Class changed", notice);
+      }
+      notified = userIds.length;
+    }
     await transaction.commit();
-    return { id: classId, capacity: input.capacity };
+    return { id: classId, capacity: input.capacity, notified };
   } catch (error) {
     await transaction.rollback();
     throw error;

@@ -41,6 +41,7 @@ export type LockedClass = {
   title: string;
   location: string;
   startsAt: string;
+  endsAt: string;
 };
 
 export type ExistingPlace = {
@@ -103,6 +104,7 @@ export class ClassRepository {
       Title: string;
       Location: string;
       StartsAt: string;
+      EndsAt: string;
     }>(`
       SELECT
         Id,
@@ -113,7 +115,8 @@ export class ClassRepository {
         InstructorUserId,
         Title,
         Location,
-        CONVERT(varchar(33), StartsAt, 126) AS StartsAt
+        CONVERT(varchar(33), StartsAt, 126) AS StartsAt,
+        CONVERT(varchar(33), EndsAt, 126) AS EndsAt
       FROM dbo.ClassSessions WITH (UPDLOCK, ROWLOCK)
       WHERE Id = @classId
     `);
@@ -131,6 +134,7 @@ export class ClassRepository {
       title: row.Title,
       location: row.Location,
       startsAt: row.StartsAt,
+      endsAt: row.EndsAt,
     };
   }
 

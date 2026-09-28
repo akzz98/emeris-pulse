@@ -258,11 +258,27 @@ export async function publishClass(accessToken: string, draft: ClassDraft): Prom
   return readAdmin(response, "Could not publish the class.");
 }
 
-export async function updateClass(accessToken: string, classId: number, draft: ClassDraft): Promise<void> {
+export async function updateClass(
+  accessToken: string,
+  classId: number,
+  draft: ClassDraft,
+): Promise<{ notified: number }> {
   const response = await fetch(`${apiUrl}/classes/${classId}`, {
     method: "PATCH",
     headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
     body: JSON.stringify(draft),
   });
-  await readAdmin(response, "Could not update the class.");
+  return readAdmin(response, "Could not update the class.");
+}
+
+export async function announceClosure(
+  accessToken: string,
+  closure: { startsOn: string; endsOn: string; reason: string },
+): Promise<{ notified: number }> {
+  const response = await fetch(`${apiUrl}/notices/closure`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+    body: JSON.stringify(closure),
+  });
+  return readAdmin(response, "Could not send the closure notice.");
 }

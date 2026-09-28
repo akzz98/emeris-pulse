@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
-import { AppShell, ErrorState, LoadingState, type AppNavItem } from "@emeris/ui";
-import { getOccupancy, type AdminSession, type Occupancy } from "./api";
+import { FormEvent, useEffect, useState } from "react";
+import { AppShell, Button, ErrorState, LoadingState, TextField, type AppNavItem } from "@emeris/ui";
+import { announceClosure, getOccupancy, type AdminSession, type Occupancy } from "./api";
 import "./dashboard.css";
 
 type DashboardScreenProps = {
@@ -21,6 +21,10 @@ export function DashboardScreen({ session, nav, onSignOut }: DashboardScreenProp
   const [occupancy, setOccupancy] = useState<Occupancy | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [closure, setClosure] = useState({ startsOn: "", endsOn: "", reason: "" });
+  const [closureNotice, setClosureNotice] = useState<string | null>(null);
+  const [closureError, setClosureError] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -58,6 +62,33 @@ export function DashboardScreen({ session, nav, onSignOut }: DashboardScreenProp
     };
   }, [session.accessToken, onSignOut]);
 
+  async function onClosure(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSending(true);
+    setClosureError(null);
+    setClosureNotice(null);
+    try {
+      const result = await announceClosure(session.accessToken, closure);
+      const told =
+        result.notified === 0
+          ? "No members have a class in that window."
+          : result.notified === 1
+            ? "1 member with a class in that window was told."
+            : `${result.notified} members with a class in that window were told.`;
+      setClosureNotice(told);
+      setClosure({ startsOn: "", endsOn: "", reason: "" });
+    } catch (caught) {
+      const message = caught instanceof Error ? caught.message : "Could not send the closure notice.";
+      if (message === "UNAUTHENTICATED") {
+        onSignOut();
+        return;
+      }
+      setClosureError(message);
+    } finally {
+      setSending(false);
+    }
+  }
+
   const area = session.user.role === "FacilityManager" ? "Facility" : "Admin";
 
   return (
@@ -93,6 +124,45 @@ export function DashboardScreen({ session, nav, onSignOut }: DashboardScreenProp
           )}
         </section>
       ) : null}
+      <section className="closure" aria-labelledby="closure-heading">
+        <h2 id="closure-heading">Gym closure</h2>
+        <p>Tell members who have a class on the closed days. Other members are not notified.</p>
+        {closureError ? <ErrorState title="Closure not sent" message={closureError} /> : null}
+        {closureNotice ? (
+          <p className="closure-notice" role="status">
+            {closureNotice}
+          </p>
+        ) : null}
+        <form onSubmit={(event) => void onClosure(event)}>
+          <TextField
+            id="closure-starts"
+            label="Starts"
+            type="date"
+            value={closure.startsOn}
+            onChange={(event) => setClosure({ ...closure, startsOn: event.target.value })}
+            required
+          />
+          <TextField
+            id="closure-ends"
+            label="Ends"
+            type="date"
+            value={closure.endsOn}
+            onChange={(event) => setClosure({ ...closure, endsOn: event.target.value })}
+            required
+          />
+          <TextField
+            id="closure-reason"
+            label="Reason"
+            value={closure.reason}
+            onChange={(event) => setClosure({ ...closure, reason: event.target.value })}
+            maxLength={400}
+            required
+          />
+          <Button type="submit" disabled={sending}>
+            {sending ? "Sending…" : "Tell affected members"}
+          </Button>
+        </form>
+      </section>
     </AppShell>
   );
 }

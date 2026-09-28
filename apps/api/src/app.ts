@@ -8,6 +8,7 @@ import { authRouter } from "./modules/auth/authRoutes.js";
 import { classRouter } from "./modules/classes/classRoutes.js";
 import { equipmentRouter } from "./modules/equipment/equipmentRoutes.js";
 import { membershipRouter } from "./modules/memberships/membershipRoutes.js";
+import { noticesRouter } from "./modules/notices/noticesRoutes.js";
 import { userRouter } from "./modules/users/userRoutes.js";
 import { wellnessRouter } from "./modules/wellness/wellnessRoutes.js";
 import { healthRouter } from "./routes/health.js";
@@ -28,6 +29,7 @@ export function createApp() {
   app.use(authRouter);
   app.use(activityRouter);
   app.use(classRouter);
+  app.use(noticesRouter);
   app.use(equipmentRouter);
   app.use(accessRouter);
   app.use(membershipRouter);
