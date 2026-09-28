@@ -1,14 +1,15 @@
 import { FormEvent, useState } from "react";
-import { AppShell, Button, ErrorState, TextField } from "@emeris/ui";
+import { AppShell, Button, ErrorState, TextField, TextLink } from "@emeris/ui";
 import { login } from "./api";
 import "./splash.css";
 import type { MemberSession } from "./session";
 
 type LoginScreenProps = {
   onSignedIn: (session: MemberSession) => void;
+  onCreateAccount: () => void;
 };
 
-export function LoginScreen({ onSignedIn }: LoginScreenProps) {
+export function LoginScreen({ onSignedIn, onCreateAccount }: LoginScreenProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -53,6 +54,18 @@ export function LoginScreen({ onSignedIn }: LoginScreenProps) {
         <Button type="submit" disabled={busy}>
           {busy ? "Signing in…" : "Sign in"}
         </Button>
+        <p className="form-switch">
+          New to the gym?{" "}
+          <TextLink
+            href="#register"
+            onClick={(event) => {
+              event.preventDefault();
+              onCreateAccount();
+            }}
+          >
+            Create a profile
+          </TextLink>
+        </p>
       </form>
     </AppShell>
   );

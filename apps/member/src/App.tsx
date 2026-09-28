@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { AppShell, Button, SuccessBanner } from "@emeris/ui";
 import { LoginScreen } from "./LoginScreen";
+import { RegisterScreen } from "./RegisterScreen";
 import { clearSession, loadSession, saveSession, type MemberSession } from "./session";
 import { Splash } from "./Splash";
 
 export function App() {
   const [session, setSession] = useState<MemberSession | null>(() => loadSession());
   const [showSplash, setShowSplash] = useState(true);
+  const [mode, setMode] = useState<"login" | "register">("login");
 
   useEffect(() => {
     const timer = window.setTimeout(() => setShowSplash(false), 900);
@@ -18,14 +20,14 @@ export function App() {
   }
 
   if (!session) {
-    return (
-      <LoginScreen
-        onSignedIn={(next) => {
-          saveSession(next);
-          setSession(next);
-        }}
-      />
-    );
+    const onSignedIn = (next: MemberSession) => {
+      saveSession(next);
+      setSession(next);
+    };
+    if (mode === "register") {
+      return <RegisterScreen onSignedIn={onSignedIn} onSignIn={() => setMode("login")} />;
+    }
+    return <LoginScreen onSignedIn={onSignedIn} onCreateAccount={() => setMode("register")} />;
   }
 
   return (
