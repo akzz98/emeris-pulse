@@ -7,6 +7,7 @@ import {
   bookClassHandler,
   cancelBookingHandler,
   cancelClassHandler,
+  classMessageHandler,
   instructorClassesHandler,
   managedClassesHandler,
   publishClassHandler,
@@ -16,7 +17,7 @@ import {
   trendsHandler,
   updateClassHandler,
 } from "./classController.js";
-import { classIdParams, publishClassSchema, attendanceSchema } from "./classSchemas.js";
+import { attendanceSchema, classIdParams, classMessageSchema, publishClassSchema } from "./classSchemas.js";
 
 export const classRouter = Router();
 
@@ -51,6 +52,14 @@ classRouter.post(
   validateParams(classIdParams),
   validateBody(attendanceSchema),
   asyncHandler(recordAttendanceHandler),
+);
+classRouter.post(
+  "/classes/:classId/message",
+  authenticate,
+  instructor,
+  validateParams(classIdParams),
+  validateBody(classMessageSchema),
+  asyncHandler(classMessageHandler),
 );
 classRouter.post(
   "/classes/:classId/cancel",

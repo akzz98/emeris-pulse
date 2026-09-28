@@ -279,6 +279,36 @@ export async function cancelClass(instructorId: number, classId: number) {
   }
 }
 
+// A note goes to booked members only. Waitlisted members do not have a seat in the room.
+export async function messageBookedMembers(instructorId: number, classId: number, message: string) {
+  const pool = await getPool();
+  const transaction = new sql.Transaction(pool);
+  await transaction.begin();
+  try {
+    const session = await classes.lockClass(transaction, classId);
+    if (!session) {
+      throw new HttpError(404, "CLASS_NOT_FOUND", "That class does not exist.");
+    }
+    requireOwnClass(instructorId, session.instructorId);
+    if (session.status !== "Scheduled") {
+      throw new HttpError(409, "CLASS_NOT_OPEN", "A message can only be sent for a scheduled class.");
+    }
+    if (session.ended) {
+      throw new HttpError(409, "CLASS_ENDED", "A message cannot be sent after the class has ended.");
+    }
+    const userIds = await classes.bookedUserIds(transaction, classId);
+    const body = `${session.title}: ${message}`;
+    for (const userId of userIds) {
+      await classes.insertNotification(transaction, userId, "Class message", body);
+    }
+    await transaction.commit();
+    return { classId, notified: userIds.length };
+  } catch (error) {
+    await transaction.rollback();
+    throw error;
+  }
+}
+
 export async function listManagedClasses() {
   return { classes: await classes.listManaged(), instructors: await classes.listInstructors() };
 }

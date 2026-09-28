@@ -401,6 +401,15 @@ export class ClassRepository {
     }));
   }
 
+  async bookedUserIds(transaction: sql.Transaction, classId: number): Promise<number[]> {
+    const result = await new sql.Request(transaction).input("classId", sql.Int, classId).query<{ UserId: number }>(`
+      SELECT UserId
+      FROM dbo.Bookings WITH (UPDLOCK, HOLDLOCK)
+      WHERE ClassSessionId = @classId AND Status = N'Booked'
+    `);
+    return result.recordset.map((row) => row.UserId);
+  }
+
   async peopleToNotify(transaction: sql.Transaction, classId: number): Promise<number[]> {
     const result = await new sql.Request(transaction).input("classId", sql.Int, classId).query<{ UserId: number }>(`
       SELECT UserId

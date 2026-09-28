@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
-import { AppShell, Button, EmptyState, ErrorState, LoadingState, type AppNavItem } from "@emeris/ui";
-import { cancelClass, getMyClasses, type InstructorClass, type InstructorSession } from "./api";
+import { FormEvent, useEffect, useState } from "react";
+import { AppShell, Button, EmptyState, ErrorState, LoadingState, TextField, type AppNavItem } from "@emeris/ui";
+import { cancelClass, getMyClasses, messageBookedMembers, type InstructorClass, type InstructorSession } from "./api";
 import "./roster.css";
 
 type ClassDetailsScreenProps = {
@@ -28,7 +28,8 @@ export function ClassDetailsScreen({ session, nav, onSignOut }: ClassDetailsScre
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [busyId, setBusyId] = useState<number | null>(null);
+  const [cancellingId, setCancellingId] = useState<number | null>(null);
+  const [messagingId, setMessagingId] = useState<number | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -62,7 +63,7 @@ export function ClassDetailsScreen({ session, nav, onSignOut }: ClassDetailsScre
   }, [session.accessToken, onSignOut]);
 
   async function onCancel(classId: number) {
-    setBusyId(classId);
+    setCancellingId(classId);
     setError(null);
     try {
       const result = await cancelClass(session.accessToken, classId);
@@ -81,7 +82,33 @@ export function ClassDetailsScreen({ session, nav, onSignOut }: ClassDetailsScre
       }
       setError(message);
     } finally {
-      setBusyId(null);
+      setCancellingId(null);
+    }
+  }
+
+  async function onMessage(classId: number, message: string): Promise<boolean> {
+    setMessagingId(classId);
+    setError(null);
+    try {
+      const result = await messageBookedMembers(session.accessToken, classId, message);
+      setNotice(
+        result.notified === 0
+          ? "No booked members to tell."
+          : result.notified === 1
+            ? "1 booked member was told."
+            : `${result.notified} booked members were told.`,
+      );
+      return true;
+    } catch (caught) {
+      const messageText = caught instanceof Error ? caught.message : "Could not send this message.";
+      if (messageText === "UNAUTHENTICATED") {
+        onSignOut();
+        return false;
+      }
+      setError(messageText);
+      return false;
+    } finally {
+      setMessagingId(null);
     }
   }
 
@@ -89,10 +116,10 @@ export function ClassDetailsScreen({ session, nav, onSignOut }: ClassDetailsScre
     <AppShell area="Instructor" nav={nav} onSignOut={onSignOut}>
       <header className="roster-heading">
         <h1>Class details</h1>
-        <p>Cancel a class that has not ended. Booked and waitlisted members are notified.</p>
+        <p>Cancel a class that has not ended, or send a note to members who are booked. Waitlisted members are not included.</p>
       </header>
       {loading ? <LoadingState title="Loading classes" message="Fetching classes you still teach." /> : null}
-      {error ? <ErrorState title="Class not cancelled" message={error} /> : null}
+      {error ? <ErrorState title="That did not go through" message={error} /> : null}
       {notice ? (
         <p className="class-notice" role="status">
           {notice}
@@ -110,13 +137,57 @@ export function ClassDetailsScreen({ session, nav, onSignOut }: ClassDetailsScre
               <p>
                 {item.location} · capacity {item.capacity} · {item.placesHeld} still holding a place
               </p>
-              <Button type="button" disabled={busyId === item.id} onClick={() => void onCancel(item.id)}>
-                {busyId === item.id ? "Cancelling…" : "Cancel class"}
+              <ClassMessage
+                classId={item.id}
+                disabled={cancellingId !== null || messagingId !== null}
+                sending={messagingId === item.id}
+                onSend={(message) => onMessage(item.id, message)}
+              />
+              <Button type="button" disabled={cancellingId !== null || messagingId !== null} onClick={() => void onCancel(item.id)}>
+                {cancellingId === item.id ? "Cancelling…" : "Cancel class"}
               </Button>
             </li>
           ))}
         </ul>
       ) : null}
     </AppShell>
+  );
+}
+
+function ClassMessage({
+  classId,
+  disabled,
+  sending,
+  onSend,
+}: {
+  classId: number;
+  disabled: boolean;
+  sending: boolean;
+  onSend: (message: string) => Promise<boolean>;
+}) {
+  const [message, setMessage] = useState("");
+
+  async function onSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const sent = await onSend(message);
+    if (sent) {
+      setMessage("");
+    }
+  }
+
+  return (
+    <form className="class-message" onSubmit={(event) => void onSubmit(event)}>
+      <TextField
+        id={`message-${classId}`}
+        label="Message"
+        value={message}
+        onChange={(event) => setMessage(event.target.value)}
+        maxLength={400}
+        required
+      />
+      <Button type="submit" disabled={disabled || message.trim().length === 0}>
+        {sending ? "Sending…" : "Send to booked members"}
+      </Button>
+    </form>
   );
 }

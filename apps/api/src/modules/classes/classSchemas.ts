@@ -15,6 +15,10 @@ export const publishClassSchema = z.object({
   location: z.string().trim().min(1).max(80),
 });
 
+export const classMessageSchema = z.object({
+  message: z.string().trim().min(1).max(400),
+});
+
 export const attendanceSchema = z.object({
   userId: z.number().int().positive(),
   mark: z.enum(["Attended", "Absent"]),
