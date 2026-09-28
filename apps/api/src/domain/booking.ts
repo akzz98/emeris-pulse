@@ -12,6 +12,14 @@ export class Booking {
     return "Waitlisted";
   }
 
+  // A cancelled booking frees a seat only when that place was booked. The earliest waitlisted member takes it.
+  static promoteAfterCancel(cancelled: BookingStatus, waitlistedWaiting: boolean): BookingStatus | null {
+    if (cancelled === "Booked" && waitlistedWaiting) {
+      return "Booked";
+    }
+    return null;
+  }
+
   cancel(): BookingStatus {
     if (this.status !== "Booked" && this.status !== "Waitlisted") {
       throw new DomainError("Only a booked or waitlisted place can be cancelled.");
