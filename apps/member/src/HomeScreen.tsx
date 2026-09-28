@@ -1,13 +1,12 @@
 import { useEffect, useState } from "react";
-import { AppShell, Button, ErrorState, LoadingState } from "@emeris/ui";
+import { AppShell, ErrorState, LoadingState, type AppNavItem } from "@emeris/ui";
 import { getActivitySummary, type ActivitySummary } from "./api";
 import "./home.css";
 import type { MemberSession } from "./session";
 
 type HomeScreenProps = {
   session: MemberSession;
-  onOpenMembership: () => void;
-  onOpenProfile: () => void;
+  nav: AppNavItem[];
   onSignOut: () => void;
 };
 
@@ -19,7 +18,7 @@ function formatWhen(iso: string): string {
   return date.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 }
 
-export function HomeScreen({ session, onOpenMembership, onOpenProfile, onSignOut }: HomeScreenProps) {
+export function HomeScreen({ session, nav, onSignOut }: HomeScreenProps) {
   const [summary, setSummary] = useState<ActivitySummary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -56,19 +55,11 @@ export function HomeScreen({ session, onOpenMembership, onOpenProfile, onSignOut
   }, [session.accessToken, onSignOut]);
 
   return (
-    <AppShell area="Member">
+    <AppShell area="Member" nav={nav} onSignOut={onSignOut}>
       <header className="home-heading">
         <h1>Hello, {session.user.firstName}</h1>
         <p>Your activity at Emeris Pulse.</p>
       </header>
-      <div className="home-links">
-        <button type="button" className="text-button" onClick={onOpenMembership}>
-          View membership
-        </button>
-        <button type="button" className="text-button" onClick={onOpenProfile}>
-          View profile
-        </button>
-      </div>
       {loading ? <LoadingState title="Loading activity" message="Fetching your visits, classes, and challenges." /> : null}
       {error ? <ErrorState title="Activity unavailable" message={error} /> : null}
       {summary ? (
@@ -116,9 +107,6 @@ export function HomeScreen({ session, onOpenMembership, onOpenProfile, onSignOut
           </section>
         </>
       ) : null}
-      <div className="home-actions">
-        <Button onClick={onSignOut}>Sign out</Button>
-      </div>
     </AppShell>
   );
 }

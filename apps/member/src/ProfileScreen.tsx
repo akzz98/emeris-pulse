@@ -1,17 +1,17 @@
 import { FormEvent, useEffect, useState } from "react";
-import { AppShell, Button, ErrorState, LoadingState, SuccessBanner, TextField } from "@emeris/ui";
+import { AppShell, Button, ErrorState, LoadingState, SuccessBanner, TextField, type AppNavItem } from "@emeris/ui";
 import { getProfile, updateProfile, type MemberProfile } from "./api";
 import "./profile.css";
 import type { MemberSession } from "./session";
 
 type ProfileScreenProps = {
   session: MemberSession;
-  onHome: () => void;
+  nav: AppNavItem[];
   onSignOut: () => void;
   onUpdated: (profile: MemberProfile) => void;
 };
 
-export function ProfileScreen({ session, onHome, onSignOut, onUpdated }: ProfileScreenProps) {
+export function ProfileScreen({ session, nav, onSignOut, onUpdated }: ProfileScreenProps) {
   const [profile, setProfile] = useState<MemberProfile | null>(null);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -85,14 +85,11 @@ export function ProfileScreen({ session, onHome, onSignOut, onUpdated }: Profile
   }
 
   return (
-    <AppShell area="Member">
+    <AppShell area="Member" nav={nav} onSignOut={onSignOut}>
       <header className="profile-heading">
         <h1>Profile</h1>
         <p>Contact details used for gym notices.</p>
       </header>
-      <button type="button" className="text-button" onClick={onHome}>
-        Back to home
-      </button>
       {loading ? <LoadingState title="Loading profile" message="Fetching your contact details." /> : null}
       {error ? <ErrorState title="Profile unavailable" message={error} /> : null}
       {profile ? (
@@ -116,9 +113,6 @@ export function ProfileScreen({ session, onHome, onSignOut, onUpdated }: Profile
           </Button>
         </form>
       ) : null}
-      <div className="profile-actions">
-        <Button onClick={onSignOut}>Sign out</Button>
-      </div>
     </AppShell>
   );
 }

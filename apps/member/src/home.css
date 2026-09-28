@@ -9,37 +9,6 @@
   color: var(--ep-muted, #4d5e66);
 }
 
-.home-links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem 1.25rem;
-}
-
-.home-links .text-button {
-  margin-bottom: 1rem;
-}
-  appearance: none;
-  border: 0;
-  background: none;
-  padding: 0;
-  margin: 0 0 1rem;
-  color: var(--ep-teal, #004559);
-  font: inherit;
-  font-weight: 650;
-  text-decoration: underline;
-  text-underline-offset: 0.18em;
-  cursor: pointer;
-}
-
-.text-button:hover {
-  color: var(--ep-teal-dark, #003344);
-}
-
-.text-button:focus-visible {
-  outline: var(--ep-focus, 2px solid #0b6e8a);
-  outline-offset: 3px;
-}
-
 .visually-hidden {
   position: absolute;
   width: 1px;
@@ -118,8 +87,4 @@
 .activity-recent time {
   color: var(--ep-muted, #4d5e66);
   font-size: 0.9rem;
-}
-
-.home-actions {
-  margin-top: 1rem;
 }

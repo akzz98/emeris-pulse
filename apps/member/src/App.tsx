@@ -4,6 +4,7 @@ import { LoginScreen } from "./LoginScreen";
 import { MembershipScreen } from "./MembershipScreen";
 import { ProfileScreen } from "./ProfileScreen";
 import { RegisterScreen } from "./RegisterScreen";
+import { memberNav, type MemberScreen } from "./navigation";
 import { clearSession, loadSession, saveSession, type MemberSession } from "./session";
 import { Splash } from "./Splash";
 
@@ -11,8 +12,7 @@ export function App() {
   const [session, setSession] = useState<MemberSession | null>(() => loadSession());
   const [showSplash, setShowSplash] = useState(true);
   const [mode, setMode] = useState<"login" | "register">("login");
-  // Signed-in screens. The shared navigation bar is a later step, so home links across for now.
-  const [screen, setScreen] = useState<"home" | "membership" | "profile">("home");
+  const [screen, setScreen] = useState<MemberScreen>("home");
 
   useEffect(() => {
     const timer = window.setTimeout(() => setShowSplash(false), 900);
@@ -39,16 +39,17 @@ export function App() {
     setSession(null);
     setScreen("home");
   };
+  const nav = memberNav(screen, setScreen);
 
   if (screen === "membership") {
-    return <MembershipScreen session={session} onHome={() => setScreen("home")} onSignOut={onSignOut} />;
+    return <MembershipScreen session={session} nav={nav} onSignOut={onSignOut} />;
   }
 
   if (screen === "profile") {
     return (
       <ProfileScreen
         session={session}
-        onHome={() => setScreen("home")}
+        nav={nav}
         onSignOut={onSignOut}
         onUpdated={(profile) => {
           const next = {
@@ -62,12 +63,5 @@ export function App() {
     );
   }
 
-  return (
-    <HomeScreen
-      session={session}
-      onOpenMembership={() => setScreen("membership")}
-      onOpenProfile={() => setScreen("profile")}
-      onSignOut={onSignOut}
-    />
-  );
+  return <HomeScreen session={session} nav={nav} onSignOut={onSignOut} />;
 }

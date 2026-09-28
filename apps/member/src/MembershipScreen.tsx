@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
-import { AppShell, Button, ErrorState, LoadingState } from "@emeris/ui";
+import { AppShell, ErrorState, LoadingState, type AppNavItem } from "@emeris/ui";
 import { getMembership, type MembershipDetails } from "./api";
 import "./membership.css";
 import type { MemberSession } from "./session";
 
 type MembershipScreenProps = {
   session: MemberSession;
-  onHome: () => void;
+  nav: AppNavItem[];
   onSignOut: () => void;
 };
 
@@ -41,7 +41,7 @@ function eligibilityMessage(membership: MembershipDetails): string {
   return `Student eligibility lasts ${membership.termDays} days.`;
 }
 
-export function MembershipScreen({ session, onHome, onSignOut }: MembershipScreenProps) {
+export function MembershipScreen({ session, nav, onSignOut }: MembershipScreenProps) {
   const [membership, setMembership] = useState<MembershipDetails | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -78,14 +78,11 @@ export function MembershipScreen({ session, onHome, onSignOut }: MembershipScree
   }, [session.accessToken, onSignOut]);
 
   return (
-    <AppShell area="Member">
+    <AppShell area="Member" nav={nav} onSignOut={onSignOut}>
       <header className="membership-heading">
         <h1>Membership</h1>
         <p>Status and expiry for {session.user.firstName}.</p>
       </header>
-      <button type="button" className="text-button" onClick={onHome}>
-        Back to home
-      </button>
       {loading ? <LoadingState title="Loading membership" message="Checking your status and expiry." /> : null}
       {error ? <ErrorState title="Membership unavailable" message={error} /> : null}
       {membership ? (
@@ -117,9 +114,6 @@ export function MembershipScreen({ session, onHome, onSignOut }: MembershipScree
           <p>{eligibilityMessage(membership)}</p>
         </section>
       ) : null}
-      <div className="membership-actions">
-        <Button onClick={onSignOut}>Sign out</Button>
-      </div>
     </AppShell>
   );
 }

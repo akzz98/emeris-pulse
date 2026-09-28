@@ -72,6 +72,55 @@ body {
   font-size: 0.9rem;
 }
 
+.ep-nav {
+  background: var(--ep-white);
+  border-bottom: 1px solid var(--ep-line);
+}
+
+.ep-nav ul {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.5rem;
+  list-style: none;
+  max-width: 42rem;
+  margin: 0 auto;
+  padding: 0.55rem 1.25rem;
+}
+
+.ep-nav button {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--ep-teal);
+  font: inherit;
+  font-weight: 650;
+  padding: 0.4rem 0.65rem;
+  border-radius: 0.4rem;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+.ep-nav button:hover {
+  color: var(--ep-teal-dark);
+}
+
+.ep-nav button:focus-visible {
+  outline: var(--ep-focus);
+  outline-offset: 3px;
+}
+
+.ep-nav button[aria-current="page"] {
+  background: var(--ep-teal);
+  color: var(--ep-white);
+  text-decoration: none;
+}
+
+.ep-nav-end {
+  margin-left: auto;
+}
+
 .ep-main {
   max-width: 42rem;
   margin: 0 auto;
