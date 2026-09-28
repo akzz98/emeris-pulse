@@ -177,20 +177,21 @@ export class ClassRepository {
   async nextWaitlisted(
     transaction: sql.Transaction,
     classId: number,
-  ): Promise<{ id: number; firstName: string; lastName: string } | null> {
+  ): Promise<{ id: number; userId: number; firstName: string; lastName: string } | null> {
     const result = await new sql.Request(transaction).input("classId", sql.Int, classId).query<{
       Id: number;
+      UserId: number;
       FirstName: string;
       LastName: string;
     }>(`
-      SELECT TOP 1 b.Id, u.FirstName, u.LastName
+      SELECT TOP 1 b.Id, b.UserId, u.FirstName, u.LastName
       FROM dbo.Bookings b WITH (UPDLOCK, ROWLOCK)
       INNER JOIN dbo.Users u ON u.Id = b.UserId
       WHERE b.ClassSessionId = @classId AND b.Status = N'Waitlisted'
       ORDER BY b.CreatedAt, b.Id
     `);
     const row = result.recordset[0];
-    return row ? { id: row.Id, firstName: row.FirstName, lastName: row.LastName } : null;
+    return row ? { id: row.Id, userId: row.UserId, firstName: row.FirstName, lastName: row.LastName } : null;
   }
 
   async setStatus(transaction: sql.Transaction, bookingId: number, status: PlaceStatus): Promise<void> {

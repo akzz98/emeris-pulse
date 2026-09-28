@@ -76,7 +76,7 @@ export function BookScreen({ session, nav, onSignOut }: BookScreenProps) {
       await refresh(
         result.status === "Waitlisted"
           ? "The class is full. You are on the waitlist."
-          : "Your place is booked.",
+          : "Your place is booked. A class reminder is in your notices.",
       );
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : "Could not book this class.";

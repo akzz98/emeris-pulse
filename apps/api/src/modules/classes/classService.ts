@@ -8,6 +8,18 @@ import type { AttendanceInput, PublishClassInput } from "./classSchemas.js";
 
 const classes = new ClassRepository();
 
+function classWhen(startsAt: string): string {
+  const [datePart, timePart] = startsAt.slice(0, 16).split("T");
+  const [year, month, day] = datePart.split("-").map(Number);
+  const date = new Date(year, month - 1, day);
+  const dayLabel = date.toLocaleDateString("en-ZA", { weekday: "short", day: "numeric", month: "short" });
+  return `${dayLabel} at ${timePart}`;
+}
+
+function reminderBody(title: string, location: string, startsAt: string): string {
+  return `${title} at ${location} starts ${classWhen(startsAt)}. Arrive a few minutes early.`;
+}
+
 function seatsLeft(capacity: number, bookedCount: number): number {
   return Math.max(0, capacity - bookedCount);
 }
@@ -70,6 +82,15 @@ export async function bookClass(userId: number, classId: number) {
     } else {
       await classes.insertPlace(transaction, classId, userId, status);
     }
+    // A waitlist place is not a seat, so the reminder is written only when the place is booked.
+    if (status === "Booked") {
+      await classes.insertNotification(
+        transaction,
+        userId,
+        "Class reminder",
+        reminderBody(session.title, session.location, session.startsAt),
+      );
+    }
     await transaction.commit();
     return {
       classId,
@@ -109,6 +130,12 @@ export async function cancelBooking(userId: number, classId: number) {
     let promoted: { firstName: string; lastName: string } | null = null;
     if (next && Booking.promoteAfterCancel(place.status, true)) {
       await classes.setStatus(transaction, next.id, "Booked");
+      await classes.insertNotification(
+        transaction,
+        next.userId,
+        "Class reminder",
+        reminderBody(session.title, session.location, session.startsAt),
+      );
       promoted = { firstName: next.firstName, lastName: next.lastName };
     }
 
