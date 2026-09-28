@@ -1,0 +1,35 @@
+.splash {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  background: var(--ep-surface, #f3f6f7);
+}
+
+.splash img {
+  height: 3rem;
+  width: auto;
+}
+
+.splash p {
+  margin: 0;
+  color: var(--ep-teal, #004559);
+  font-weight: 700;
+  font-size: 1.35rem;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.login-form .ep-button {
+  margin-top: 0.5rem;
+}
+
+.signed-in .ep-button {
+  margin-top: 1rem;
+}
