@@ -199,6 +199,45 @@ body {
   opacity: 0.55;
 }
 
+.ep-dialog {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  max-width: calc(100vw - 2rem);
+}
+
+.ep-dialog::backdrop {
+  background: rgb(20 32 38 / 45%);
+}
+
+.ep-dialog-panel {
+  width: min(24rem, calc(100vw - 2rem));
+  margin: auto;
+  background: var(--ep-white);
+  border: 1px solid var(--ep-line);
+  border-radius: 0.6rem;
+  padding: 1.25rem;
+  box-shadow: 0 0.75rem 2rem rgb(20 32 38 / 18%);
+}
+
+.ep-dialog-panel h2 {
+  margin: 0 0 0.5rem;
+  color: var(--ep-teal);
+  font-size: 1.25rem;
+}
+
+.ep-dialog-panel p {
+  margin: 0 0 1.25rem;
+  color: var(--ep-muted);
+}
+
+.ep-dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+
 .ep-link {
   color: var(--ep-teal);
   font-weight: 650;
