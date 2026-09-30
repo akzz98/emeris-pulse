@@ -386,6 +386,10 @@ Request bodies are checked with Zod before they reach a service. A bad body retu
 
 The API sends a Helmet content security policy that allows nothing to be loaded from it, because it returns JSON only. Each web app sends its own policy: scripts and styles from that app, images from that app plus the QR data URL, and connections only to itself and the API. `frame-ancestors` is none. CORS allows only the origins in `CORS_ORIGINS`. Login is limited to 10 requests a minute per caller. Pass redemption is limited to 30 a minute. Azure terminates TLS on the live sites. The API trusts one proxy hop so those limits see the caller, not the load balancer.
 
+## Performance
+
+The hosted member home page at https://emeris-pulse-member.azurewebsites.net should answer within 2 seconds. Recent checks returned in under 1 second.
+
 ## Data flow
 
 A screen calls the API with the bearer token. The route validates the body, the service applies the business rule, and the repository reads or writes Azure SQL. The JSON result is what the screen shows. A booking, a scan, a ticket, and a challenge join are rows in that database, not state kept only in the browser.
