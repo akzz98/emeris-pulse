@@ -95,6 +95,7 @@ export function AttendanceScreen({ session, nav, onSignOut }: AttendanceScreenPr
                         <span className="attendance-actions">
                           <Button
                             type="button"
+                            variant="primary"
                             disabled={busyKey === `${item.id}-${member.userId}`}
                             onClick={() => void onMark(item.id, member.userId, "Attended")}
                           >
@@ -102,6 +103,7 @@ export function AttendanceScreen({ session, nav, onSignOut }: AttendanceScreenPr
                           </Button>
                           <Button
                             type="button"
+                            variant="secondary"
                             disabled={busyKey === `${item.id}-${member.userId}`}
                             onClick={() => void onMark(item.id, member.userId, "Absent")}
                           >

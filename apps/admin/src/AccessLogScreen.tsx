@@ -97,13 +97,13 @@ export function AccessLogScreen({ session, nav, onSignOut }: AccessLogScreenProp
             </tbody>
           </table>
           <div className="log-pager">
-            <Button onClick={() => setPage((current) => current - 1)} disabled={page <= 1}>
+            <Button variant="secondary" onClick={() => setPage((current) => current - 1)} disabled={page <= 1}>
               Previous
             </Button>
             <p>
               Page {log.page} of {pageCount}
             </p>
-            <Button onClick={() => setPage((current) => current + 1)} disabled={page >= pageCount}>
+            <Button variant="secondary" onClick={() => setPage((current) => current + 1)} disabled={page >= pageCount}>
               Next
             </Button>
           </div>

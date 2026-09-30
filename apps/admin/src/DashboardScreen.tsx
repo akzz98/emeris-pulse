@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
-import { AppShell, Button, EmptyState, ErrorState, LoadingState, TextField, type AppNavItem } from "@emeris/ui";
+import { AppShell, Button, ConfirmDialog, EmptyState, ErrorState, LoadingState, TextField, type AppNavItem } from "@emeris/ui";
 import { announceClosure, getOccupancy, getUtilisation, type AdminSession, type Occupancy, type Utilisation } from "./api";
 import "./dashboard.css";
 
@@ -29,6 +29,21 @@ function formatWhen(iso: string): string {
   return date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
 }
 
+function formatClosureDay(value: string): string {
+  const date = new Date(`${value}T12:00:00`);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+  return date.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+}
+
+function closureWindowLabel(startsOn: string, endsOn: string): string {
+  if (startsOn === endsOn) {
+    return formatClosureDay(startsOn);
+  }
+  return `${formatClosureDay(startsOn)} to ${formatClosureDay(endsOn)}`;
+}
+
 export function DashboardScreen({ session, nav, onSignOut }: DashboardScreenProps) {
   const [occupancy, setOccupancy] = useState<Occupancy | null>(null);
   const [utilisation, setUtilisation] = useState<Utilisation | null>(null);
@@ -40,6 +55,7 @@ export function DashboardScreen({ session, nav, onSignOut }: DashboardScreenProp
   const [closureNotice, setClosureNotice] = useState<string | null>(null);
   const [closureError, setClosureError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  const [confirmClosure, setConfirmClosure] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -110,9 +126,15 @@ export function DashboardScreen({ session, nav, onSignOut }: DashboardScreenProp
     };
   }, [session.accessToken, onSignOut]);
 
-  async function onClosure(event: FormEvent<HTMLFormElement>) {
+  function onClosureSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setClosureError(null);
+    setConfirmClosure(true);
+  }
+
+  async function onClosureConfirmed() {
     setSending(true);
+    setConfirmClosure(false);
     setClosureError(null);
     setClosureNotice(null);
     try {
@@ -209,7 +231,7 @@ export function DashboardScreen({ session, nav, onSignOut }: DashboardScreenProp
             {closureNotice}
           </p>
         ) : null}
-        <form onSubmit={(event) => void onClosure(event)}>
+        <form onSubmit={onClosureSubmit}>
           <TextField
             id="closure-starts"
             label="Starts"
@@ -239,6 +261,23 @@ export function DashboardScreen({ session, nav, onSignOut }: DashboardScreenProp
           </Button>
         </form>
       </section>
+      <ConfirmDialog
+        open={confirmClosure}
+        title="Send this gym closure notice?"
+        message={
+          closure.startsOn && closure.endsOn
+            ? `Members with a class on ${closureWindowLabel(closure.startsOn, closure.endsOn)} will be told. Other members are not notified.`
+            : ""
+        }
+        confirmLabel="Tell affected members"
+        cancelLabel="Keep drafting"
+        confirmVariant="primary"
+        busy={sending}
+        onCancel={() => setConfirmClosure(false)}
+        onConfirm={() => {
+          void onClosureConfirmed();
+        }}
+      />
     </AppShell>
   );
 }

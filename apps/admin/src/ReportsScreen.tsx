@@ -56,13 +56,13 @@ function ReportPager({
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
   return (
     <div className="report-pager">
-      <Button onClick={() => onPage(page - 1)} disabled={page <= 1}>
+      <Button variant="secondary" onClick={() => onPage(page - 1)} disabled={page <= 1}>
         Previous
       </Button>
       <p>
         Page {page} of {pageCount}
       </p>
-      <Button onClick={() => onPage(page + 1)} disabled={page >= pageCount}>
+      <Button variant="secondary" onClick={() => onPage(page + 1)} disabled={page >= pageCount}>
         Next
       </Button>
     </div>
