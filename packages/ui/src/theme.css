@@ -140,19 +140,53 @@ body {
 
 .ep-button {
   appearance: none;
-  border: 0;
+  border: 1px solid transparent;
   border-radius: 0.4rem;
-  background: var(--ep-teal);
-  color: var(--ep-white);
   font: inherit;
   font-weight: 650;
   padding: 0.65rem 1rem;
   cursor: pointer;
+}
+
+.ep-button--primary {
+  background: var(--ep-teal);
+  color: var(--ep-white);
   box-shadow: 0 1px 0 rgb(0 0 0 / 12%);
 }
 
-.ep-button:hover {
+.ep-button--primary:hover:not(:disabled) {
   background: var(--ep-teal-dark);
+}
+
+.ep-button--secondary {
+  background: var(--ep-white);
+  color: var(--ep-teal);
+  border-color: var(--ep-line);
+}
+
+.ep-button--secondary:hover:not(:disabled) {
+  background: var(--ep-surface);
+  border-color: var(--ep-teal);
+}
+
+.ep-button--danger {
+  background: var(--ep-danger);
+  color: var(--ep-white);
+  box-shadow: 0 1px 0 rgb(0 0 0 / 12%);
+}
+
+.ep-button--danger:hover:not(:disabled) {
+  background: #6f1627;
+}
+
+.ep-button--ghost {
+  background: transparent;
+  color: var(--ep-teal);
+  box-shadow: none;
+}
+
+.ep-button--ghost:hover:not(:disabled) {
+  background: rgb(0 69 89 / 8%);
 }
 
 .ep-button:focus-visible {
