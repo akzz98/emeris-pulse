@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AppShell, Button, ErrorState, LoadingState, type AppNavItem } from "@emeris/ui";
+import { AppShell, Button, ConfirmDialog, ErrorState, LoadingState, type AppNavItem } from "@emeris/ui";
 import {
   approveMembership,
   freezeMembership,
@@ -33,6 +33,7 @@ export function MembersScreen({ session, nav, onSignOut }: MembersScreenProps) {
   const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<number | null>(null);
+  const [pendingFreeze, setPendingFreeze] = useState<DeskMembership | null>(null);
 
   async function load() {
     const [waiting, current, paused] = await Promise.all([
@@ -78,6 +79,7 @@ export function MembersScreen({ session, nav, onSignOut }: MembersScreenProps) {
 
   async function run(membership: DeskMembership, action: "approve" | "freeze" | "activate") {
     setBusyId(membership.userId);
+    setPendingFreeze(null);
     setError(null);
     setNotice(null);
     const name = `${membership.firstName} ${membership.lastName}`;
@@ -167,7 +169,18 @@ export function MembersScreen({ session, nav, onSignOut }: MembersScreenProps) {
                         {membership.campusIdentifier} · {membership.memberType} · expires {formatDay(membership.expiryDate)}
                       </p>
                       <p>{group.detail}</p>
-                      <Button type="button" disabled={busyId !== null} onClick={() => void run(membership, group.action)}>
+                      <Button
+                        type="button"
+                        variant={group.action === "freeze" ? "danger" : "primary"}
+                        disabled={busyId !== null}
+                        onClick={() => {
+                          if (group.action === "freeze") {
+                            setPendingFreeze(membership);
+                            return;
+                          }
+                          void run(membership, group.action);
+                        }}
+                      >
                         {busyId === membership.userId ? group.busy : group.label}
                       </Button>
                     </li>
@@ -177,6 +190,25 @@ export function MembersScreen({ session, nav, onSignOut }: MembersScreenProps) {
             </section>
           ))
         : null}
+      <ConfirmDialog
+        open={pendingFreeze !== null}
+        title="Freeze this membership?"
+        message={
+          pendingFreeze
+            ? `${pendingFreeze.firstName} ${pendingFreeze.lastName} will not be able to enter, book, or start equipment until the membership is activated again.`
+            : ""
+        }
+        confirmLabel="Freeze membership"
+        cancelLabel="Keep active"
+        confirmVariant="danger"
+        busy={pendingFreeze !== null && busyId === pendingFreeze.userId}
+        onCancel={() => setPendingFreeze(null)}
+        onConfirm={() => {
+          if (pendingFreeze) {
+            void run(pendingFreeze, "freeze");
+          }
+        }}
+      />
     </AppShell>
   );
 }

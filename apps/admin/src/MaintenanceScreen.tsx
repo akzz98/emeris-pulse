@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AppShell, Button, EmptyState, ErrorState, LoadingState, type AppNavItem } from "@emeris/ui";
+import { AppShell, Button, ConfirmDialog, EmptyState, ErrorState, LoadingState, type AppNavItem } from "@emeris/ui";
 import { closeTicket, getTicketQueue, takeEquipmentOutOfService, type AdminSession, type OpenTicket } from "./api";
 import "./maintenance.css";
 
@@ -29,6 +29,8 @@ export function MaintenanceScreen({ session, nav, onSignOut }: MaintenanceScreen
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<number | null>(null);
   const [closingId, setClosingId] = useState<number | null>(null);
+  const [pendingOut, setPendingOut] = useState<OpenTicket | null>(null);
+  const [pendingClose, setPendingClose] = useState<OpenTicket | null>(null);
   const area = session.user.role === "FacilityManager" ? "Facility" : "Admin";
 
   async function load() {
@@ -67,8 +69,9 @@ export function MaintenanceScreen({ session, nav, onSignOut }: MaintenanceScreen
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session.accessToken, onSignOut]);
 
-  async function onClose(ticket: OpenTicket) {
+  async function onCloseConfirmed(ticket: OpenTicket) {
     setClosingId(ticket.id);
+    setPendingClose(null);
     setError(null);
     setNotice(null);
     try {
@@ -93,8 +96,9 @@ export function MaintenanceScreen({ session, nav, onSignOut }: MaintenanceScreen
     }
   }
 
-  async function onTakeOut(ticket: OpenTicket) {
+  async function onTakeOutConfirmed(ticket: OpenTicket) {
     setBusyId(ticket.equipmentId);
+    setPendingOut(null);
     setError(null);
     setNotice(null);
     try {
@@ -144,11 +148,16 @@ export function MaintenanceScreen({ session, nav, onSignOut }: MaintenanceScreen
               <p>{ticket.equipmentStatus === "Available" ? "Available" : "Out of service"}</p>
               <div className="maintenance-actions">
                 {ticket.equipmentStatus === "Available" ? (
-                  <Button type="button" disabled={busyId !== null || closingId !== null} onClick={() => void onTakeOut(ticket)}>
+                  <Button
+                    type="button"
+                    variant="danger"
+                    disabled={busyId !== null || closingId !== null}
+                    onClick={() => setPendingOut(ticket)}
+                  >
                     {busyId === ticket.equipmentId ? "Updating…" : "Take out of service"}
                   </Button>
                 ) : null}
-                <Button type="button" disabled={busyId !== null || closingId !== null} onClick={() => void onClose(ticket)}>
+                <Button type="button" disabled={busyId !== null || closingId !== null} onClick={() => setPendingClose(ticket)}>
                   {closingId === ticket.id
                     ? "Closing…"
                     : ticket.equipmentStatus === "OutOfService"
@@ -160,6 +169,50 @@ export function MaintenanceScreen({ session, nav, onSignOut }: MaintenanceScreen
           ))}
         </ul>
       ) : null}
+      <ConfirmDialog
+        open={pendingOut !== null}
+        title="Take this machine out of service?"
+        message={
+          pendingOut
+            ? `${pendingOut.name} (${pendingOut.code}) will not accept new sessions until it is returned to service.`
+            : ""
+        }
+        confirmLabel="Take out of service"
+        cancelLabel="Keep available"
+        confirmVariant="danger"
+        busy={pendingOut !== null && busyId === pendingOut.equipmentId}
+        onCancel={() => setPendingOut(null)}
+        onConfirm={() => {
+          if (pendingOut) {
+            void onTakeOutConfirmed(pendingOut);
+          }
+        }}
+      />
+      <ConfirmDialog
+        open={pendingClose !== null}
+        title={
+          pendingClose?.equipmentStatus === "OutOfService"
+            ? "Close this ticket and return the machine?"
+            : "Close this maintenance ticket?"
+        }
+        message={
+          pendingClose
+            ? pendingClose.equipmentStatus === "OutOfService"
+              ? `${pendingClose.name} (${pendingClose.code}) will accept new sessions again if this is the last open ticket.`
+              : `The report for ${pendingClose.name} (${pendingClose.code}) will be marked closed.`
+            : ""
+        }
+        confirmLabel={pendingClose?.equipmentStatus === "OutOfService" ? "Close and return" : "Close ticket"}
+        cancelLabel="Keep open"
+        confirmVariant="primary"
+        busy={pendingClose !== null && closingId === pendingClose.id}
+        onCancel={() => setPendingClose(null)}
+        onConfirm={() => {
+          if (pendingClose) {
+            void onCloseConfirmed(pendingClose);
+          }
+        }}
+      />
     </AppShell>
   );
 }
