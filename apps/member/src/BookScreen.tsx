@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AppShell, Button, EmptyState, ErrorState, LoadingState, type AppNavItem } from "@emeris/ui";
+import { AppShell, Button, ConfirmDialog, EmptyState, ErrorState, LoadingState, type AppNavItem } from "@emeris/ui";
 import { bookClass, cancelBooking, getTimetable, type ClassSession } from "./api";
 import "./classes.css";
 import type { MemberSession } from "./session";
@@ -30,6 +30,7 @@ export function BookScreen({ session, nav, onSignOut }: BookScreenProps) {
   const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<number | null>(null);
+  const [pendingCancel, setPendingCancel] = useState<ClassSession | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -91,8 +92,9 @@ export function BookScreen({ session, nav, onSignOut }: BookScreenProps) {
     }
   }
 
-  async function onCancel(classId: number) {
+  async function onCancelConfirmed(classId: number) {
     setBusyId(classId);
+    setPendingCancel(null);
     try {
       const result = await cancelBooking(session.accessToken, classId);
       const promoted = result.promoted;
@@ -155,7 +157,7 @@ export function BookScreen({ session, nav, onSignOut }: BookScreenProps) {
                           : `${item.seatsLeft} of ${item.capacity} seats left`}
                 </p>
                 {held ? (
-                  <Button type="button" disabled={busyId === item.id} onClick={() => void onCancel(item.id)}>
+                  <Button type="button" variant="danger" disabled={busyId === item.id} onClick={() => setPendingCancel(item)}>
                     {busyId === item.id ? "Cancelling…" : "Cancel booking"}
                   </Button>
                 ) : null}
@@ -174,6 +176,25 @@ export function BookScreen({ session, nav, onSignOut }: BookScreenProps) {
           })}
         </ul>
       ) : null}
+      <ConfirmDialog
+        open={pendingCancel !== null}
+        title={pendingCancel?.myStatus === "Waitlisted" ? "Leave the waitlist?" : "Cancel this booking?"}
+        message={
+          pendingCancel?.myStatus === "Waitlisted"
+            ? `You will leave the waitlist for ${pendingCancel.title}.`
+            : `Cancelling ${pendingCancel?.title ?? "this class"} frees your seat. If someone is waitlisted, they may be promoted into your place.`
+        }
+        confirmLabel={pendingCancel?.myStatus === "Waitlisted" ? "Leave waitlist" : "Cancel booking"}
+        cancelLabel="Keep place"
+        confirmVariant="danger"
+        busy={pendingCancel !== null && busyId === pendingCancel.id}
+        onCancel={() => setPendingCancel(null)}
+        onConfirm={() => {
+          if (pendingCancel) {
+            void onCancelConfirmed(pendingCancel.id);
+          }
+        }}
+      />
     </AppShell>
   );
 }
