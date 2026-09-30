@@ -200,6 +200,8 @@ export type InstructorClass = {
   endsAt: string;
   location: string;
   capacity: number;
+  bookedCount: number;
+  waitlistedCount: number;
   placesHeld: number;
 };
 

@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
-import { AppShell, Button, EmptyState, ErrorState, LoadingState, TextField, type AppNavItem } from "@emeris/ui";
+import { AppShell, Button, ConfirmDialog, EmptyState, ErrorState, LoadingState, TextField, type AppNavItem } from "@emeris/ui";
 import {
   endEquipmentSession,
   getCurrentEquipmentSession,
@@ -35,6 +35,7 @@ export function EquipmentScreen({ session, nav, onSignOut }: EquipmentScreenProp
   const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<"start" | "end" | "report" | null>(null);
+  const [confirmEnd, setConfirmEnd] = useState(false);
 
   async function load() {
     const [floor, current] = await Promise.all([
@@ -116,8 +117,9 @@ export function EquipmentScreen({ session, nav, onSignOut }: EquipmentScreenProp
     }
   }
 
-  async function onEnd() {
+  async function onEndConfirmed() {
     setBusy("end");
+    setConfirmEnd(false);
     setError(null);
     setNotice(null);
     try {
@@ -157,7 +159,7 @@ export function EquipmentScreen({ session, nav, onSignOut }: EquipmentScreenProp
           <p>
             Started at {formatWhen(open.startedAt)} · {open.location}
           </p>
-          <Button type="button" disabled={busy !== null} onClick={() => void onEnd()}>
+          <Button type="button" variant="danger" disabled={busy !== null} onClick={() => setConfirmEnd(true)}>
             {busy === "end" ? "Ending…" : "End session"}
           </Button>
           <form className="equipment-fault" onSubmit={(event) => void onReport(event)}>
@@ -210,6 +212,21 @@ export function EquipmentScreen({ session, nav, onSignOut }: EquipmentScreenProp
           ))}
         </ul>
       ) : null}
+      <ConfirmDialog
+        open={confirmEnd}
+        title="End this session?"
+        message={
+          open
+            ? `Ending frees ${open.name} (${open.code}) for the next member. You can start another machine afterwards.`
+            : "Ending frees the machine for the next member."
+        }
+        confirmLabel="End session"
+        cancelLabel="Keep session"
+        confirmVariant="danger"
+        busy={busy === "end"}
+        onCancel={() => setConfirmEnd(false)}
+        onConfirm={() => void onEndConfirmed()}
+      />
     </AppShell>
   );
 }

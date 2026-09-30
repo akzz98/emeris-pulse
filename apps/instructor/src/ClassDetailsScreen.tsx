@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
-import { AppShell, Button, EmptyState, ErrorState, LoadingState, TextField, type AppNavItem } from "@emeris/ui";
+import { AppShell, Button, ConfirmDialog, EmptyState, ErrorState, LoadingState, TextField, type AppNavItem } from "@emeris/ui";
 import { cancelClass, getMyClasses, messageBookedMembers, type InstructorClass, type InstructorSession } from "./api";
 import "./roster.css";
 
@@ -23,6 +23,17 @@ function formatWhen(value: string): string {
   });
 }
 
+function cancelConsequence(item: InstructorClass): string {
+  const booked = item.bookedCount;
+  const waitlisted = item.waitlistedCount;
+  if (booked === 0 && waitlisted === 0) {
+    return `${item.title} will be cancelled. No members are booked or waitlisted, so nobody is notified.`;
+  }
+  const bookedPart = booked === 1 ? "1 booked member" : `${booked} booked members`;
+  const waitlistedPart = waitlisted === 1 ? "1 waitlisted member" : `${waitlisted} waitlisted members`;
+  return `${item.title} will be cancelled. ${bookedPart} and ${waitlistedPart} will be notified.`;
+}
+
 export function ClassDetailsScreen({ session, nav, onSignOut }: ClassDetailsScreenProps) {
   const [classes, setClasses] = useState<InstructorClass[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -30,6 +41,7 @@ export function ClassDetailsScreen({ session, nav, onSignOut }: ClassDetailsScre
   const [loading, setLoading] = useState(true);
   const [cancellingId, setCancellingId] = useState<number | null>(null);
   const [messagingId, setMessagingId] = useState<number | null>(null);
+  const [pendingCancel, setPendingCancel] = useState<InstructorClass | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -62,8 +74,9 @@ export function ClassDetailsScreen({ session, nav, onSignOut }: ClassDetailsScre
     };
   }, [session.accessToken, onSignOut]);
 
-  async function onCancel(classId: number) {
+  async function onCancelConfirmed(classId: number) {
     setCancellingId(classId);
+    setPendingCancel(null);
     setError(null);
     try {
       const result = await cancelClass(session.accessToken, classId);
@@ -135,7 +148,7 @@ export function ClassDetailsScreen({ session, nav, onSignOut }: ClassDetailsScre
               <h2>{item.title}</h2>
               <p>{formatWhen(item.startsAt)}</p>
               <p>
-                {item.location} · capacity {item.capacity} · {item.placesHeld} still holding a place
+                {item.location} · capacity {item.capacity} · {item.bookedCount} booked · {item.waitlistedCount} waitlisted
               </p>
               <ClassMessage
                 classId={item.id}
@@ -143,13 +156,33 @@ export function ClassDetailsScreen({ session, nav, onSignOut }: ClassDetailsScre
                 sending={messagingId === item.id}
                 onSend={(message) => onMessage(item.id, message)}
               />
-              <Button type="button" disabled={cancellingId !== null || messagingId !== null} onClick={() => void onCancel(item.id)}>
+              <Button
+                type="button"
+                variant="danger"
+                disabled={cancellingId !== null || messagingId !== null}
+                onClick={() => setPendingCancel(item)}
+              >
                 {cancellingId === item.id ? "Cancelling…" : "Cancel class"}
               </Button>
             </li>
           ))}
         </ul>
       ) : null}
+      <ConfirmDialog
+        open={pendingCancel !== null}
+        title="Cancel this class?"
+        message={pendingCancel ? cancelConsequence(pendingCancel) : ""}
+        confirmLabel="Cancel class"
+        cancelLabel="Keep class"
+        confirmVariant="danger"
+        busy={pendingCancel !== null && cancellingId === pendingCancel.id}
+        onCancel={() => setPendingCancel(null)}
+        onConfirm={() => {
+          if (pendingCancel) {
+            void onCancelConfirmed(pendingCancel.id);
+          }
+        }}
+      />
     </AppShell>
   );
 }
