@@ -26,9 +26,11 @@
   gap: 0.75rem;
 }
 
+/* The pass stays square, and it shrinks when the text size grows. */
 .temporary-pass img {
-  width: 15rem;
-  height: 15rem;
+  width: min(15rem, 100%);
+  height: auto;
+  aspect-ratio: 1;
 }
 
 .temporary-pass p {

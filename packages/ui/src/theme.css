@@ -51,8 +51,10 @@ body {
   outline-offset: 2px;
 }
 
+/* The title wraps under the logo when larger text no longer fits one row. */
 .ep-header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 1rem;
   background: var(--ep-white);
@@ -61,8 +63,11 @@ body {
 }
 
 .ep-logo {
-  height: 2.5rem;
+  height: auto;
   width: auto;
+  max-height: 2.5rem;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .ep-product {
