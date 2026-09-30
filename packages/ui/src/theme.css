@@ -29,6 +29,12 @@ body {
   margin: 0;
 }
 
+/* One ring for keyboard focus, including selects and checkboxes. */
+:focus-visible {
+  outline: var(--ep-focus);
+  outline-offset: 3px;
+}
+
 .ep-skip {
   position: absolute;
   left: 0.75rem;
