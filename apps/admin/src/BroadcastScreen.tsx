@@ -1,6 +1,6 @@
 import { FormEvent, useState } from "react";
 import { ROLES, type Role } from "@emeris/shared";
-import { AppShell, Button, ErrorState, TextField, type AppNavItem } from "@emeris/ui";
+import { AppShell, Button, ConfirmDialog, ErrorState, TextField, type AppNavItem } from "@emeris/ui";
 import { broadcastNotice, type AdminSession } from "./api";
 import "./broadcast.css";
 
@@ -19,6 +19,17 @@ const roleLabels: Record<Role, string> = {
   SystemAdmin: "System admin",
 };
 
+function summariseRoles(roles: Role[]): string {
+  const labels = roles.map((role) => roleLabels[role]);
+  if (labels.length === 1) {
+    return labels[0];
+  }
+  if (labels.length === 2) {
+    return `${labels[0]} and ${labels[1]}`;
+  }
+  return `${labels.slice(0, -1).join(", ")}, and ${labels[labels.length - 1]}`;
+}
+
 export function BroadcastScreen({ session, nav, onSignOut }: BroadcastScreenProps) {
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
@@ -26,14 +37,24 @@ export function BroadcastScreen({ session, nav, onSignOut }: BroadcastScreenProp
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   function toggle(role: Role) {
     setRoles((current) => (current.includes(role) ? current.filter((item) => item !== role) : [...current, role]));
   }
 
-  async function onSend(event: FormEvent<HTMLFormElement>) {
+  function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (roles.length === 0) {
+      return;
+    }
+    setError(null);
+    setConfirmOpen(true);
+  }
+
+  async function onSendConfirmed() {
     setBusy(true);
+    setConfirmOpen(false);
     setError(null);
     setNotice(null);
     try {
@@ -68,7 +89,7 @@ export function BroadcastScreen({ session, nav, onSignOut }: BroadcastScreenProp
           {notice}
         </p>
       ) : null}
-      <form className="broadcast-form" onSubmit={(event) => void onSend(event)}>
+      <form className="broadcast-form" onSubmit={onSubmit}>
         <TextField id="broadcast-title" label="Title" value={title} onChange={(event) => setTitle(event.target.value)} maxLength={120} required />
         <TextField
           id="broadcast-message"
@@ -96,6 +117,23 @@ export function BroadcastScreen({ session, nav, onSignOut }: BroadcastScreenProp
           {busy ? "Sending…" : "Send broadcast"}
         </Button>
       </form>
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Send this broadcast?"
+        message={
+          roles.length === 0
+            ? ""
+            : `This notice will reach ${summariseRoles(roles)}. Other roles are not included.`
+        }
+        confirmLabel="Send broadcast"
+        cancelLabel="Keep drafting"
+        confirmVariant="primary"
+        busy={busy}
+        onCancel={() => setConfirmOpen(false)}
+        onConfirm={() => {
+          void onSendConfirmed();
+        }}
+      />
     </AppShell>
   );
 }
