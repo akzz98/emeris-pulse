@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { ROLES, type Role } from "@emeris/shared";
-import { AppShell, Button, ErrorState, LoadingState, type AppNavItem } from "@emeris/ui";
+import { AppShell, Button, ErrorState, LoadingState, Select, type AppNavItem } from "@emeris/ui";
 import { assignAccountRole, getAccounts, type AdminSession, type DirectoryAccount } from "./api";
 import "./roles.css";
 
@@ -111,9 +111,9 @@ export function RolesScreen({ session, nav, onSignOut }: RolesScreenProps) {
                 {mine ? <p>This is your account. {roleLabels[account.role]}</p> : null}
                 {mine ? null : (
                   <>
-                    <label htmlFor={`role-${account.id}`}>Role</label>
-                    <select
+                    <Select
                       id={`role-${account.id}`}
+                      label="Role"
                       value={draft}
                       onChange={(event) =>
                         setDrafts((current) => ({ ...current, [account.id]: event.target.value as Role }))
@@ -124,7 +124,7 @@ export function RolesScreen({ session, nav, onSignOut }: RolesScreenProps) {
                           {roleLabels[role]}
                         </option>
                       ))}
-                    </select>
+                    </Select>
                     <Button type="button" disabled={busyId !== null || draft === account.role} onClick={() => void onSave(account)}>
                       {busyId === account.id ? "Saving…" : "Save role"}
                     </Button>

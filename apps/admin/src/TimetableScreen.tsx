@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
-import { AppShell, Button, ConfirmDialog, EmptyState, ErrorState, LoadingState, TextField, type AppNavItem } from "@emeris/ui";
+import { AppShell, Button, ConfirmDialog, EmptyState, ErrorState, LoadingState, Select, TextField, type AppNavItem } from "@emeris/ui";
 import {
   getManagedClasses,
   publishClass,
@@ -179,21 +179,19 @@ export function TimetableScreen({ session, nav, onSignOut }: TimetableScreenProp
       <form className="timetable-form" onSubmit={onPublish}>
         <h2>Publish a class</h2>
         <TextField id="class-title" label="Title" value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} required />
-        <label className="ep-field" htmlFor="class-instructor">
-          Instructor
-          <select
-            id="class-instructor"
-            value={draft.instructorEmail}
-            onChange={(event) => setDraft({ ...draft, instructorEmail: event.target.value })}
-            required
-          >
-            {instructors.map((instructor) => (
-              <option key={instructor.id} value={instructor.email}>
-                {instructor.firstName} {instructor.lastName}
-              </option>
-            ))}
-          </select>
-        </label>
+        <Select
+          id="class-instructor"
+          label="Instructor"
+          value={draft.instructorEmail}
+          onChange={(event) => setDraft({ ...draft, instructorEmail: event.target.value })}
+          required
+        >
+          {instructors.map((instructor) => (
+            <option key={instructor.id} value={instructor.email}>
+              {instructor.firstName} {instructor.lastName}
+            </option>
+          ))}
+        </Select>
         <TextField id="class-start" label="Starts" type="datetime-local" value={draft.startsAt} onChange={(event) => setDraft({ ...draft, startsAt: event.target.value })} required />
         <TextField id="class-end" label="Ends" type="datetime-local" value={draft.endsAt} onChange={(event) => setDraft({ ...draft, endsAt: event.target.value })} required />
         <TextField id="class-capacity" label="Capacity" type="number" min={1} value={String(draft.capacity)} onChange={(event) => setDraft({ ...draft, capacity: Number(event.target.value) })} required />
@@ -281,20 +279,18 @@ function ClassEditor({
   return (
     <div className="timetable-editor">
       <TextField id={`title-${item.id}`} label="Title" value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} required />
-      <label className="ep-field" htmlFor={`instructor-${item.id}`}>
-        Instructor
-        <select
-          id={`instructor-${item.id}`}
-          value={draft.instructorEmail}
-          onChange={(event) => setDraft({ ...draft, instructorEmail: event.target.value })}
-        >
-          {instructors.map((instructor) => (
-            <option key={instructor.id} value={instructor.email}>
-              {instructor.firstName} {instructor.lastName}
-            </option>
-          ))}
-        </select>
-      </label>
+      <Select
+        id={`instructor-${item.id}`}
+        label="Instructor"
+        value={draft.instructorEmail}
+        onChange={(event) => setDraft({ ...draft, instructorEmail: event.target.value })}
+      >
+        {instructors.map((instructor) => (
+          <option key={instructor.id} value={instructor.email}>
+            {instructor.firstName} {instructor.lastName}
+          </option>
+        ))}
+      </Select>
       <TextField id={`start-${item.id}`} label="Starts" type="datetime-local" value={draft.startsAt} onChange={(event) => setDraft({ ...draft, startsAt: event.target.value })} required />
       <TextField id={`end-${item.id}`} label="Ends" type="datetime-local" value={draft.endsAt} onChange={(event) => setDraft({ ...draft, endsAt: event.target.value })} required />
       <TextField id={`capacity-${item.id}`} label="Capacity" type="number" min={1} value={String(draft.capacity)} onChange={(event) => setDraft({ ...draft, capacity: Number(event.target.value) })} required />

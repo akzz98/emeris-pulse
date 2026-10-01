@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
-import { AppShell, Button, ConfirmDialog, EmptyState, ErrorState, LoadingState, TextField, type AppNavItem } from "@emeris/ui";
+import { AppShell, Button, ConfirmDialog, EmptyState, ErrorState, LoadingState, StatusBadge, TextField, type AppNavItem } from "@emeris/ui";
 import {
   endEquipmentSession,
   getCurrentEquipmentSession,
@@ -241,7 +241,12 @@ export function EquipmentScreen({ session, nav, onSignOut }: EquipmentScreenProp
               <p>
                 {machine.code} · {machine.location}
               </p>
-              <p>{machine.status === "Available" ? "Available" : "Out of service"}</p>
+              <p>
+                <StatusBadge
+                  label={machine.status === "Available" ? "Available" : "Out of service"}
+                  tone={machine.status === "Available" ? "success" : "danger"}
+                />
+              </p>
               {machine.status === "Available" && !open ? (
                 <Button type="button" disabled={busy !== null} onClick={() => void startWithCode(machine.code)}>
                   {busy === "start" ? "Starting…" : "Use this code"}

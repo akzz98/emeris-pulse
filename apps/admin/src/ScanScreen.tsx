@@ -1,5 +1,5 @@
 import { FormEvent, useState } from "react";
-import { AppShell, Button, ErrorState, SuccessBanner, type AppNavItem } from "@emeris/ui";
+import { AppShell, Button, ErrorState, SuccessBanner, TextArea, type AppNavItem } from "@emeris/ui";
 import { redeemPass } from "./api";
 import "./scan.css";
 
@@ -38,18 +38,17 @@ export function ScanScreen({ nav, onSignOut }: ScanScreenProps) {
         <p className="scan-note">Paste the member’s signed pass. Each scan is stored as an access event.</p>
         {granted ? <SuccessBanner title="Entry granted" message="The scan was recorded." /> : null}
         {error ? <ErrorState title="Entry refused" message={error} /> : null}
-        <div className="ep-field">
-          <label htmlFor="pass-token">Pass code</label>
-          <textarea
-            id="pass-token"
-            value={token}
-            onChange={(event) => setToken(event.target.value)}
-            required
-            rows={5}
-            spellCheck={false}
-            autoComplete="off"
-          />
-        </div>
+        <TextArea
+          id="pass-token"
+          label="Pass code"
+          value={token}
+          onChange={(event) => setToken(event.target.value)}
+          required
+          rows={5}
+          spellCheck={false}
+          autoComplete="off"
+          hint="Paste the full signed code from the member’s phone."
+        />
         <Button type="submit" disabled={busy}>
           {busy ? "Recording scan…" : "Redeem pass"}
         </Button>

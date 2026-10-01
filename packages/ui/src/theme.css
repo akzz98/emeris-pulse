@@ -370,7 +370,9 @@ body {
   font-weight: 650;
 }
 
-.ep-field input {
+.ep-field input,
+.ep-field textarea,
+.ep-field select {
   font: inherit;
   color: var(--ep-ink);
   background: var(--ep-white);
@@ -379,10 +381,36 @@ body {
   padding: 0.6rem 0.7rem;
 }
 
-.ep-field input:focus-visible {
+.ep-field textarea {
+  resize: vertical;
+  min-height: 6rem;
+}
+
+.ep-field input:focus-visible,
+.ep-field textarea:focus-visible,
+.ep-field select:focus-visible {
   outline: var(--ep-focus);
   outline-offset: 2px;
   border-color: var(--ep-teal);
+}
+
+.ep-field input[aria-invalid="true"],
+.ep-field textarea[aria-invalid="true"],
+.ep-field select[aria-invalid="true"] {
+  border-color: var(--ep-danger);
+}
+
+.ep-field-hint {
+  margin: 0;
+  color: var(--ep-muted);
+  font-size: 0.9rem;
+}
+
+.ep-field-error {
+  margin: 0;
+  color: var(--ep-danger);
+  font-size: 0.9rem;
+  font-weight: 650;
 }
 
 .ep-state {

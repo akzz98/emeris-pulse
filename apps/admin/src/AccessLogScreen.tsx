@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
-import { AppShell, Button, EmptyState, ErrorState, LoadingState, TextField, type AppNavItem } from "@emeris/ui";
+import { AppShell, Button, EmptyState, ErrorState, LoadingState, Select, TextField, type AppNavItem } from "@emeris/ui";
 import { getAccessLog, type AccessLog } from "./api";
 import "./log.css";
 import type { AdminSession } from "./api";
@@ -28,6 +28,7 @@ export function AccessLogScreen({ session, nav, onSignOut }: AccessLogScreenProp
   const [log, setLog] = useState<AccessLog | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [retryTick, setRetryTick] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -61,7 +62,7 @@ export function AccessLogScreen({ session, nav, onSignOut }: AccessLogScreenProp
     return () => {
       active = false;
     };
-  }, [session.accessToken, page, result, appliedQuery, onSignOut]);
+  }, [session.accessToken, page, result, appliedQuery, onSignOut, retryTick]);
 
   function onSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -78,34 +79,43 @@ export function AccessLogScreen({ session, nav, onSignOut }: AccessLogScreenProp
         <p>Who was granted or refused at the entrance.</p>
       </header>
       <form className="log-filters" onSubmit={onSearch}>
-        <label className="ep-field" htmlFor="log-result">
-          Result
-          <select
-            id="log-result"
-            value={result}
-            onChange={(event) => {
-              setPage(1);
-              setResult(event.target.value as ResultFilter);
-            }}
-          >
-            <option value="">All results</option>
-            <option value="Granted">Granted</option>
-            <option value="Refused">Refused</option>
-          </select>
-        </label>
+        <Select
+          id="log-result"
+          label="Result"
+          value={result}
+          onChange={(event) => {
+            setPage(1);
+            setResult(event.target.value as ResultFilter);
+          }}
+        >
+          <option value="">All results</option>
+          <option value="Granted">Granted</option>
+          <option value="Refused">Refused</option>
+        </Select>
         <TextField
           id="log-search"
           label="Member search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder="Name or email"
+          hint="Search by name or email, then press Search."
         />
         <Button type="submit" variant="secondary">
           Search
         </Button>
       </form>
       {loading ? <LoadingState title="Loading access log" message="Fetching the latest scans." /> : null}
-      {error ? <ErrorState title="Access log unavailable" message={error} /> : null}
+      {error ? (
+        <ErrorState
+          title="Access log unavailable"
+          message={error}
+          action={
+            <Button type="button" onClick={() => setRetryTick((tick) => tick + 1)}>
+              Retry
+            </Button>
+          }
+        />
+      ) : null}
       {log && log.events.length === 0 ? (
         <EmptyState title="No scans match" message="Try another result filter or search, or wait for the next entrance scan." />
       ) : null}

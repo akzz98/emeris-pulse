@@ -107,7 +107,15 @@ export function ProfileScreen({ session, nav, onSignOut, onUpdated }: ProfileScr
           {saved ? <SuccessBanner title="Contact details saved" message="Your name and phone are updated. Notices are not sent by email or text." /> : null}
           <TextField id="profile-first-name" label="First name" autoComplete="given-name" value={firstName} onChange={(event) => setFirstName(event.target.value)} required />
           <TextField id="profile-last-name" label="Last name" autoComplete="family-name" value={lastName} onChange={(event) => setLastName(event.target.value)} required />
-          <TextField id="profile-phone" label="Phone" type="tel" autoComplete="tel" value={phone} onChange={(event) => setPhone(event.target.value)} />
+          <TextField
+            id="profile-phone"
+            label="Phone"
+            type="tel"
+            autoComplete="tel"
+            value={phone}
+            onChange={(event) => setPhone(event.target.value)}
+            hint="Optional. Notices stay in the app."
+          />
           <Button type="submit" disabled={busy}>
             {busy ? "Saving…" : "Save contact details"}
           </Button>
