@@ -1,6 +1,6 @@
 # Emeris Pulse
 
-Digital platform for the Emeris campus gym. Members use a phone app for access, classes, equipment, and wellness. Instructors run their classes from a web app. Gym staff run the floor, the timetable, and the facility from a third web app. One API serves all three.
+Digital platform for the Emeris campus gym. Members use a phone app for access, classes, equipment, and challenges. Instructors run their classes from a web app. Gym staff run the floor, the timetable, and the facility from a third web app. One API serves all three.
 
 Membership, door access, class bookings, equipment, maintenance, challenges, and notices all live in the same system. Notices stay inside the app. They are not sent by email or text.
 
@@ -16,7 +16,9 @@ Task 2 implementation walkthrough: https://youtu.be/DALwdxsRzwE
 
 Sign-in is email and password. The API issues a 15-minute JWT and a hashed refresh token. Using the refresh token revokes it and issues a new pair. Campus Microsoft Entra ID is not available to this group, so the app issues its own tokens. Each person still has a campus identifier. QR access is implemented. NFC stays a future hardware step.
 
-The member app opens with a short splash, then sign-in. It is installable on a phone (standalone display, Emeris icon). A service worker keeps a cached copy of the shell and falls back to it when the network drops. Gym actions still need the API. Signed-in screens use path URLs (`/access`, `/classes`, and so on) so the browser Back button returns to the previous screen. The admin and instructor apps do the same.
+The member app opens with a short splash, then sign-in. Returning members who already have a session skip the splash. It is installable on a phone (standalone display, Emeris icon). A service worker keeps a cached copy of the shell and falls back to it when the network drops. Gym actions still need the API. Signed-in screens use path URLs (`/access`, `/classes`, and so on) so the browser Back button returns to the previous screen. The admin and instructor apps do the same.
+
+Signed-in member navigation is **Home · Access · Classes · More**. More opens Equipment, Challenges, Notifications, Membership, and Profile.
 
 ## Member app
 
@@ -39,27 +41,28 @@ The home screen greets the member and summarises their gym life:
 - **Visits, classes, equipment sessions, and challenges joined.**
 - **Recent activity** — the latest visits, booked or attended classes, equipment sessions, and challenge joins.
 
-Staff memberships also get **workday prompts**. These suggest up to two upcoming classes that start between 06:00 and 17:00, and one open challenge. A class the member has already booked is labelled as booked. Students do not see these prompts.
+Staff memberships also get **workday prompts**. These suggest up to two upcoming classes that start between 06:00 and 17:00, and one open challenge. A class the member has already booked is labelled as booked. Tapping a prompt opens Classes or Challenges. Students do not see these prompts. Quick actions on Home are Show QR, Browse classes, and Use equipment.
 
 ### Membership
 
-Shows status, type, start date, and expiry, and says whether entry is allowed.
+Shows status, type, start date, and expiry, and says whether entry is allowed. Open Membership from More.
 
 Entry is allowed only while the membership is **Active** and the expiry date has not passed. Pending, frozen, and expired memberships cannot enter. An active membership that has passed its expiry date is recorded as **Expired** the next time it is loaded.
 
-### QR / cardless access
+### Access
 
-An active member can issue a signed pass. The phone shows it as a QR code with a countdown.
+An active member can issue a signed pass. The phone shows it as a QR code with a countdown. Open Access from the primary nav, or Show QR from Home.
 
 - The pass lasts **60 seconds**.
 - Students and staff get the same kind of pass.
 - The code is single-use. A second scan is refused and stored as “Pass already used.”
 - A pending, frozen, or expired membership cannot get a pass. If a signed code is presented after the membership is no longer active, the scan is refused and logged.
 - After the countdown hits zero, the member can issue a new pass.
+- The on-screen countdown updates every second. Screen-reader announcements fire when the pass is issued, at selected thresholds, and when it expires.
 
-### Class timetable and booking
+### Classes
 
-The timetable lists upcoming classes with the time, studio, instructor, and how many seats are left. A member’s own place is shown as booked, waitlisted, or the class as cancelled or full.
+One screen lists the timetable with day chips. Each class shows time, studio, instructor, seats left, and a status badge (Booked, Waitlisted, Full, or seats remaining). Book, Join waitlist, and Cancel sit on the same card.
 
 Booking rules:
 
@@ -68,54 +71,54 @@ Booking rules:
 - A full class puts the member on the waitlist. Waitlist does not send a reminder, because they do not have a seat yet.
 - One place per member per class. A cancelled place can be booked again.
 - Booking closes once the class has started.
-- Cancelling a booked place, before the class starts, gives that seat to the earliest person on the waitlist and sends them a class reminder.
+- Cancelling a booked place asks for confirmation first (a waitlisted member may be promoted). Before the class starts, that seat goes to the earliest person on the waitlist and they get a class reminder.
 - Cancelling a waitlist place frees nobody.
 
 ### Equipment
 
-The floor lists every machine, its code, location, and whether it is available or out of service. The member types the code on the machine, or picks **Use this code**, to start a session.
+Open Equipment from More. The floor lists every machine, its code, location, and whether it is available or out of service. The member types the code on the machine, or picks **Use this code**, to start a session.
 
 - An active membership is required.
 - A machine that is out of service cannot be started.
 - A machine someone else is already using cannot be started.
-- A member can have only one open session. They end it before starting another.
+- A member can have only one open session. They end it before starting another. Ending asks for confirmation and names the machine.
 - While a session is open they can describe a fault. That opens a maintenance ticket. A second open ticket for the same machine is refused.
 - Reporting a fault does not by itself take the machine off the floor. Facility staff do that from the maintenance queue.
 
 ### Challenges
 
-Open campus challenges are listed with their description and dates. An active member can join each challenge once, and only while today falls inside its start and end dates. The app records the join. It does not score progress or close the challenge on its own.
+Open Challenges from More. Open campus challenges are listed with their description and dates. An active member can join each challenge once, and only while today falls inside its start and end dates. The app records the join. It does not score progress or close the challenge on its own.
 
 ### Notifications
 
-Class reminders, class changes, cancellations, instructor notes, gym-closure notices, and broadcasts appear here. An unread notice is marked **New**. Nothing is emailed or texted.
+Open Notifications from More. Class reminders, class changes, cancellations, instructor notes, gym-closure notices, and broadcasts appear here. An unread notice is marked **New**. Nothing is emailed or texted. The More item shows an unread badge when there are unread notices.
 
 ### Profile
 
-The member can change first name, last name, and phone. Email and campus identifier stay as they were at registration. Phone is a contact field on the profile. Notices are not sent to it.
+Open Profile from More. The member can change first name, last name, and phone (optional). Email and campus identifier stay as they were at registration. Phone is a contact field on the profile. Notices are not sent to it.
 
 ## Instructor app
 
 Live: https://emeris-pulse-instructor.azurewebsites.net
 
-An instructor teaches the classes assigned to them. They cannot open another instructor’s class.
+An instructor teaches the classes assigned to them. They cannot open another instructor’s class. Primary navigation is **Today · Studio equipment**.
 
-### My classes
+### Today
 
-Today’s scheduled classes, with the members who are **booked**. People still on the waitlist are left off the roster.
+Today’s scheduled classes. Opening a class reaches class detail with Roster, Attendance, and Message tabs. Waitlisted people are left off the roster. Back to Today returns to the hub; Today stays current in the nav while a class is open.
 
-Under the roster, **attendance trends** show classes this instructor has already taken: how many were marked attended, how many absent, and the percentage attended. The percentage is attended divided by attended plus absent.
+Under the list, **attendance trends** show classes this instructor has already taken: how many were marked attended, how many absent, and the percentage attended. The percentage is attended divided by attended plus absent.
 
 ### Attendance
 
-After a scheduled class has started, the instructor marks each booked member **Attended** or **Absent**. A waitlisted place cannot be marked. Attendance cannot be recorded before the start time.
+After a scheduled class has started, the instructor marks each booked member **Attended** or **Absent** from the Attendance tab. A waitlisted place cannot be marked. Attendance cannot be recorded before the start time.
 
 ### Class details
 
-Scheduled classes that have not ended. For each class the instructor sees the time, location, capacity, and how many people are still booked or waitlisted. They can:
+From Today, each open class shows time, location, capacity, and booked or waitlisted counts. The instructor can:
 
 - **Send a note** to booked members only. Waitlisted members are not included. The note arrives as a “Class message” in Notifications.
-- **Cancel the class.** Booked and waitlisted members are told in the same step. The notice says the class will not run. A class that has already ended cannot be cancelled.
+- **Cancel the class.** A confirmation names how many booked and waitlisted members will be told. The notice says the class will not run. A class that has already ended cannot be cancelled.
 
 ### Studio equipment
 
@@ -129,13 +132,17 @@ Live: https://emeris-pulse-admin.azurewebsites.net
 
 The header reads **Facility** for a facility manager and **Admin** for a gym admin or system admin.
 
+Gym admin and system admin navigation is grouped: **Dashboard · Desk · People · Schedule · Facility · Comms**. Desk opens Scan entry, Access logs, and Temporary pass. People opens Members (and Roles for system admin only). Schedule opens Timetable. Facility opens Maintenance and Reports. Comms opens Challenges and Broadcast. Gym closure stays on the Dashboard. They land on **Dashboard**.
+
+Facility manager navigation stays flat: **Dashboard · Reports · Maintenance** only.
+
 | Screen | Gym admin | System admin | Facility manager |
 | --- | --- | --- | --- |
-| Dashboard | Yes | Yes | Yes. This is the screen they land on. |
+| Dashboard | Yes. Landing screen. | Yes. Landing screen. | Yes. Landing screen. |
 | Reports | Yes | Yes | Yes |
 | Maintenance | Yes | Yes | Yes |
 | Scan entry | Yes | Yes | |
-| Access logs | Yes. This is the screen they land on. | Yes | |
+| Access logs | Yes | Yes | |
 | Members | Yes | Yes | |
 | Temporary pass | Yes | Yes | |
 | Timetable | Yes | Yes | |
@@ -145,13 +152,13 @@ The header reads **Facility** for a facility manager and **Admin** for a gym adm
 
 ### Dashboard
 
-- **On the floor** — people with a granted entry in the last **90 minutes**, and the time they entered. The count refreshes every 30 seconds.
-- **Utilisation** — granted visits today and across the last 7 days, grouped by hour in campus time. The busiest hour is called out. If two hours tie, both are shown. Refused scans are not counted.
-- **Gym closure** — a start date, end date, and reason. Members who have a class on those days are told. Everyone else is left alone. A closure that should reach the whole campus is a broadcast instead.
+- **On the floor** — people with a granted entry in the last **90 minutes**, and the time they entered. The count refreshes every 30 seconds. Quick actions reach Scan entry, pending memberships, and open tickets.
+- **Utilisation** — granted visits today and across the last 7 days, grouped by hour in campus time. The busiest hour is called out. If two hours tie, both are shown. The full hour list can be expanded. Refused scans are not counted.
+- **Gym closure** — a start date, end date, and reason. A confirmation summarises who will be told before the notice is sent. Members who have a class on those days are told. Everyone else is left alone. A closure that should reach the whole campus is a broadcast instead.
 
 ### Reports
 
-Three paged reports. Each page in the app shows one row, with previous and next.
+Three paged reports. Each report uses **15 rows per page**, with previous and next.
 
 - **Class fill rate** — held seats against capacity. A waitlisted member does not count as a held seat. The summary is the fill across scheduled classes.
 - **Equipment downtime** — machines that are out of service, how long they have been down, and how many tickets are still open. Downtime is counted from the earliest ticket that is still open.
@@ -159,7 +166,7 @@ Three paged reports. Each page in the app shows one row, with previous and next.
 
 ### Scan entry
 
-The desk can point a webcam at the member’s QR pass, or paste the signed code from the phone or a temporary pass. The scan does not sign in as the member. Each attempt is stored:
+The desk can point a webcam at the member’s QR pass (**Start camera**), or paste the signed code from the phone or a temporary pass. A decoded QR redeems automatically. The scan does not sign in as the member. Each attempt is stored:
 
 - **Granted** when the pass is valid, unused, and the membership can enter.
 - **Refused** when the membership is not active, or the pass was already used.
@@ -168,15 +175,15 @@ Login attempts are limited to 10 a minute per caller. Pass redemptions are limit
 
 ### Access logs
 
-A paged table of granted and refused scans: when, member, result, and reason. The desk view shows three rows per page.
+A paged table of granted and refused scans: when, member, result, and reason. Filters cover Granted/Refused and member search. The desk view shows **15 rows** per page. On a phone the rows stack with column labels.
 
 ### Members
 
-Three lists:
+Tabs for Pending, Active, and Frozen, plus search by name, email, or campus identifier. Empty states show when a tab or search has no rows.
 
-- **Waiting for approval** — pending profiles. Approve sets the membership to Active, if it has not already expired.
-- **Active memberships** — people who can enter. Freeze stops entry until someone activates them again.
-- **Frozen memberships** — activate puts them back to Active.
+- **Pending** — Approve sets the membership to Active, if it has not already expired.
+- **Active** — Freeze asks for confirmation first, then stops entry until someone activates them again.
+- **Frozen** — Activate puts them back to Active.
 
 Only a pending or frozen membership can be activated. Only an active membership can be frozen. A membership whose expiry date has already passed cannot be activated. There is no screen to extend an expiry date.
 
@@ -192,26 +199,26 @@ For a lost phone. The desk enters the member’s email and gets a QR code.
 
 Publish a class with title, instructor, start, end, capacity, and location. The instructor must already have the Instructor role. The class must end after it starts.
 
-An existing scheduled class can be edited. Capacity cannot drop below the number of places already booked. If the title, time, location, or instructor changes, booked and waitlisted members get a “Class changed” notice before the edit is saved. A capacity-only change does not send a notice.
+An existing scheduled class can be edited inline. Capacity cannot drop below the number of places already booked. If the title, time, location, or instructor changes, a confirmation warns that booked and waitlisted members will be told, then they get a “Class changed” notice. A capacity-only change does not send a notice.
 
 ### Challenges
 
-Publish a campus challenge with a title, description, and start and end dates. The end date can be the same day as the start, and cannot be earlier. An existing challenge can be edited, or ended so members can no longer join. Members join it from the member app while it is open. The admin list shows each challenge and how many people have joined.
+Publish a campus challenge with a title, description, and start and end dates. The end date can be the same day as the start, and cannot be earlier. An existing challenge can be edited, or ended (with confirmation) so members can no longer join. Members join it from Challenges in the member app while it is open. The admin list shows each challenge and how many people have joined.
 
 ### Broadcast
 
-One title and message, sent to every account in the roles that are ticked: Student, Staff, Instructor, Gym admin, Facility manager, System admin. Other roles are skipped. Inactive memberships are included. Before send, the form shows an estimated recipient count for the chosen roles. The notice appears in each recipient’s Notifications.
+One title and message, sent to every account in the roles that are ticked: Student, Staff, Instructor, Gym admin, Facility manager, System admin. Other roles are skipped. Inactive memberships are included. Before send, the form shows an estimated recipient count for the chosen roles. A confirmation summarises the audience. The notice appears in each recipient’s Notifications.
 
 ### Maintenance
 
 The open ticket queue: machine, location, description, who reported it, and when.
 
-- If the machine is still available, **Take out of service** marks it out of service so members cannot start it.
-- **Close ticket** closes that report. If the machine is out of service and this was its last open ticket, closing it puts the machine back in service. Another open fault keeps it off the floor.
+- If the machine is still available, **Take out of service** asks for confirmation, then marks it out of service so members cannot start it.
+- **Close ticket** asks for confirmation. If the machine is out of service and this was its last open ticket, closing it puts the machine back in service. Another open fault keeps it off the floor.
 
 ### Roles
 
-System admin only. Every account is listed with name, email, and campus identifier. Search narrows the list; an empty directory or no matches shows an empty state. The admin picks a new role and saves it. They cannot change their own role. Assignable roles are Student, Staff, Instructor, Gym admin, Facility manager, and System admin.
+System admin only, under People. Every account is listed with name, email, and campus identifier. Search narrows the list; an empty directory or no matches shows an empty state. The admin picks a new role and saves it. They cannot change their own role. Assignable roles are Student, Staff, Instructor, Gym admin, Facility manager, and System admin.
 
 ## Status values
 
@@ -314,7 +321,7 @@ npm run dev:admin
 - `packages/ui` — Emeris visual system
 - `packages/shared` — roles and types shared by the apps and the API
 - `database` — Azure SQL schema and seed
-- `docs` — data model (`docs/erd.md`) and the project attendance register
+- `docs` — data model (`docs/erd.md`), hosted demo script (`docs/DEMO.md`), and the project attendance register
 - `.github/workflows` — pull-request checks and the deploy to Azure
 
 ## API
@@ -363,7 +370,10 @@ Authenticated routes expect `Authorization: Bearer`. The door redeem route is th
 | POST | `/challenges/:challengeId/join` | Signed-in user with an active membership |
 | GET | `/challenges/manage` | Gym admin, system admin |
 | POST | `/challenges` | Gym admin, system admin |
+| PATCH | `/challenges/:challengeId` | Gym admin, system admin |
+| POST | `/challenges/:challengeId/end` | Gym admin, system admin |
 | GET | `/notices/me` | Signed-in user |
+| POST | `/notices/broadcast/estimate` | Gym admin, system admin |
 | POST | `/notices/broadcast` | Gym admin, system admin |
 | POST | `/notices/closure` | Gym admin, facility manager, system admin |
 | GET | `/reports/class-fill`, `/reports/equipment-downtime`, `/reports/wellness` | Facility manager, gym admin, system admin |
