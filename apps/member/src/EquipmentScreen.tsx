@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
-import { AppShell, Button, ConfirmDialog, EmptyState, ErrorState, LoadingState, StatusBadge, TextField, type AppNavItem } from "@emeris/ui";
+import { AppShell, Button, ConfirmDialog, EmptyState, ErrorState, LoadingState, StatusBadge, SuccessBanner, TextField, type AppNavItem } from "@emeris/ui";
 import {
   endEquipmentSession,
   getCurrentEquipmentSession,
@@ -33,8 +33,9 @@ export function EquipmentScreen({ session, nav, onSignOut }: EquipmentScreenProp
   const [code, setCode] = useState("");
   const [fault, setFault] = useState("");
   const [faultCode, setFaultCode] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<{ title: string; message: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<"start" | "end" | "report" | null>(null);
   const [confirmEnd, setConfirmEnd] = useState(false);
@@ -51,7 +52,7 @@ export function EquipmentScreen({ session, nav, onSignOut }: EquipmentScreenProp
   useEffect(() => {
     let active = true;
     setLoading(true);
-    setError(null);
+    setLoadError(null);
     load()
       .catch((caught: unknown) => {
         if (!active) {
@@ -62,7 +63,7 @@ export function EquipmentScreen({ session, nav, onSignOut }: EquipmentScreenProp
           onSignOut();
           return;
         }
-        setError(message);
+        setLoadError(message);
       })
       .finally(() => {
         if (active) {
@@ -78,20 +79,20 @@ export function EquipmentScreen({ session, nav, onSignOut }: EquipmentScreenProp
 
   async function startWithCode(machineCode: string) {
     setBusy("start");
-    setError(null);
-    setNotice(null);
+    setActionError(null);
+    setSuccess(null);
     try {
       const started = await startEquipmentSession(session.accessToken, machineCode);
       await load();
       setCode("");
-      setNotice(`${started.name} session started.`);
+      setSuccess({ title: "Session started", message: `${started.name} session started.` });
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : "Could not start this machine.";
       if (message === "UNAUTHENTICATED") {
         onSignOut();
         return;
       }
-      setError(message);
+      setActionError(message);
     } finally {
       setBusy(null);
     }
@@ -105,15 +106,15 @@ export function EquipmentScreen({ session, nav, onSignOut }: EquipmentScreenProp
   async function onReport(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy("report");
-    setError(null);
-    setNotice(null);
+    setActionError(null);
+    setSuccess(null);
     try {
       const ticket = open
         ? await reportEquipmentFault(session.accessToken, fault)
         : await reportEquipmentFaultByCode(session.accessToken, faultCode, fault);
       setFault("");
       setFaultCode("");
-      setNotice(`A maintenance ticket is open for ${ticket.name}.`);
+      setSuccess({ title: "Fault reported", message: `A maintenance ticket is open for ${ticket.name}.` });
       await load();
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : "Could not report this fault.";
@@ -121,7 +122,7 @@ export function EquipmentScreen({ session, nav, onSignOut }: EquipmentScreenProp
         onSignOut();
         return;
       }
-      setError(message);
+      setActionError(message);
     } finally {
       setBusy(null);
     }
@@ -130,19 +131,19 @@ export function EquipmentScreen({ session, nav, onSignOut }: EquipmentScreenProp
   async function onEndConfirmed() {
     setBusy("end");
     setConfirmEnd(false);
-    setError(null);
-    setNotice(null);
+    setActionError(null);
+    setSuccess(null);
     try {
       await endEquipmentSession(session.accessToken);
       await load();
-      setNotice("Your equipment session has ended.");
+      setSuccess({ title: "Session ended", message: "Your equipment session has ended." });
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : "Could not end this session.";
       if (message === "UNAUTHENTICATED") {
         onSignOut();
         return;
       }
-      setError(message);
+      setActionError(message);
     } finally {
       setBusy(null);
     }
@@ -155,12 +156,9 @@ export function EquipmentScreen({ session, nav, onSignOut }: EquipmentScreenProp
         <p>Enter the code on the machine to start a session, or report a fault with the machine code. Out-of-service machines cannot be started.</p>
       </header>
       {loading ? <LoadingState title="Loading equipment" message="Checking the floor and your session." /> : null}
-      {error ? <ErrorState title="Equipment not updated" message={error} /> : null}
-      {notice ? (
-        <p className="equipment-notice" role="status">
-          {notice}
-        </p>
-      ) : null}
+      {loadError ? <ErrorState title="Could not load equipment" message={loadError} /> : null}
+      {actionError ? <ErrorState title="Equipment not updated" message={actionError} /> : null}
+      {success ? <SuccessBanner title={success.title} message={success.message} /> : null}
       {open ? (
         <section className="equipment-open" aria-labelledby="open-session-heading">
           <h2 id="open-session-heading">

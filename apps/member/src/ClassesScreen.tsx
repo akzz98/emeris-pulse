@@ -7,6 +7,7 @@ import {
   ErrorState,
   LoadingState,
   StatusBadge,
+  SuccessBanner,
   type AppNavItem,
   type StatusTone,
 } from "@emeris/ui";
@@ -70,8 +71,9 @@ function classBadges(item: ClassSession): Array<{ label: string; tone: StatusTon
 
 export function ClassesScreen({ session, nav, onSignOut }: ClassesScreenProps) {
   const [classes, setClasses] = useState<ClassSession[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<{ title: string; message: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<number | null>(null);
   const [pendingCancel, setPendingCancel] = useState<ClassSession | null>(null);
@@ -80,7 +82,7 @@ export function ClassesScreen({ session, nav, onSignOut }: ClassesScreenProps) {
   useEffect(() => {
     let active = true;
     setLoading(true);
-    setError(null);
+    setLoadError(null);
     getTimetable(session.accessToken)
       .then((next) => {
         if (active) {
@@ -96,7 +98,7 @@ export function ClassesScreen({ session, nav, onSignOut }: ClassesScreenProps) {
           onSignOut();
           return;
         }
-        setError(message);
+        setLoadError(message);
       })
       .finally(() => {
         if (active) {
@@ -132,21 +134,28 @@ export function ClassesScreen({ session, nav, onSignOut }: ClassesScreenProps) {
     return classes.filter((item) => dayKey(item.startsAt) === dayFilter);
   }, [classes, dayFilter]);
 
-  async function refresh(message: string) {
+  async function refresh(nextSuccess: { title: string; message: string }) {
     const next = await getTimetable(session.accessToken);
     setClasses(next.classes);
-    setNotice(message);
-    setError(null);
+    setSuccess(nextSuccess);
+    setActionError(null);
   }
 
   async function onBook(classId: number) {
     setBusyId(classId);
+    setSuccess(null);
     try {
       const result = await bookClass(session.accessToken, classId);
       await refresh(
         result.status === "Waitlisted"
-          ? "The class is full. You are on the waitlist."
-          : "Your place is booked. A class reminder is in your notices.",
+          ? {
+              title: "Added to waitlist",
+              message: "The class is full. You are on the waitlist.",
+            }
+          : {
+              title: "Place booked",
+              message: "Your place is booked. A class reminder is in your notices.",
+            },
       );
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : "Could not book this class.";
@@ -154,8 +163,8 @@ export function ClassesScreen({ session, nav, onSignOut }: ClassesScreenProps) {
         onSignOut();
         return;
       }
-      setNotice(null);
-      setError(message);
+      setSuccess(null);
+      setActionError(message);
     } finally {
       setBusyId(null);
     }
@@ -164,22 +173,24 @@ export function ClassesScreen({ session, nav, onSignOut }: ClassesScreenProps) {
   async function onCancelConfirmed(classId: number) {
     setBusyId(classId);
     setPendingCancel(null);
+    setSuccess(null);
     try {
       const result = await cancelBooking(session.accessToken, classId);
       const promoted = result.promoted;
-      await refresh(
-        promoted
+      await refresh({
+        title: "Booking cancelled",
+        message: promoted
           ? `Your place has been cancelled. ${promoted.firstName} ${promoted.lastName} has taken the seat.`
           : "Your place has been cancelled.",
-      );
+      });
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : "Could not cancel this booking.";
       if (message === "UNAUTHENTICATED") {
         onSignOut();
         return;
       }
-      setNotice(null);
-      setError(message);
+      setSuccess(null);
+      setActionError(message);
     } finally {
       setBusyId(null);
     }
@@ -192,12 +203,9 @@ export function ClassesScreen({ session, nav, onSignOut }: ClassesScreenProps) {
         <p>Browse the timetable, book a free seat, or join the waitlist when a class is full.</p>
       </header>
       {loading ? <LoadingState title="Loading classes" message="Checking seats and your bookings." /> : null}
-      {error ? <ErrorState title="Booking not changed" message={error} /> : null}
-      {notice ? (
-        <p className="class-notice" role="status">
-          {notice}
-        </p>
-      ) : null}
+      {loadError ? <ErrorState title="Could not load classes" message={loadError} /> : null}
+      {actionError ? <ErrorState title="Booking not changed" message={actionError} /> : null}
+      {success ? <SuccessBanner title={success.title} message={success.message} /> : null}
       {classes && classes.length > 0 ? (
         <div className="class-day-filters" role="group" aria-label="Filter by day">
           <button

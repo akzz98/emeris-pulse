@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
-import { AppShell, Button, ConfirmDialog, EmptyState, ErrorState, LoadingState, Select, TextField, type AppNavItem } from "@emeris/ui";
+import { AppShell, Button, ConfirmDialog, EmptyState, ErrorState, LoadingState, Select, SuccessBanner, TextField, type AppNavItem } from "@emeris/ui";
 import {
   getManagedClasses,
   publishClass,
@@ -60,8 +60,9 @@ export function TimetableScreen({ session, nav, onSignOut }: TimetableScreenProp
   const [draft, setDraft] = useState<ClassDraft>(emptyDraft);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [pendingSave, setPendingSave] = useState<{ item: ManagedClass; draft: ClassDraft } | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<{ title: string; message: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
 
@@ -95,7 +96,7 @@ export function TimetableScreen({ session, nav, onSignOut }: TimetableScreenProp
           onSignOut();
           return;
         }
-        setError(message);
+        setLoadError(message);
       })
       .finally(() => {
         if (active) {
@@ -110,11 +111,13 @@ export function TimetableScreen({ session, nav, onSignOut }: TimetableScreenProp
   async function onPublish(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
-    setError(null);
+    setActionError(null);
+    setSuccess(null);
     try {
+      const title = draft.title;
       await publishClass(session.accessToken, { ...draft, capacity: Number(draft.capacity) });
       await load();
-      setNotice(`${draft.title} is on the timetable.`);
+      setSuccess({ title: "Class published", message: `${title} is on the timetable.` });
       setDraft({ ...emptyDraft, instructorEmail: draft.instructorEmail });
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : "Could not publish the class.";
@@ -122,7 +125,7 @@ export function TimetableScreen({ session, nav, onSignOut }: TimetableScreenProp
         onSignOut();
         return;
       }
-      setError(message);
+      setActionError(message);
     } finally {
       setBusy(false);
     }
@@ -139,7 +142,8 @@ export function TimetableScreen({ session, nav, onSignOut }: TimetableScreenProp
   async function onSave(item: ManagedClass, next: ClassDraft) {
     setBusy(true);
     setPendingSave(null);
-    setError(null);
+    setActionError(null);
+    setSuccess(null);
     try {
       const saved = await updateClass(session.accessToken, item.id, { ...next, capacity: Number(next.capacity) });
       await load();
@@ -150,14 +154,14 @@ export function TimetableScreen({ session, nav, onSignOut }: TimetableScreenProp
           : saved.notified === 1
             ? "1 member was told."
             : `${saved.notified} members were told.`;
-      setNotice(`${next.title} was updated. ${told}`);
+      setSuccess({ title: "Class updated", message: `${next.title} was updated. ${told}` });
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : "Could not update the class.";
       if (message === "UNAUTHENTICATED") {
         onSignOut();
         return;
       }
-      setError(message);
+      setActionError(message);
     } finally {
       setBusy(false);
     }
@@ -170,12 +174,9 @@ export function TimetableScreen({ session, nav, onSignOut }: TimetableScreenProp
         <p>Publish a class, or change its time, capacity, and instructor. Capacity cannot drop below booked places.</p>
       </header>
       {loading ? <LoadingState title="Loading timetable" message="Fetching scheduled classes." /> : null}
-      {error ? <ErrorState title="Timetable not saved" message={error} /> : null}
-      {notice ? (
-        <p className="timetable-notice" role="status">
-          {notice}
-        </p>
-      ) : null}
+      {loadError ? <ErrorState title="Could not load timetable" message={loadError} /> : null}
+      {actionError ? <ErrorState title="Timetable not saved" message={actionError} /> : null}
+      {success ? <SuccessBanner title={success.title} message={success.message} /> : null}
       <form className="timetable-form" onSubmit={onPublish}>
         <h2>Publish a class</h2>
         <TextField id="class-title" label="Title" value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} required />

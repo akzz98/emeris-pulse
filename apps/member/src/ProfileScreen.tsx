@@ -16,7 +16,8 @@ export function ProfileScreen({ session, nav, onSignOut, onUpdated }: ProfileScr
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -24,7 +25,7 @@ export function ProfileScreen({ session, nav, onSignOut, onUpdated }: ProfileScr
   useEffect(() => {
     let active = true;
     setLoading(true);
-    setError(null);
+    setLoadError(null);
     getProfile(session.accessToken)
       .then((next) => {
         if (!active) {
@@ -44,7 +45,7 @@ export function ProfileScreen({ session, nav, onSignOut, onUpdated }: ProfileScr
           onSignOut();
           return;
         }
-        setError(message);
+        setLoadError(message);
       })
       .finally(() => {
         if (active) {
@@ -59,7 +60,7 @@ export function ProfileScreen({ session, nav, onSignOut, onUpdated }: ProfileScr
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
-    setError(null);
+    setActionError(null);
     setSaved(false);
     try {
       // A blank phone is stored as empty. Phone is a contact field, not where notices are sent.
@@ -78,7 +79,7 @@ export function ProfileScreen({ session, nav, onSignOut, onUpdated }: ProfileScr
         onSignOut();
         return;
       }
-      setError(message);
+      setActionError(message);
     } finally {
       setBusy(false);
     }
@@ -91,7 +92,8 @@ export function ProfileScreen({ session, nav, onSignOut, onUpdated }: ProfileScr
         <p>Your name and phone stay on your profile. Notices are listed in the app.</p>
       </header>
       {loading ? <LoadingState title="Loading profile" message="Fetching your contact details." /> : null}
-      {error ? <ErrorState title="Profile unavailable" message={error} /> : null}
+      {loadError ? <ErrorState title="Could not load profile" message={loadError} /> : null}
+      {actionError ? <ErrorState title="Profile not saved" message={actionError} /> : null}
       {profile ? (
         <form className="profile-form" onSubmit={onSubmit}>
           <dl>

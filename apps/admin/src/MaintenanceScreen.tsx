@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AppShell, Button, ConfirmDialog, EmptyState, ErrorState, LoadingState, type AppNavItem } from "@emeris/ui";
+import { AppShell, Button, ConfirmDialog, EmptyState, ErrorState, LoadingState, SuccessBanner, type AppNavItem } from "@emeris/ui";
 import { closeTicket, getTicketQueue, takeEquipmentOutOfService, type AdminSession, type OpenTicket } from "./api";
 import "./maintenance.css";
 
@@ -24,8 +24,9 @@ function formatWhen(value: string): string {
 
 export function MaintenanceScreen({ session, nav, onSignOut }: MaintenanceScreenProps) {
   const [tickets, setTickets] = useState<OpenTicket[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<{ title: string; message: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<number | null>(null);
   const [closingId, setClosingId] = useState<number | null>(null);
@@ -44,7 +45,7 @@ export function MaintenanceScreen({ session, nav, onSignOut }: MaintenanceScreen
     load()
       .then(() => {
         if (active) {
-          setError(null);
+          setLoadError(null);
         }
       })
       .catch((caught: unknown) => {
@@ -56,7 +57,7 @@ export function MaintenanceScreen({ session, nav, onSignOut }: MaintenanceScreen
           onSignOut();
           return;
         }
-        setError(message);
+        setLoadError(message);
       })
       .finally(() => {
         if (active) {
@@ -72,25 +73,26 @@ export function MaintenanceScreen({ session, nav, onSignOut }: MaintenanceScreen
   async function onCloseConfirmed(ticket: OpenTicket) {
     setClosingId(ticket.id);
     setPendingClose(null);
-    setError(null);
-    setNotice(null);
+    setActionError(null);
+    setSuccess(null);
     try {
       const closed = await closeTicket(session.accessToken, ticket.id);
       await load();
-      setNotice(
-        closed.returned
+      setSuccess({
+        title: "Ticket closed",
+        message: closed.returned
           ? `${closed.name} is back in service.`
           : closed.equipmentStatus === "OutOfService"
             ? `The ticket is closed. ${closed.name} stays out of service while another ticket is open.`
             : `The ticket for ${closed.name} is closed.`,
-      );
+      });
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : "Could not close this ticket.";
       if (message === "UNAUTHENTICATED") {
         onSignOut();
         return;
       }
-      setError(message);
+      setActionError(message);
     } finally {
       setClosingId(null);
     }
@@ -99,19 +101,19 @@ export function MaintenanceScreen({ session, nav, onSignOut }: MaintenanceScreen
   async function onTakeOutConfirmed(ticket: OpenTicket) {
     setBusyId(ticket.equipmentId);
     setPendingOut(null);
-    setError(null);
-    setNotice(null);
+    setActionError(null);
+    setSuccess(null);
     try {
       const updated = await takeEquipmentOutOfService(session.accessToken, ticket.equipmentId);
       await load();
-      setNotice(`${updated.name} is out of service.`);
+      setSuccess({ title: "Out of service", message: `${updated.name} is out of service.` });
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : "Could not take this machine out of service.";
       if (message === "UNAUTHENTICATED") {
         onSignOut();
         return;
       }
-      setError(message);
+      setActionError(message);
     } finally {
       setBusyId(null);
     }
@@ -124,12 +126,9 @@ export function MaintenanceScreen({ session, nav, onSignOut }: MaintenanceScreen
         <p>Open tickets waiting for the facility team. Closing the last ticket for a machine puts it back in service.</p>
       </header>
       {loading ? <LoadingState title="Loading tickets" message="Checking the open queue." /> : null}
-      {error ? <ErrorState title="Queue not updated" message={error} /> : null}
-      {notice ? (
-        <p className="maintenance-notice" role="status">
-          {notice}
-        </p>
-      ) : null}
+      {loadError ? <ErrorState title="Could not load tickets" message={loadError} /> : null}
+      {actionError ? <ErrorState title="Queue not updated" message={actionError} /> : null}
+      {success ? <SuccessBanner title={success.title} message={success.message} /> : null}
       {tickets && tickets.length === 0 ? (
         <EmptyState title="No open tickets" message="Every reported fault has been closed." />
       ) : null}

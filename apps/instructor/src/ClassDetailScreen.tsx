@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
-import { AppShell, Button, ConfirmDialog, EmptyState, ErrorState, LoadingState, TextField, type AppNavItem } from "@emeris/ui";
+import { AppShell, Button, ConfirmDialog, EmptyState, ErrorState, LoadingState, SuccessBanner, TextField, type AppNavItem } from "@emeris/ui";
 import {
   cancelClass,
   getAttendance,
@@ -54,8 +54,9 @@ export function ClassDetailScreen({ session, nav, classId, onSignOut, onBack }: 
   const [item, setItem] = useState<InstructorClass | null>(null);
   const [rosterClass, setRosterClass] = useState<RosterClass | null>(null);
   const [attendanceClass, setAttendanceClass] = useState<AttendanceClass | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<{ title: string; message: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [messaging, setMessaging] = useState(false);
@@ -97,7 +98,7 @@ export function ClassDetailScreen({ session, nav, classId, onSignOut, onBack }: 
     load()
       .then(() => {
         if (active) {
-          setError(null);
+          setLoadError(null);
         }
       })
       .catch((caught: unknown) => {
@@ -109,7 +110,7 @@ export function ClassDetailScreen({ session, nav, classId, onSignOut, onBack }: 
           onSignOut();
           return;
         }
-        setError(text);
+        setLoadError(text);
       })
       .finally(() => {
         if (active) {
@@ -124,18 +125,22 @@ export function ClassDetailScreen({ session, nav, classId, onSignOut, onBack }: 
 
   async function onMark(userId: number, mark: "Attended" | "Absent") {
     setBusyKey(`${classId}-${userId}`);
-    setError(null);
+    setActionError(null);
+    setSuccess(null);
     try {
       await recordAttendance(session.accessToken, classId, userId, mark);
       await load();
-      setNotice(mark === "Attended" ? "Marked attended." : "Marked absent.");
+      setSuccess({
+        title: "Attendance saved",
+        message: mark === "Attended" ? "Marked attended." : "Marked absent.",
+      });
     } catch (caught) {
       const text = caught instanceof Error ? caught.message : "Could not record attendance.";
       if (text === "UNAUTHENTICATED") {
         onSignOut();
         return;
       }
-      setError(text);
+      setActionError(text);
     } finally {
       setBusyKey(null);
     }
@@ -144,16 +149,19 @@ export function ClassDetailScreen({ session, nav, classId, onSignOut, onBack }: 
   async function onSend(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setMessaging(true);
-    setError(null);
+    setActionError(null);
+    setSuccess(null);
     try {
       const result = await messageBookedMembers(session.accessToken, classId, message);
-      setNotice(
-        result.notified === 0
-          ? "No booked members to tell."
-          : result.notified === 1
-            ? "1 booked member was told."
-            : `${result.notified} booked members were told.`,
-      );
+      setSuccess({
+        title: "Message sent",
+        message:
+          result.notified === 0
+            ? "No booked members to tell."
+            : result.notified === 1
+              ? "1 booked member was told."
+              : `${result.notified} booked members were told.`,
+      });
       setMessage("");
     } catch (caught) {
       const text = caught instanceof Error ? caught.message : "Could not send this message.";
@@ -161,7 +169,7 @@ export function ClassDetailScreen({ session, nav, classId, onSignOut, onBack }: 
         onSignOut();
         return;
       }
-      setError(text);
+      setActionError(text);
     } finally {
       setMessaging(false);
     }
@@ -170,14 +178,17 @@ export function ClassDetailScreen({ session, nav, classId, onSignOut, onBack }: 
   async function onCancelConfirmed() {
     setCancelling(true);
     setPendingCancel(false);
-    setError(null);
+    setActionError(null);
+    setSuccess(null);
     try {
       const result = await cancelClass(session.accessToken, classId);
-      setNotice(
-        result.notified === 1
-          ? "The class is cancelled. 1 member was notified."
-          : `The class is cancelled. ${result.notified} members were notified.`,
-      );
+      setSuccess({
+        title: "Class cancelled",
+        message:
+          result.notified === 1
+            ? "The class is cancelled. 1 member was notified."
+            : `The class is cancelled. ${result.notified} members were notified.`,
+      });
       onBack();
     } catch (caught) {
       const text = caught instanceof Error ? caught.message : "Could not cancel this class.";
@@ -185,7 +196,7 @@ export function ClassDetailScreen({ session, nav, classId, onSignOut, onBack }: 
         onSignOut();
         return;
       }
-      setError(text);
+      setActionError(text);
     } finally {
       setCancelling(false);
     }
@@ -209,12 +220,9 @@ export function ClassDetailScreen({ session, nav, classId, onSignOut, onBack }: 
         )}
       </header>
       {loading ? <LoadingState title="Loading class" message="Fetching roster and attendance." /> : null}
-      {error ? <ErrorState title="Class not updated" message={error} /> : null}
-      {notice ? (
-        <p className="class-notice" role="status">
-          {notice}
-        </p>
-      ) : null}
+      {loadError ? <ErrorState title="Could not load class" message={loadError} /> : null}
+      {actionError ? <ErrorState title="Class not updated" message={actionError} /> : null}
+      {success ? <SuccessBanner title={success.title} message={success.message} /> : null}
       {!loading && !item ? <EmptyState title="Class not found" message="It may have ended or been cancelled." /> : null}
       {item ? (
         <>

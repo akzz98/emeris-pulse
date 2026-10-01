@@ -119,7 +119,9 @@ body {
   color: var(--ep-teal);
   font: inherit;
   font-weight: 650;
-  padding: 0.4rem 0.65rem;
+  padding: 0.55rem 0.75rem;
+  min-height: 2.75rem;
+  min-width: 2.75rem;
   border-radius: 0.4rem;
   cursor: pointer;
   text-decoration: underline;
@@ -249,7 +251,8 @@ body {
   border-radius: 0.4rem;
   font: inherit;
   font-weight: 650;
-  padding: 0.65rem 1rem;
+  padding: 0.7rem 1.05rem;
+  min-height: 2.75rem;
   cursor: pointer;
 }
 

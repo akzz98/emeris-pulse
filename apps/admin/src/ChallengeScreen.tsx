@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
-import { AppShell, Button, EmptyState, ErrorState, LoadingState, TextField, type AppNavItem } from "@emeris/ui";
+import { AppShell, Button, EmptyState, ErrorState, LoadingState, SuccessBanner, TextField, type AppNavItem } from "@emeris/ui";
 import { createChallenge, getManagedChallenges, type AdminSession, type ChallengeDraft, type ManagedChallenge } from "./api";
 import "./challenges.css";
 
@@ -27,8 +27,9 @@ function formatDay(value: string): string {
 export function ChallengeScreen({ session, nav, onSignOut }: ChallengeScreenProps) {
   const [challenges, setChallenges] = useState<ManagedChallenge[] | null>(null);
   const [draft, setDraft] = useState<ChallengeDraft>(emptyDraft);
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<{ title: string; message: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
 
@@ -43,7 +44,7 @@ export function ChallengeScreen({ session, nav, onSignOut }: ChallengeScreenProp
     load()
       .then(() => {
         if (active) {
-          setError(null);
+          setLoadError(null);
         }
       })
       .catch((caught: unknown) => {
@@ -55,7 +56,7 @@ export function ChallengeScreen({ session, nav, onSignOut }: ChallengeScreenProp
           onSignOut();
           return;
         }
-        setError(message);
+        setLoadError(message);
       })
       .finally(() => {
         if (active) {
@@ -71,20 +72,20 @@ export function ChallengeScreen({ session, nav, onSignOut }: ChallengeScreenProp
   async function onCreate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
-    setError(null);
-    setNotice(null);
+    setActionError(null);
+    setSuccess(null);
     try {
       const created = await createChallenge(session.accessToken, draft);
       setDraft(emptyDraft);
       await load();
-      setNotice(`${created.title} was created.`);
+      setSuccess({ title: "Challenge created", message: `${created.title} was created.` });
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : "Could not create this challenge.";
       if (message === "UNAUTHENTICATED") {
         onSignOut();
         return;
       }
-      setError(message);
+      setActionError(message);
     } finally {
       setBusy(false);
     }
@@ -96,12 +97,9 @@ export function ChallengeScreen({ session, nav, onSignOut }: ChallengeScreenProp
         <h1>Challenges</h1>
         <p>Publish a campus challenge. Members can join it on the days it runs.</p>
       </header>
-      {error ? <ErrorState title="Challenge not created" message={error} /> : null}
-      {notice ? (
-        <p className="challenges-notice" role="status">
-          {notice}
-        </p>
-      ) : null}
+      {loadError ? <ErrorState title="Could not load challenges" message={loadError} /> : null}
+      {actionError ? <ErrorState title="Challenge not created" message={actionError} /> : null}
+      {success ? <SuccessBanner title={success.title} message={success.message} /> : null}
       <form className="challenges-form" onSubmit={(event) => void onCreate(event)}>
         <TextField
           id="challenge-title"

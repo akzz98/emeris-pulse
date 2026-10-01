@@ -120,9 +120,9 @@ export function AccessScreen({ session, nav, onSignOut }: AccessScreenProps) {
           />
         </p>
       ) : null}
-      {membershipError ? <ErrorState title="Membership unavailable" message={membershipError} /> : null}
+      {membershipError ? <ErrorState title="Could not load membership" message={membershipError} /> : null}
       {loading ? <LoadingState title="Issuing pass" message="Signing a short-lived access code." /> : null}
-      {error ? <ErrorState title="Pass unavailable" message={error} /> : null}
+      {error ? <ErrorState title="Could not issue pass" message={error} /> : null}
       {image && pass && !expired ? (
         <section className="access-pass" aria-labelledby="access-pass-heading">
           <h2 id="access-pass-heading" className="visually-hidden">

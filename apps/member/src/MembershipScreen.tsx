@@ -97,7 +97,7 @@ export function MembershipScreen({ session, nav, onSignOut }: MembershipScreenPr
       {loading ? <LoadingState title="Loading membership" message="Checking your status and expiry." /> : null}
       {error ? (
         <ErrorState
-          title="Membership unavailable"
+          title="Could not load membership"
           message={error}
           action={
             <Button type="button" onClick={() => setRetryTick((tick) => tick + 1)}>

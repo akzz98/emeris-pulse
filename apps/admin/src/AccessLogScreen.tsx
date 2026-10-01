@@ -107,7 +107,7 @@ export function AccessLogScreen({ session, nav, onSignOut }: AccessLogScreenProp
       {loading ? <LoadingState title="Loading access log" message="Fetching the latest scans." /> : null}
       {error ? (
         <ErrorState
-          title="Access log unavailable"
+          title="Could not load access log"
           message={error}
           action={
             <Button type="button" onClick={() => setRetryTick((tick) => tick + 1)}>

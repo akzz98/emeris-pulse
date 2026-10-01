@@ -1,6 +1,6 @@
 import { FormEvent, useState } from "react";
 import { ROLES, type Role } from "@emeris/shared";
-import { AppShell, Button, ConfirmDialog, ErrorState, TextField, type AppNavItem } from "@emeris/ui";
+import { AppShell, Button, ConfirmDialog, ErrorState, SuccessBanner, TextField, type AppNavItem } from "@emeris/ui";
 import { broadcastNotice, type AdminSession } from "./api";
 import "./broadcast.css";
 
@@ -35,7 +35,7 @@ export function BroadcastScreen({ session, nav, onSignOut }: BroadcastScreenProp
   const [message, setMessage] = useState("");
   const [roles, setRoles] = useState<Role[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [success, setSuccess] = useState<{ title: string; message: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
@@ -56,12 +56,12 @@ export function BroadcastScreen({ session, nav, onSignOut }: BroadcastScreenProp
     setBusy(true);
     setConfirmOpen(false);
     setError(null);
-    setNotice(null);
+    setSuccess(null);
     try {
       const result = await broadcastNotice(session.accessToken, { title, message, roles });
       const told =
         result.notified === 1 ? "1 person was told." : `${result.notified} people were told.`;
-      setNotice(told);
+      setSuccess({ title: "Broadcast sent", message: told });
       setTitle("");
       setMessage("");
       setRoles([]);
@@ -84,11 +84,7 @@ export function BroadcastScreen({ session, nav, onSignOut }: BroadcastScreenProp
         <p>Send one notice to every account in the roles you choose. Other roles are not included.</p>
       </header>
       {error ? <ErrorState title="Broadcast not sent" message={error} /> : null}
-      {notice ? (
-        <p className="broadcast-notice" role="status">
-          {notice}
-        </p>
-      ) : null}
+      {success ? <SuccessBanner title={success.title} message={success.message} /> : null}
       <form className="broadcast-form" onSubmit={onSubmit}>
         <TextField id="broadcast-title" label="Title" value={title} onChange={(event) => setTitle(event.target.value)} maxLength={120} required />
         <TextField

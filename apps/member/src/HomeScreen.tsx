@@ -70,7 +70,7 @@ export function HomeScreen({ session, nav, onSignOut, onNavigate }: HomeScreenPr
       {loading ? <LoadingState title="Loading activity" message="Fetching your visits, classes, and challenges." /> : null}
       {error ? (
         <ErrorState
-          title="Activity unavailable"
+          title="Could not load activity"
           message={error}
           action={
             <Button type="button" onClick={() => void load()}>

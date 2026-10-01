@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { AppShell, Button, ConfirmDialog, EmptyState, ErrorState, LoadingState, TextField, type AppNavItem } from "@emeris/ui";
+import { AppShell, Button, ConfirmDialog, EmptyState, ErrorState, LoadingState, SuccessBanner, TextField, type AppNavItem } from "@emeris/ui";
 import {
   approveMembership,
   freezeMembership,
@@ -41,8 +41,9 @@ export function MembersScreen({ session, nav, onSignOut }: MembersScreenProps) {
   const [frozen, setFrozen] = useState<DeskMembership[] | null>(null);
   const [tab, setTab] = useState<MembersTab>("pending");
   const [search, setSearch] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<{ title: string; message: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<number | null>(null);
   const [pendingFreeze, setPendingFreeze] = useState<DeskMembership | null>(null);
@@ -64,7 +65,7 @@ export function MembersScreen({ session, nav, onSignOut }: MembersScreenProps) {
     load()
       .then(() => {
         if (active) {
-          setError(null);
+          setLoadError(null);
         }
       })
       .catch((caught: unknown) => {
@@ -76,7 +77,7 @@ export function MembersScreen({ session, nav, onSignOut }: MembersScreenProps) {
           onSignOut();
           return;
         }
-        setError(message);
+        setLoadError(message);
       })
       .finally(() => {
         if (active) {
@@ -92,8 +93,8 @@ export function MembersScreen({ session, nav, onSignOut }: MembersScreenProps) {
   async function run(membership: DeskMembership, action: "approve" | "freeze" | "activate") {
     setBusyId(membership.userId);
     setPendingFreeze(null);
-    setError(null);
-    setNotice(null);
+    setActionError(null);
+    setSuccess(null);
     const name = `${membership.firstName} ${membership.lastName}`;
     try {
       if (action === "freeze") {
@@ -103,11 +104,14 @@ export function MembersScreen({ session, nav, onSignOut }: MembersScreenProps) {
       }
       await load();
       if (action === "freeze") {
-        setNotice(`${name} is frozen and cannot enter until the membership is activated again.`);
+        setSuccess({
+          title: "Membership frozen",
+          message: `${name} is frozen and cannot enter until the membership is activated again.`,
+        });
       } else if (action === "activate") {
-        setNotice(`${name} can enter the gym again.`);
+        setSuccess({ title: "Membership activated", message: `${name} can enter the gym again.` });
       } else {
-        setNotice(`${name} can now enter the gym.`);
+        setSuccess({ title: "Membership approved", message: `${name} can now enter the gym.` });
       }
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : "Could not update this membership.";
@@ -115,7 +119,7 @@ export function MembersScreen({ session, nav, onSignOut }: MembersScreenProps) {
         onSignOut();
         return;
       }
-      setError(message);
+      setActionError(message);
     } finally {
       setBusyId(null);
     }
@@ -167,12 +171,9 @@ export function MembersScreen({ session, nav, onSignOut }: MembersScreenProps) {
         <p>Approve a new profile, freeze an active membership, or activate a frozen one.</p>
       </header>
       {loading ? <LoadingState title="Loading members" message="Checking pending, active, and frozen memberships." /> : null}
-      {error ? <ErrorState title="Membership not updated" message={error} /> : null}
-      {notice ? (
-        <p className="members-notice" role="status">
-          {notice}
-        </p>
-      ) : null}
+      {loadError ? <ErrorState title="Could not load members" message={loadError} /> : null}
+      {actionError ? <ErrorState title="Membership not updated" message={actionError} /> : null}
+      {success ? <SuccessBanner title={success.title} message={success.message} /> : null}
       {!loading && pending && activeMembers && frozen ? (
         <>
           <div className="members-tabs" role="tablist" aria-label="Membership status">

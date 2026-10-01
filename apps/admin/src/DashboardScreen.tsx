@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
-import { AppShell, Button, ConfirmDialog, EmptyState, ErrorState, LoadingState, TextField, type AppNavItem } from "@emeris/ui";
+import { AppShell, Button, ConfirmDialog, EmptyState, ErrorState, LoadingState, SuccessBanner, TextField, type AppNavItem } from "@emeris/ui";
 import {
   announceClosure,
   getOccupancy,
@@ -72,7 +72,7 @@ export function DashboardScreen({ session, nav, onSignOut, onNavigate }: Dashboa
   const [pendingCount, setPendingCount] = useState<number | null>(null);
   const [ticketCount, setTicketCount] = useState<number | null>(null);
   const [closure, setClosure] = useState({ startsOn: "", endsOn: "", reason: "" });
-  const [closureNotice, setClosureNotice] = useState<string | null>(null);
+  const [closureSuccess, setClosureSuccess] = useState<{ title: string; message: string } | null>(null);
   const [closureError, setClosureError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [confirmClosure, setConfirmClosure] = useState(false);
@@ -186,7 +186,7 @@ export function DashboardScreen({ session, nav, onSignOut, onNavigate }: Dashboa
     setSending(true);
     setConfirmClosure(false);
     setClosureError(null);
-    setClosureNotice(null);
+    setClosureSuccess(null);
     try {
       const result = await announceClosure(session.accessToken, closure);
       const told =
@@ -195,7 +195,7 @@ export function DashboardScreen({ session, nav, onSignOut, onNavigate }: Dashboa
           : result.notified === 1
             ? "1 member with a class in that window was told."
             : `${result.notified} members with a class in that window were told.`;
-      setClosureNotice(told);
+      setClosureSuccess({ title: "Closure notice sent", message: told });
       setClosure({ startsOn: "", endsOn: "", reason: "" });
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : "Could not send the closure notice.";
@@ -246,7 +246,7 @@ export function DashboardScreen({ session, nav, onSignOut, onNavigate }: Dashboa
         </div>
       )}
       {loading ? <LoadingState title="Loading dashboard" message="Checking who is on the floor." /> : null}
-      {error ? <ErrorState title="Occupancy unavailable" message={error} /> : null}
+      {error ? <ErrorState title="Could not load occupancy" message={error} /> : null}
       {occupancy ? (
         <section className="occupancy" aria-labelledby="occupancy-heading">
           <h2 id="occupancy-heading">On the floor</h2>
@@ -278,7 +278,7 @@ export function DashboardScreen({ session, nav, onSignOut, onNavigate }: Dashboa
           <LoadingState title="Loading utilisation" message="Checking granted visits from the last 7 days." />
         ) : null}
         {!utilisationLoading && utilisationError ? (
-          <ErrorState title="Utilisation unavailable" message={utilisationError} />
+          <ErrorState title="Could not load utilisation" message={utilisationError} />
         ) : null}
         {!utilisationLoading && utilisation && utilisation.visitsThisWeek === 0 ? (
           <EmptyState title="No visits" message="Granted entrance scans from the last 7 days appear here." />
@@ -317,11 +317,7 @@ export function DashboardScreen({ session, nav, onSignOut, onNavigate }: Dashboa
         <h2 id="closure-heading">Gym closure</h2>
         <p>Tell members who have a class on the closed days. Other members are not notified.</p>
         {closureError ? <ErrorState title="Closure not sent" message={closureError} /> : null}
-        {closureNotice ? (
-          <p className="closure-notice" role="status">
-            {closureNotice}
-          </p>
-        ) : null}
+        {closureSuccess ? <SuccessBanner title={closureSuccess.title} message={closureSuccess.message} /> : null}
         <form onSubmit={onClosureSubmit}>
           <TextField
             id="closure-starts"

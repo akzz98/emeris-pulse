@@ -46,6 +46,12 @@
   margin: 0 0 1rem;
 }
 
+@media (max-width: 40rem) {
+  .membership-card dl {
+    grid-template-columns: 1fr;
+  }
+}
+
 .membership-card dt {
   color: var(--ep-muted, #4d5e66);
 }

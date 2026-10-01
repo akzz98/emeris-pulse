@@ -94,7 +94,7 @@ export function TodayScreen({ session, nav, onSignOut, onOpenClass }: TodayScree
         <p>Open a class for the roster, attendance, and messages. Waitlisted members are not on the roster.</p>
       </header>
       {loading ? <LoadingState title="Loading today" message="Checking your scheduled classes." /> : null}
-      {error ? <ErrorState title="Classes unavailable" message={error} /> : null}
+      {error ? <ErrorState title="Could not load classes" message={error} /> : null}
       {!loading && classes && today.length === 0 && startedOnly.length === 0 ? (
         <EmptyState title="No classes today" message="Upcoming classes still appear below when you have them." />
       ) : null}
