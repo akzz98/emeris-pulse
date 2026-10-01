@@ -1,5 +1,5 @@
 import { HttpError } from "../../http/httpError.js";
-import type { BroadcastInput, ClosureInput } from "./noticesSchemas.js";
+import type { BroadcastEstimateInput, BroadcastInput, ClosureInput } from "./noticesSchemas.js";
 import { NoticesRepository } from "./noticesRepository.js";
 
 const notices = new NoticesRepository();
@@ -41,6 +41,11 @@ export async function announceClosure(input: ClosureInput) {
   }
   const notified = await notices.notifyClassMembers(input.startsOn, input.endsOn, "Gym closure", closureBody(input));
   return { notified };
+}
+
+export async function estimateBroadcast(input: BroadcastEstimateInput) {
+  const roles = [...new Set(input.roles)];
+  return { estimated: await notices.countByRoles(roles) };
 }
 
 // Every account in the chosen roles is told, including an inactive membership. Other roles are left out.

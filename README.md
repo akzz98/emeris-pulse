@@ -200,7 +200,7 @@ Publish a campus challenge with a title, description, and start and end dates. T
 
 ### Broadcast
 
-One title and message, sent to every account in the roles that are ticked: Student, Staff, Instructor, Gym admin, Facility manager, System admin. Other roles are skipped. Inactive memberships are included. The notice appears in each recipient’s Notifications.
+One title and message, sent to every account in the roles that are ticked: Student, Staff, Instructor, Gym admin, Facility manager, System admin. Other roles are skipped. Inactive memberships are included. Before send, the form shows an estimated recipient count for the chosen roles. The notice appears in each recipient’s Notifications.
 
 ### Maintenance
 

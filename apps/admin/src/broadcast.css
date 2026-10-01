@@ -27,3 +27,8 @@
   align-items: center;
   gap: 0.5rem;
 }
+
+.broadcast-estimate {
+  margin: 0 0 1rem;
+  color: var(--ep-muted, #4d5e66);
+}

@@ -476,6 +476,18 @@ export async function updateClass(
   return readAdmin(response, "Could not update the class.");
 }
 
+export async function estimateBroadcast(
+  accessToken: string,
+  roles: string[],
+): Promise<{ estimated: number }> {
+  const response = await authorized(`${apiUrl}/notices/broadcast/estimate`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ roles }),
+  });
+  return readAdmin(response, "Could not estimate recipients.");
+}
+
 export async function broadcastNotice(
   accessToken: string,
   notice: { title: string; message: string; roles: string[] },

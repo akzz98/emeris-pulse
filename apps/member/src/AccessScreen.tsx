@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AppShell, Button, ErrorState, LoadingState, StatusBadge, type AppNavItem, type StatusTone } from "@emeris/ui";
 import QRCode from "qrcode";
 import { getMembership, issueAccessPass, type AccessPass, type MembershipDetails } from "./api";
@@ -10,6 +10,8 @@ type AccessScreenProps = {
   nav: AppNavItem[];
   onSignOut: () => void;
 };
+
+const LIVE_THRESHOLDS = [30, 15, 10, 5];
 
 function secondsLeft(expiresAt: string): number {
   return Math.max(0, Math.ceil((new Date(expiresAt).getTime() - Date.now()) / 1000));
@@ -38,27 +40,41 @@ function eligibilityLabel(membership: MembershipDetails): string {
   return "Expired — entry refused";
 }
 
+function announceFor(remaining: number): string {
+  if (remaining <= 0) {
+    return "Pass expired.";
+  }
+  return `Pass expires in ${remaining} seconds.`;
+}
+
 export function AccessScreen({ session, nav, onSignOut }: AccessScreenProps) {
   const [membership, setMembership] = useState<MembershipDetails | null>(null);
   const [pass, setPass] = useState<AccessPass | null>(null);
   const [image, setImage] = useState<string | null>(null);
   const [remaining, setRemaining] = useState(0);
+  const [liveMessage, setLiveMessage] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [membershipError, setMembershipError] = useState<string | null>(null);
+  const announcedRef = useRef<Set<number>>(new Set());
 
   async function loadPass() {
     setLoading(true);
     setError(null);
     setPass(null);
     setImage(null);
+    setLiveMessage("");
+    announcedRef.current = new Set();
     try {
       const next = await issueAccessPass(session.accessToken);
       // The QR holds the signed token. The gym scanner reads that token, not a membership number.
       const dataUrl = await QRCode.toDataURL(next.token, { margin: 1, width: 240 });
+      const left = secondsLeft(next.expiresAt);
       setPass(next);
       setImage(dataUrl);
-      setRemaining(secondsLeft(next.expiresAt));
+      setRemaining(left);
+      setLiveMessage(announceFor(left));
+      announcedRef.current.add(-1);
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : "Could not issue a pass.";
       if (message === "UNAUTHENTICATED") {
@@ -100,7 +116,24 @@ export function AccessScreen({ session, nav, onSignOut }: AccessScreenProps) {
     if (!pass) {
       return;
     }
-    const timer = window.setInterval(() => setRemaining(secondsLeft(pass.expiresAt)), 1000);
+    const timer = window.setInterval(() => {
+      const left = secondsLeft(pass.expiresAt);
+      setRemaining(left);
+      if (left === 0) {
+        if (!announcedRef.current.has(0)) {
+          announcedRef.current.add(0);
+          setLiveMessage(announceFor(0));
+        }
+        return;
+      }
+      for (const threshold of LIVE_THRESHOLDS) {
+        if (left === threshold && !announcedRef.current.has(threshold)) {
+          announcedRef.current.add(threshold);
+          setLiveMessage(announceFor(threshold));
+          break;
+        }
+      }
+    }, 1000);
     return () => window.clearInterval(timer);
   }, [pass]);
 
@@ -113,7 +146,7 @@ export function AccessScreen({ session, nav, onSignOut }: AccessScreenProps) {
         <p>Show this pass at the gym entrance. Students and staff use the same pass.</p>
       </header>
       {membership ? (
-        <p className="access-eligibility" role="status">
+        <p className="access-eligibility">
           <StatusBadge
             label={eligibilityLabel(membership)}
             tone={eligibilityTone(membership.status, membership.canEnter)}
@@ -129,11 +162,19 @@ export function AccessScreen({ session, nav, onSignOut }: AccessScreenProps) {
             Access pass
           </h2>
           <img src={image} alt="Signed gym access pass" width={240} height={240} />
-          <p role="status">Expires in {remaining} seconds.</p>
+          <p aria-hidden="true">Expires in {remaining} seconds.</p>
+          <p className="visually-hidden" role="status" aria-live="polite">
+            {liveMessage}
+          </p>
         </section>
       ) : null}
       {expired ? (
-        <ErrorState title="Pass expired" message="This code is no longer valid. Issue a new one before you enter." />
+        <>
+          <ErrorState title="Pass expired" message="This code is no longer valid. Issue a new one before you enter." />
+          <p className="visually-hidden" role="status" aria-live="polite">
+            {liveMessage}
+          </p>
+        </>
       ) : null}
       {!loading && (error || expired) ? (
         <div className="access-actions">

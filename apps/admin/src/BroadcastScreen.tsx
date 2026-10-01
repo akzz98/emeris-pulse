@@ -1,7 +1,7 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { ROLES, type Role } from "@emeris/shared";
 import { AppShell, Button, ConfirmDialog, ErrorState, SuccessBanner, TextField, type AppNavItem } from "@emeris/ui";
-import { broadcastNotice, type AdminSession } from "./api";
+import { broadcastNotice, estimateBroadcast, type AdminSession } from "./api";
 import "./broadcast.css";
 
 type BroadcastScreenProps = {
@@ -30,10 +30,15 @@ function summariseRoles(roles: Role[]): string {
   return `${labels.slice(0, -1).join(", ")}, and ${labels[labels.length - 1]}`;
 }
 
+function peopleLabel(count: number): string {
+  return count === 1 ? "1 person" : `${count} people`;
+}
+
 export function BroadcastScreen({ session, nav, onSignOut }: BroadcastScreenProps) {
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
   const [roles, setRoles] = useState<Role[]>([]);
+  const [estimated, setEstimated] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<{ title: string; message: string } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -42,6 +47,37 @@ export function BroadcastScreen({ session, nav, onSignOut }: BroadcastScreenProp
   function toggle(role: Role) {
     setRoles((current) => (current.includes(role) ? current.filter((item) => item !== role) : [...current, role]));
   }
+
+  useEffect(() => {
+    if (roles.length === 0) {
+      setEstimated(null);
+      return;
+    }
+    let active = true;
+    const timer = window.setTimeout(() => {
+      estimateBroadcast(session.accessToken, roles)
+        .then((next) => {
+          if (active) {
+            setEstimated(next.estimated);
+          }
+        })
+        .catch((caught: unknown) => {
+          if (!active) {
+            return;
+          }
+          const text = caught instanceof Error ? caught.message : "Could not estimate recipients.";
+          if (text === "UNAUTHENTICATED") {
+            onSignOut();
+            return;
+          }
+          setEstimated(null);
+        });
+    }, 200);
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [roles, session.accessToken, onSignOut]);
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -65,6 +101,7 @@ export function BroadcastScreen({ session, nav, onSignOut }: BroadcastScreenProp
       setTitle("");
       setMessage("");
       setRoles([]);
+      setEstimated(null);
     } catch (caught) {
       const text = caught instanceof Error ? caught.message : "Could not send this broadcast.";
       if (text === "UNAUTHENTICATED") {
@@ -76,6 +113,24 @@ export function BroadcastScreen({ session, nav, onSignOut }: BroadcastScreenProp
       setBusy(false);
     }
   }
+
+  const recipientHint =
+    roles.length === 0
+      ? "Choose at least one role to estimate who will receive this."
+      : estimated === null
+        ? `Checking how many accounts are in ${summariseRoles(roles)}…`
+        : estimated === 0
+          ? `No accounts currently have the ${summariseRoles(roles)} role${roles.length === 1 ? "" : "s"}.`
+          : `About ${peopleLabel(estimated)} will receive this (${summariseRoles(roles)}).`;
+
+  const confirmMessage =
+    roles.length === 0
+      ? ""
+      : estimated === null
+        ? `This notice will reach ${summariseRoles(roles)}. Other roles are not included.`
+        : estimated === 0
+          ? `No accounts currently match ${summariseRoles(roles)}. Sending will not notify anyone.`
+          : `This notice will reach about ${peopleLabel(estimated)} in ${summariseRoles(roles)}. Other roles are not included.`;
 
   return (
     <AppShell area="Admin" nav={nav} onSignOut={onSignOut}>
@@ -109,6 +164,9 @@ export function BroadcastScreen({ session, nav, onSignOut }: BroadcastScreenProp
             </label>
           ))}
         </fieldset>
+        <p className="broadcast-estimate" aria-live="polite">
+          {recipientHint}
+        </p>
         <Button type="submit" disabled={busy || roles.length === 0}>
           {busy ? "Sending…" : "Send broadcast"}
         </Button>
@@ -116,11 +174,7 @@ export function BroadcastScreen({ session, nav, onSignOut }: BroadcastScreenProp
       <ConfirmDialog
         open={confirmOpen}
         title="Send this broadcast?"
-        message={
-          roles.length === 0
-            ? ""
-            : `This notice will reach ${summariseRoles(roles)}. Other roles are not included.`
-        }
+        message={confirmMessage}
         confirmLabel="Send broadcast"
         cancelLabel="Keep drafting"
         confirmVariant="primary"
