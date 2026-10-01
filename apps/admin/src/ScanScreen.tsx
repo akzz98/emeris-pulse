@@ -1,7 +1,7 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { Html5Qrcode } from "html5-qrcode";
 import { AppShell, Button, ErrorState, SuccessBanner, TextArea, type AppNavItem } from "@emeris/ui";
-import { redeemPass } from "./api";
+import { redeemPass, type RedeemMember } from "./api";
 import "./scan.css";
 
 type ScanScreenProps = {
@@ -12,11 +12,19 @@ type ScanScreenProps = {
 const readerId = "desk-qr-reader";
 const autoResumeMs = 2500;
 
+function memberLabel(member: RedeemMember | null): string {
+  if (!member) {
+    return "The scan was recorded. Ready for the next member.";
+  }
+  return `${member.firstName} ${member.lastName} (${member.campusIdentifier}) entered. Ready for the next member.`;
+}
+
 export function ScanScreen({ nav, onSignOut }: ScanScreenProps) {
   // Camera reads the member QR when the desk has a webcam. Paste remains for when it does not.
   // After a grant or refuse the scanner pauses so the same code cannot flip the result.
   const [token, setToken] = useState("");
   const [granted, setGranted] = useState(false);
+  const [grantedMember, setGrantedMember] = useState<RedeemMember | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [cameraOn, setCameraOn] = useState(false);
@@ -80,6 +88,7 @@ export function ScanScreen({ nav, onSignOut }: ScanScreenProps) {
   async function readyForNext() {
     clearAutoResume();
     setGranted(false);
+    setGrantedMember(null);
     setError(null);
     setToken("");
     awaitingNextRef.current = false;
@@ -99,12 +108,14 @@ export function ScanScreen({ nav, onSignOut }: ScanScreenProps) {
     redeemLockRef.current = true;
     setBusy(true);
     setGranted(false);
+    setGrantedMember(null);
     setError(null);
     // Stop decoding immediately so a held QR cannot overwrite grant with "already used".
     await pauseScanner();
     try {
-      await redeemPass(trimmed);
+      const result = await redeemPass(trimmed);
       setGranted(true);
+      setGrantedMember(result.member);
       setToken("");
       awaitingNextRef.current = true;
       setAwaitingNext(true);
@@ -147,6 +158,7 @@ export function ScanScreen({ nav, onSignOut }: ScanScreenProps) {
     setCameraError(null);
     setError(null);
     setGranted(false);
+    setGrantedMember(null);
     awaitingNextRef.current = false;
     setAwaitingNext(false);
     clearAutoResume();
@@ -194,11 +206,7 @@ export function ScanScreen({ nav, onSignOut }: ScanScreenProps) {
           </p>
         </header>
         {granted ? (
-          <SuccessBanner
-            title="Entry granted"
-            message="The scan was recorded. Ready for the next member."
-            action={scanNextButton}
-          />
+          <SuccessBanner title="Entry granted" message={memberLabel(grantedMember)} action={scanNextButton} />
         ) : null}
         {error ? (
           <ErrorState title="Entry refused" message={error} action={scanNextButton} />

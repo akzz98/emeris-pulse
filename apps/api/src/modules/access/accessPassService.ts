@@ -99,7 +99,17 @@ export async function redeemPass(input: RedeemPassInput) {
   if (passId) {
     // Granted and refused scans are both stored so the access log has a row for this door check.
     await events.insert({ userId: claim.userId, passId, result: "Granted", reason: null });
-    return { result: "Granted" as const };
+    const user = await users.findById(claim.userId);
+    return {
+      result: "Granted" as const,
+      member: user
+        ? {
+            firstName: user.firstName,
+            lastName: user.lastName,
+            campusIdentifier: user.campusIdentifier,
+          }
+        : null,
+    };
   }
 
   const existing = await passes.findByJti(claim.jti);

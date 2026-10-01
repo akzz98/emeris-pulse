@@ -213,8 +213,15 @@ export async function getOccupancy(accessToken: string): Promise<Occupancy> {
   return body;
 }
 
+export type RedeemMember = {
+  firstName: string;
+  lastName: string;
+  campusIdentifier: string;
+};
+
 export type RedeemResult = {
   result: "Granted";
+  member: RedeemMember | null;
 };
 
 export async function redeemPass(token: string): Promise<RedeemResult> {
