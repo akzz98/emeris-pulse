@@ -29,39 +29,33 @@ export type AdminScreen =
   | "reports";
 
 function adminNav(current: AdminScreen, onSelect: (screen: AdminScreen) => void, role: string): AppNavItem[] {
-  const dashboard: AppNavItem = {
-    label: "Dashboard",
-    current: current === "dashboard",
-    onSelect: () => onSelect("dashboard"),
-  };
-  const reports: AppNavItem = {
-    label: "Reports",
-    current: current === "reports",
-    onSelect: () => onSelect("reports"),
-  };
-  const maintenance: AppNavItem = {
-    label: "Maintenance",
-    current: current === "maintenance",
-    onSelect: () => onSelect("maintenance"),
-  };
+  const link = (id: AdminScreen, label: string): AppNavItem => ({
+    label,
+    current: current === id,
+    onSelect: () => onSelect(id),
+  });
+  const group = (label: string, children: AppNavItem[]): AppNavItem => ({
+    label,
+    current: children.some((child) => child.current),
+    onSelect: () => undefined,
+    children,
+  });
+
   // The facility manager watches crowding, reports, and the ticket queue. Desk actions stay with the gym administrator.
   if (role === "FacilityManager") {
-    return [dashboard, reports, maintenance];
+    return [link("dashboard", "Dashboard"), link("reports", "Reports"), link("maintenance", "Maintenance")];
   }
+
   return [
-    dashboard,
-    reports,
-    { label: "Scan entry", current: current === "scan", onSelect: () => onSelect("scan") },
-    { label: "Access logs", current: current === "logs", onSelect: () => onSelect("logs") },
-    { label: "Members", current: current === "members", onSelect: () => onSelect("members") },
-    ...(role === "SystemAdmin"
-      ? [{ label: "Roles", current: current === "roles", onSelect: () => onSelect("roles") }]
-      : []),
-    { label: "Temporary pass", current: current === "temporary", onSelect: () => onSelect("temporary") },
-    { label: "Timetable", current: current === "timetable", onSelect: () => onSelect("timetable") },
-    { label: "Challenges", current: current === "challenges", onSelect: () => onSelect("challenges") },
-    { label: "Broadcast", current: current === "broadcast", onSelect: () => onSelect("broadcast") },
-    maintenance,
+    link("dashboard", "Dashboard"),
+    group("Desk", [link("scan", "Scan entry"), link("logs", "Access logs"), link("temporary", "Temporary pass")]),
+    group("People", [
+      link("members", "Members"),
+      ...(role === "SystemAdmin" ? [link("roles", "Roles")] : []),
+    ]),
+    group("Schedule", [link("timetable", "Timetable")]),
+    group("Facility", [link("maintenance", "Maintenance"), link("reports", "Reports")]),
+    group("Comms", [link("challenges", "Challenges"), link("broadcast", "Broadcast")]),
   ];
 }
 
