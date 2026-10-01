@@ -424,6 +424,30 @@ body {
   font-weight: 650;
 }
 
+.ep-password-field {
+  margin-bottom: 0.35rem;
+}
+
+.ep-password-field .ep-field {
+  margin-bottom: 0.45rem;
+}
+
+.ep-show-password {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0 0 0.75rem;
+  color: var(--ep-muted);
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.ep-show-password input {
+  width: 1.05rem;
+  height: 1.05rem;
+  accent-color: var(--ep-teal);
+}
+
 .ep-state {
   background: var(--ep-white);
   border: 1px solid var(--ep-line);

@@ -111,12 +111,12 @@ export function ProfileScreen({ session, nav, onSignOut, onUpdated }: ProfileScr
           <TextField id="profile-last-name" label="Last name" autoComplete="family-name" value={lastName} onChange={(event) => setLastName(event.target.value)} required />
           <TextField
             id="profile-phone"
-            label="Phone"
+            label="Phone (optional)"
             type="tel"
             autoComplete="tel"
             value={phone}
             onChange={(event) => setPhone(event.target.value)}
-            hint="Optional. Notices stay in the app."
+            hint="Notices stay in the app. Leave blank if you prefer not to share a number."
           />
           <Button type="submit" disabled={busy}>
             {busy ? "Saving…" : "Save contact details"}

@@ -16,15 +16,19 @@ import { Splash } from "./Splash";
 
 export function App() {
   const [session, setSession] = useState<MemberSession | null>(() => loadSession());
-  const [showSplash, setShowSplash] = useState(true);
+  // Returning members skip the brand splash and land on Home.
+  const [showSplash, setShowSplash] = useState(() => loadSession() === null);
   const [mode, setMode] = useState<"login" | "register">("login");
   const [screen, setScreen] = useState<MemberScreen>("home");
   const [noticeCount, setNoticeCount] = useState(0);
 
   useEffect(() => {
+    if (!showSplash) {
+      return;
+    }
     const timer = window.setTimeout(() => setShowSplash(false), 900);
     return () => window.clearTimeout(timer);
-  }, []);
+  }, [showSplash]);
 
   useEffect(() => {
     if (!session) {

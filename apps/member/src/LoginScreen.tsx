@@ -1,5 +1,5 @@
 import { FormEvent, useState } from "react";
-import { AppShell, Button, ErrorState, TextField, TextLink } from "@emeris/ui";
+import { AppShell, Button, ErrorState, PasswordField, TextField, TextLink } from "@emeris/ui";
 import { login } from "./api";
 import "./splash.css";
 import type { MemberSession } from "./session";
@@ -42,10 +42,9 @@ export function LoginScreen({ onSignedIn, onCreateAccount }: LoginScreenProps) {
           onChange={(event) => setEmail(event.target.value)}
           required
         />
-        <TextField
+        <PasswordField
           id="password"
           label="Password"
-          type="password"
           autoComplete="current-password"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
