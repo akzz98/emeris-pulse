@@ -245,6 +245,193 @@ body {
   padding: 1.5rem 1.25rem 3rem;
 }
 
+/* Member phone: fixed bottom tabs. Desktop member keeps the top nav. */
+.ep-app--member[data-member-nav="bottom"] {
+  padding-bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+  min-height: 100dvh;
+}
+
+.ep-app--member[data-member-nav="bottom"] .ep-header {
+  padding-top: calc(0.85rem + env(safe-area-inset-top, 0px));
+}
+
+.ep-app--member[data-member-nav="bottom"] .ep-nav--bottom {
+  position: fixed;
+  z-index: 30;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-bottom: 0;
+  border-top: 1px solid var(--ep-line);
+  background: var(--ep-white);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  box-shadow: 0 -4px 16px rgb(20 32 38 / 8%);
+}
+
+.ep-app--member[data-member-nav="bottom"] .ep-nav--bottom ul {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+  max-width: 42rem;
+  margin: 0 auto;
+  padding: 0.2rem 0.35rem;
+}
+
+.ep-app--member[data-member-nav="bottom"] .ep-nav--bottom > ul > li {
+  display: flex;
+}
+
+.ep-app--member[data-member-nav="bottom"] .ep-nav--bottom button {
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.15rem;
+  min-height: 3rem;
+  min-width: 3rem;
+  padding: 0.35rem 0.2rem;
+  text-decoration: none;
+  font-size: 0.72rem;
+  font-weight: 700;
+  border-radius: 0.5rem;
+}
+
+.ep-app--member[data-member-nav="bottom"] .ep-nav--bottom button[aria-current="page"],
+.ep-app--member[data-member-nav="bottom"] .ep-nav--bottom .ep-nav-more-trigger.is-active {
+  background: #e7eef0;
+  color: var(--ep-teal);
+  box-shadow: inset 0 -3px 0 var(--ep-teal);
+}
+
+.ep-app--member[data-member-nav="bottom"] .ep-nav--bottom button[aria-current="page"] .ep-nav-badge,
+.ep-app--member[data-member-nav="bottom"] .ep-nav--bottom .ep-nav-more-trigger.is-active .ep-nav-badge {
+  background: var(--ep-danger);
+  color: var(--ep-white);
+}
+
+.ep-app--member[data-member-nav="bottom"] .ep-main {
+  padding-bottom: 1.5rem;
+}
+
+.ep-more-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  align-items: end;
+}
+
+.ep-more-sheet-backdrop {
+  position: absolute;
+  inset: 0;
+  appearance: none;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  background: rgb(15 26 29 / 45%);
+  cursor: pointer;
+}
+
+.ep-more-sheet-panel {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 42rem);
+  margin: 0 auto;
+  background: var(--ep-white);
+  border-radius: 1rem 1rem 0 0;
+  padding: 0.85rem 1rem calc(1rem + env(safe-area-inset-bottom, 0px));
+  box-shadow: 0 -8px 28px rgb(20 32 38 / 18%);
+  max-height: min(78dvh, 36rem);
+  overflow: auto;
+}
+
+.ep-more-sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.ep-more-sheet-header h2 {
+  margin: 0;
+  color: var(--ep-teal);
+  font-size: 1.15rem;
+}
+
+.ep-more-sheet-close {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--ep-teal);
+  font: inherit;
+  font-weight: 650;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+  min-height: 2.75rem;
+  min-width: 2.75rem;
+  padding: 0.4rem 0.6rem;
+  cursor: pointer;
+  border-radius: 0.4rem;
+}
+
+.ep-more-sheet-close:focus-visible {
+  outline: var(--ep-focus);
+  outline-offset: 2px;
+}
+
+.ep-more-sheet-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.25rem;
+}
+
+.ep-more-sheet-list button {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--ep-teal);
+  font: inherit;
+  font-weight: 650;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  text-align: left;
+}
+
+.ep-more-sheet-list button:hover {
+  background: #e7eef0;
+}
+
+.ep-more-sheet-list button:focus-visible {
+  outline: var(--ep-focus);
+  outline-offset: 2px;
+}
+
+.ep-more-sheet-list button[aria-current="page"] {
+  background: var(--ep-teal);
+  color: var(--ep-white);
+}
+
+.ep-more-sheet-list button[aria-current="page"] .ep-nav-badge {
+  background: var(--ep-white);
+  color: var(--ep-teal);
+}
+
+.ep-more-sheet-signout {
+  margin-top: 0.35rem;
+  border-top: 1px solid var(--ep-line) !important;
+  border-radius: 0 0 0.5rem 0.5rem !important;
+  color: var(--ep-danger) !important;
+}
+
 /* Tables and reports need a wider column on the desk apps. Member and instructor stay phone-friendly. */
 .ep-app[data-area="Admin"] .ep-nav ul,
 .ep-app[data-area="Facility"] .ep-nav ul,

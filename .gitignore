@@ -11,5 +11,6 @@ coverage/
 
 # Local deploy tracker and demo script.
 docs/hosting-checklist.md
+docs/DEMO.md
 docs/task2-walkthrough.md
 .azure-hosting.local

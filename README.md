@@ -18,7 +18,7 @@ Sign-in is email and password. The API issues a 15-minute JWT and a hashed refre
 
 The member app opens with a short splash, then sign-in. Returning members who already have a session skip the splash. It is installable on a phone (standalone display, Emeris icon). A service worker keeps a cached copy of the shell and falls back to it when the network drops. Gym actions still need the API. Signed-in screens use path URLs (`/access`, `/classes`, and so on) so the browser Back button returns to the previous screen. The admin and instructor apps do the same.
 
-Signed-in member navigation is **Home · Access · Classes · More**. More opens Equipment, Challenges, Notifications, Membership, and Profile.
+Signed-in member navigation is **Home · Access · Classes · More**. On a phone-width screen the primary destinations sit in a **fixed bottom tab bar**; the header stays brand-only (logo + Emeris Pulse / Member). **More** opens a bottom sheet with Equipment, Challenges, Notifications, Membership, Profile, and Sign out. On a wider window the same four items stay in the top nav, with More as a menu and Sign out at the end.
 
 ## Member app
 
@@ -384,7 +384,7 @@ The three apps share one visual system in `packages/ui`: the Emeris logo, teal b
 
 Loading, empty, error, and success states come from the same components. They use `role="status"` and `aria-live` so a booking, a scan, or a failed sign-in is announced, not only painted. A skip link is the first control in the shell. Focus uses a visible outline. Body text is `100%`, so browser zoom changes the size. Colour pairs are teal on white, ink on the page surface, and separate danger and success colours for refused and granted outcomes.
 
-The member app is built for a phone. The viewport is set, the column stays narrow, navigation wraps, and the app can be installed (standalone display, Emeris icon). Instructor and admin use the same wrapping navigation at desktop width. The access log rearranges below 40rem so the desk table does not force a sideways scroll on a phone. There is no second layout per device. One column is readable from a phone through a desktop window.
+The member app is built for a phone. The viewport uses `viewport-fit=cover` so safe-area insets apply on notched devices. On viewports about 40rem and below, primary navigation is a bottom tab bar (Home · Access · Classes · More) with short labels and icons; content clears the bar, and More is a sheet rather than a header dropdown. Wider member windows keep a top nav. Instructor and admin stay desk-first with top/grouped navigation. The access log rearranges below 40rem so the desk table does not force a sideways scroll on a phone. One column stays readable from a phone through a desktop window.
 
 The member shell is cached by a service worker so the frame still opens if the network drops. Gym actions still wait for the API. Screens do not ship large images. The QR is a small data URL drawn on the phone.
 
