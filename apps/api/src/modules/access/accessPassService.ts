@@ -46,6 +46,7 @@ export async function issueStandardPass(userId: number) {
 
   return {
     token,
+    jti,
     expiresAt: expiresAt.toISOString(),
     expiresIn: passTtlSeconds,
     kind: "Standard" as const,
@@ -98,7 +99,17 @@ export async function redeemPass(input: RedeemPassInput) {
   if (passId) {
     // Granted and refused scans are both stored so the access log has a row for this door check.
     await events.insert({ userId: claim.userId, passId, result: "Granted", reason: null });
-    return { result: "Granted" as const };
+    const user = await users.findById(claim.userId);
+    return {
+      result: "Granted" as const,
+      member: user
+        ? {
+            firstName: user.firstName,
+            lastName: user.lastName,
+            campusIdentifier: user.campusIdentifier,
+          }
+        : null,
+    };
   }
 
   const existing = await passes.findByJti(claim.jti);
@@ -140,10 +151,25 @@ export async function issueTemporaryPass(input: TemporaryPassInput) {
 
   return {
     token,
+    jti,
     expiresAt: expiresAt.toISOString(),
     expiresIn: temporaryPassTtlSeconds,
     kind: "Temporary" as const,
     member: { firstName: user.firstName, lastName: user.lastName, email: user.email },
+  };
+}
+
+// The member phone polls this while the QR is shown so desk redeem can flip to “You’re in”.
+export async function getMyPassStatus(userId: number, jti: string) {
+  const pass = await passes.findByJti(jti);
+  if (!pass || pass.userId !== userId) {
+    throw new HttpError(404, "PASS_NOT_FOUND", "That pass was not found.");
+  }
+  return {
+    jti: pass.jti,
+    used: pass.usedAt !== null,
+    usedAt: pass.usedAt ? pass.usedAt.toISOString() : null,
+    expiresAt: pass.expiresAt.toISOString(),
   };
 }
 

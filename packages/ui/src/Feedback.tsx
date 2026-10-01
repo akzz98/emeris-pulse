@@ -47,11 +47,12 @@ export function ErrorState({ title, message, action }: StateProps) {
   );
 }
 
-export function SuccessBanner({ title, message }: StateProps) {
+export function SuccessBanner({ title, message, action }: StateProps) {
   return (
     <section className="ep-state ep-state-success" role="status" aria-live="polite">
       <h2>{title}</h2>
       <p>{message}</p>
+      {action ? <div className="ep-state-action">{action}</div> : null}
     </section>
   );
 }
