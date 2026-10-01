@@ -109,7 +109,7 @@ export function AccessScreen({ session, nav, onSignOut }: AccessScreenProps) {
   return (
     <AppShell area="Member" nav={nav} onSignOut={onSignOut}>
       <header className="access-heading">
-        <h1>QR / cardless access</h1>
+        <h1>Access</h1>
         <p>Show this pass at the gym entrance. Students and staff use the same pass.</p>
       </header>
       {membership ? (

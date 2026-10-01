@@ -84,8 +84,8 @@ export function WellnessScreen({ session, nav, onSignOut }: WellnessScreenProps)
   return (
     <AppShell area="Member" nav={nav} onSignOut={onSignOut}>
       <header className="wellness-heading">
-        <h1>Wellness</h1>
-        <p>Join a campus challenge while it is open. You can join each challenge once.</p>
+        <h1>Challenges</h1>
+        <p>Join an open campus challenge. You can join each challenge once while it is running.</p>
       </header>
       {loading ? <LoadingState title="Loading challenges" message="Checking what is open." /> : null}
       {error ? <ErrorState title="Challenge not joined" message={error} /> : null}

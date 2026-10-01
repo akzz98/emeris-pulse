@@ -10,15 +10,11 @@ export type MemberScreen =
   | "notices"
   | "profile";
 
-// Labels match the Part 1 member screens that are built. Classes replaces timetable + book.
-const memberScreens: Array<{ id: MemberScreen; label: string }> = [
-  { id: "home", label: "Home" },
-  { id: "membership", label: "Membership" },
-  { id: "access", label: "QR / cardless access" },
-  { id: "classes", label: "Classes" },
+const moreScreens: Array<{ id: MemberScreen; label: string }> = [
   { id: "equipment", label: "Equipment" },
-  { id: "wellness", label: "Wellness" },
+  { id: "wellness", label: "Challenges" },
   { id: "notices", label: "Notifications" },
+  { id: "membership", label: "Membership" },
   { id: "profile", label: "Profile" },
 ];
 
@@ -27,10 +23,33 @@ export function memberNav(
   onSelect: (screen: MemberScreen) => void,
   options?: { noticeCount?: number },
 ): AppNavItem[] {
-  return memberScreens.map((screen) => ({
-    label: screen.label,
-    current: screen.id === current,
-    onSelect: () => onSelect(screen.id),
-    badge: screen.id === "notices" ? options?.noticeCount : undefined,
-  }));
+  const moreCurrent = moreScreens.some((screen) => screen.id === current);
+  return [
+    {
+      label: "Home",
+      current: current === "home",
+      onSelect: () => onSelect("home"),
+    },
+    {
+      label: "Access",
+      current: current === "access",
+      onSelect: () => onSelect("access"),
+    },
+    {
+      label: "Classes",
+      current: current === "classes",
+      onSelect: () => onSelect("classes"),
+    },
+    {
+      label: "More",
+      current: moreCurrent,
+      onSelect: () => undefined,
+      children: moreScreens.map((screen) => ({
+        label: screen.label,
+        current: screen.id === current,
+        onSelect: () => onSelect(screen.id),
+        badge: screen.id === "notices" ? options?.noticeCount : undefined,
+      })),
+    },
+  ];
 }

@@ -169,6 +169,49 @@ body {
   margin-left: auto;
 }
 
+.ep-nav-more {
+  position: relative;
+}
+
+.ep-nav-more-trigger.is-active {
+  background: var(--ep-teal);
+  color: var(--ep-white);
+  text-decoration: none;
+}
+
+.ep-nav-more-trigger.is-active .ep-nav-badge {
+  background: var(--ep-white);
+  color: var(--ep-teal);
+}
+
+.ep-nav-more-menu {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 0.25rem);
+  left: 0;
+  min-width: 12rem;
+  margin: 0;
+  padding: 0.35rem;
+  list-style: none;
+  background: var(--ep-white);
+  border: 1px solid var(--ep-line);
+  border-radius: 0.5rem;
+  box-shadow: 0 8px 20px rgb(20 32 38 / 12%);
+  display: grid;
+  gap: 0.15rem;
+}
+
+.ep-nav-more-menu button {
+  width: 100%;
+  justify-content: space-between;
+  text-decoration: none;
+}
+
+.ep-nav-more-menu button[aria-current="page"] {
+  background: var(--ep-teal);
+  color: var(--ep-white);
+}
+
 .ep-main {
   max-width: 42rem;
   margin: 0 auto;
