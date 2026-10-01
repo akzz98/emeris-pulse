@@ -1,11 +1,25 @@
 import type { Request, Response } from "express";
 import { requireUser } from "../../http/authenticate.js";
-import { accessLogQuerySchema, redeemPassSchema, temporaryPassSchema } from "./accessPassSchemas.js";
-import { getOccupancy, getUtilisation, issueStandardPass, issueTemporaryPass, listAccessLog, redeemPass } from "./accessPassService.js";
+import { accessLogQuerySchema, passJtiParams, redeemPassSchema, temporaryPassSchema } from "./accessPassSchemas.js";
+import {
+  getMyPassStatus,
+  getOccupancy,
+  getUtilisation,
+  issueStandardPass,
+  issueTemporaryPass,
+  listAccessLog,
+  redeemPass,
+} from "./accessPassService.js";
 
 export async function issuePassHandler(req: Request, res: Response) {
   const user = requireUser(req);
   res.status(201).json(await issueStandardPass(user.id));
+}
+
+export async function passStatusHandler(req: Request, res: Response) {
+  const user = requireUser(req);
+  const params = passJtiParams.parse(res.locals.params);
+  res.status(200).json(await getMyPassStatus(user.id, params.jti));
 }
 
 export async function redeemPassHandler(req: Request, res: Response) {

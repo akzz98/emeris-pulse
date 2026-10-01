@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { AppShell, Button, ErrorState, LoadingState, StatusBadge, type AppNavItem, type StatusTone } from "@emeris/ui";
+import { AppShell, Button, ErrorState, LoadingState, StatusBadge, SuccessBanner, type AppNavItem, type StatusTone } from "@emeris/ui";
 import QRCode from "qrcode";
-import { getMembership, issueAccessPass, type AccessPass, type MembershipDetails } from "./api";
+import { getAccessPassStatus, getMembership, issueAccessPass, type AccessPass, type MembershipDetails } from "./api";
 import "./access.css";
 import type { MemberSession } from "./session";
 
@@ -12,6 +12,7 @@ type AccessScreenProps = {
 };
 
 const LIVE_THRESHOLDS = [30, 15, 10, 5];
+const STATUS_POLL_MS = 1500;
 
 function secondsLeft(expiresAt: string): number {
   return Math.max(0, Math.ceil((new Date(expiresAt).getTime() - Date.now()) / 1000));
@@ -53,6 +54,7 @@ export function AccessScreen({ session, nav, onSignOut }: AccessScreenProps) {
   const [image, setImage] = useState<string | null>(null);
   const [remaining, setRemaining] = useState(0);
   const [liveMessage, setLiveMessage] = useState("");
+  const [granted, setGranted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [membershipError, setMembershipError] = useState<string | null>(null);
@@ -63,6 +65,7 @@ export function AccessScreen({ session, nav, onSignOut }: AccessScreenProps) {
     setError(null);
     setPass(null);
     setImage(null);
+    setGranted(false);
     setLiveMessage("");
     announcedRef.current = new Set();
     try {
@@ -113,7 +116,7 @@ export function AccessScreen({ session, nav, onSignOut }: AccessScreenProps) {
   }, [session.accessToken]);
 
   useEffect(() => {
-    if (!pass) {
+    if (!pass || granted) {
       return;
     }
     const timer = window.setInterval(() => {
@@ -135,9 +138,48 @@ export function AccessScreen({ session, nav, onSignOut }: AccessScreenProps) {
       }
     }, 1000);
     return () => window.clearInterval(timer);
-  }, [pass]);
+  }, [pass, granted]);
 
-  const expired = pass !== null && remaining === 0;
+  // While the QR is live, ask whether the desk has already redeemed this pass.
+  useEffect(() => {
+    if (!pass || granted) {
+      return;
+    }
+    let cancelled = false;
+
+    async function checkUsed() {
+      try {
+        const status = await getAccessPassStatus(session.accessToken, pass!.jti);
+        if (cancelled || !status.used) {
+          return;
+        }
+        setGranted(true);
+        setImage(null);
+        setLiveMessage("Entry granted. You’re in.");
+      } catch (caught) {
+        if (cancelled) {
+          return;
+        }
+        const message = caught instanceof Error ? caught.message : "";
+        if (message === "UNAUTHENTICATED") {
+          onSignOut();
+        }
+        // Transient status errors leave the QR up; the next poll retries.
+      }
+    }
+
+    void checkUsed();
+    const timer = window.setInterval(() => {
+      void checkUsed();
+    }, STATUS_POLL_MS);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [pass, granted, session.accessToken, onSignOut]);
+
+  const expired = pass !== null && !granted && remaining === 0;
+  const showPass = Boolean(image && pass && !expired && !granted);
 
   return (
     <AppShell area="Member" nav={nav} onSignOut={onSignOut}>
@@ -156,27 +198,25 @@ export function AccessScreen({ session, nav, onSignOut }: AccessScreenProps) {
       {membershipError ? <ErrorState title="Could not load membership" message={membershipError} /> : null}
       {loading ? <LoadingState title="Issuing pass" message="Signing a short-lived access code." /> : null}
       {error ? <ErrorState title="Could not issue pass" message={error} /> : null}
-      {image && pass && !expired ? (
+      {granted ? (
+        <SuccessBanner title="You’re in" message="Entry granted. The desk accepted this pass." />
+      ) : null}
+      {showPass ? (
         <section className="access-pass" aria-labelledby="access-pass-heading">
           <h2 id="access-pass-heading" className="visually-hidden">
             Access pass
           </h2>
-          <img src={image} alt="Signed gym access pass" width={240} height={240} />
+          <img src={image!} alt="Signed gym access pass" width={240} height={240} />
           <p aria-hidden="true">Expires in {remaining} seconds.</p>
-          <p className="visually-hidden" role="status" aria-live="polite">
-            {liveMessage}
-          </p>
         </section>
       ) : null}
       {expired ? (
-        <>
-          <ErrorState title="Pass expired" message="This code is no longer valid. Issue a new one before you enter." />
-          <p className="visually-hidden" role="status" aria-live="polite">
-            {liveMessage}
-          </p>
-        </>
+        <ErrorState title="Pass expired" message="This code is no longer valid. Issue a new one before you enter." />
       ) : null}
-      {!loading && (error || expired) ? (
+      <p className="visually-hidden" role="status" aria-live="polite">
+        {liveMessage}
+      </p>
+      {!loading && (error || expired || granted) ? (
         <div className="access-actions">
           <Button onClick={() => void loadPass()}>New pass</Button>
         </div>

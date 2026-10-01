@@ -190,9 +190,17 @@ export async function updateProfile(
 
 export type AccessPass = {
   token: string;
+  jti: string;
   expiresAt: string;
   expiresIn: number;
   kind: "Standard";
+};
+
+export type AccessPassStatus = {
+  jti: string;
+  used: boolean;
+  usedAt: string | null;
+  expiresAt: string;
 };
 
 export async function issueAccessPass(accessToken: string): Promise<AccessPass> {
@@ -206,6 +214,20 @@ export async function issueAccessPass(accessToken: string): Promise<AccessPass> 
   }
   if (!response.ok) {
     throw new Error(body.error?.message ?? "Could not issue a pass.");
+  }
+  return body;
+}
+
+export async function getAccessPassStatus(accessToken: string, jti: string): Promise<AccessPassStatus> {
+  const response = await authorized(`${apiUrl}/access/passes/${encodeURIComponent(jti)}/status`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  const body = (await response.json()) as AccessPassStatus & { error?: { message?: string } };
+  if (response.status === 401) {
+    throw new Error("UNAUTHENTICATED");
+  }
+  if (!response.ok) {
+    throw new Error(body.error?.message ?? "Could not check pass status.");
   }
   return body;
 }
