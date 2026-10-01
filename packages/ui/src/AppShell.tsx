@@ -5,6 +5,8 @@ export type AppNavItem = {
   label: string;
   current: boolean;
   onSelect: () => void;
+  /** Optional count shown beside the label (for example unread notices). */
+  badge?: number;
 };
 
 type AppShellProps = {
@@ -33,7 +35,12 @@ export function AppShell({ area, nav, onSignOut, children }: AppShellProps) {
             {nav.map((item) => (
               <li key={item.label}>
                 <button type="button" aria-current={item.current ? "page" : undefined} onClick={item.onSelect}>
-                  {item.label}
+                  <span>{item.label}</span>
+                  {item.badge && item.badge > 0 ? (
+                    <span className="ep-nav-badge" aria-label={`${item.badge} new`}>
+                      {item.badge > 99 ? "99+" : item.badge}
+                    </span>
+                  ) : null}
                 </button>
               </li>
             ))}

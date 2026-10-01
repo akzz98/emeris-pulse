@@ -9,6 +9,13 @@
   color: var(--ep-muted, #4d5e66);
 }
 
+.home-cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0 0 1.25rem;
+}
+
 .workday-prompts {
   margin: 0 0 1.25rem;
 }
@@ -31,30 +38,32 @@
   background: var(--ep-white, #ffffff);
   border: 1px solid var(--ep-line, #d5e0e4);
   border-radius: 0.6rem;
-  padding: 0.9rem 1rem;
+  padding: 0;
 }
 
-.workday-prompts p {
+.workday-prompt {
+  appearance: none;
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
+  width: 100%;
   margin: 0;
-}
-
-.workday-prompts span {
-  color: var(--ep-muted, #4d5e66);
-}
-
-.visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
+  padding: 0.9rem 1rem;
   border: 0;
+  border-radius: 0.6rem;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.workday-prompt:hover {
+  background: var(--ep-surface, #f3f6f7);
+}
+
+.workday-prompt span {
+  color: var(--ep-muted, #4d5e66);
 }
 
 .streak-note {

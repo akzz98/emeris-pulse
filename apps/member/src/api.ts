@@ -358,6 +358,22 @@ export async function reportEquipmentFault(accessToken: string, description: str
   return readJson(response, "Could not report this fault.");
 }
 
+export async function reportEquipmentFaultByCode(
+  accessToken: string,
+  code: string,
+  description: string,
+): Promise<MaintenanceTicket> {
+  const response = await authorized(`${apiUrl}/equipment/fault`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ code, description }),
+  });
+  return readJson(response, "Could not report this fault.");
+}
+
 export async function endEquipmentSession(accessToken: string): Promise<{ ended: boolean }> {
   const response = await authorized(`${apiUrl}/equipment/sessions/current/end`, {
     method: "POST",

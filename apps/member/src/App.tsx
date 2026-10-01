@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { AccessScreen } from "./AccessScreen";
-import { BookScreen } from "./BookScreen";
+import { ClassesScreen } from "./ClassesScreen";
 import { EquipmentScreen } from "./EquipmentScreen";
 import { HomeScreen } from "./HomeScreen";
 import { LoginScreen } from "./LoginScreen";
@@ -8,8 +8,8 @@ import { MembershipScreen } from "./MembershipScreen";
 import { NotificationsScreen } from "./NotificationsScreen";
 import { ProfileScreen } from "./ProfileScreen";
 import { RegisterScreen } from "./RegisterScreen";
-import { TimetableScreen } from "./TimetableScreen";
 import { WellnessScreen } from "./WellnessScreen";
+import { getMyNotices } from "./api";
 import { memberNav, type MemberScreen } from "./navigation";
 import { clearSession, loadSession, saveSession, type MemberSession } from "./session";
 import { Splash } from "./Splash";
@@ -19,11 +19,34 @@ export function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [mode, setMode] = useState<"login" | "register">("login");
   const [screen, setScreen] = useState<MemberScreen>("home");
+  const [noticeCount, setNoticeCount] = useState(0);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setShowSplash(false), 900);
     return () => window.clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    if (!session) {
+      setNoticeCount(0);
+      return;
+    }
+    let active = true;
+    getMyNotices(session.accessToken)
+      .then((next) => {
+        if (active) {
+          setNoticeCount(next.notices.filter((item) => !item.read).length);
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setNoticeCount(0);
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [session, screen]);
 
   if (showSplash) {
     return <Splash />;
@@ -45,7 +68,7 @@ export function App() {
     setSession(null);
     setScreen("home");
   };
-  const nav = memberNav(screen, setScreen);
+  const nav = memberNav(screen, setScreen, { noticeCount });
 
   if (screen === "membership") {
     return <MembershipScreen session={session} nav={nav} onSignOut={onSignOut} />;
@@ -55,12 +78,8 @@ export function App() {
     return <AccessScreen session={session} nav={nav} onSignOut={onSignOut} />;
   }
 
-  if (screen === "timetable") {
-    return <TimetableScreen session={session} nav={nav} onSignOut={onSignOut} />;
-  }
-
-  if (screen === "book") {
-    return <BookScreen session={session} nav={nav} onSignOut={onSignOut} />;
+  if (screen === "classes") {
+    return <ClassesScreen session={session} nav={nav} onSignOut={onSignOut} />;
   }
 
   if (screen === "equipment") {
@@ -93,5 +112,5 @@ export function App() {
     );
   }
 
-  return <HomeScreen session={session} nav={nav} onSignOut={onSignOut} />;
+  return <HomeScreen session={session} nav={nav} onSignOut={onSignOut} onNavigate={setScreen} />;
 }

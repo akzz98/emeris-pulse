@@ -7,6 +7,7 @@ import {
   endSessionHandler,
   listEquipmentHandler,
   reportFaultHandler,
+  reportFloorFaultHandler,
   reportStudioFaultHandler,
   startSessionHandler,
   studioEquipmentHandler,
@@ -46,6 +47,12 @@ equipmentRouter.post(
   asyncHandler(reportStudioFaultHandler),
 );
 equipmentRouter.get("/equipment", authenticate, asyncHandler(listEquipmentHandler));
+equipmentRouter.post(
+  "/equipment/fault",
+  authenticate,
+  validateBody(studioFaultSchema),
+  asyncHandler(reportFloorFaultHandler),
+);
 equipmentRouter.get("/equipment/sessions/current", authenticate, asyncHandler(currentSessionHandler));
 equipmentRouter.post(
   "/equipment/sessions",

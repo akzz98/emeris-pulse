@@ -99,6 +99,19 @@ body {
   padding: 0.55rem 1.25rem;
 }
 
+/* Screen-reader-only text used by membership details and similar headings. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .ep-nav button {
   appearance: none;
   border: 0;
@@ -111,6 +124,30 @@ body {
   cursor: pointer;
   text-decoration: underline;
   text-underline-offset: 0.18em;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.ep-nav-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 0.3rem;
+  border-radius: 999px;
+  background: var(--ep-danger);
+  color: var(--ep-white);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+  text-decoration: none;
+}
+
+.ep-nav button[aria-current="page"] .ep-nav-badge {
+  background: var(--ep-white);
+  color: var(--ep-teal);
 }
 
 .ep-nav button:hover {
@@ -316,3 +353,45 @@ body {
 .ep-state-success h2 {
   color: var(--ep-success);
 }
+
+.ep-state-action {
+  margin-top: 0.85rem;
+}
+
+.ep-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1.2;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.3rem;
+  border: 1px solid transparent;
+}
+
+.ep-badge--neutral {
+  background: var(--ep-surface);
+  color: var(--ep-muted);
+  border-color: var(--ep-line);
+}
+
+.ep-badge--success {
+  background: var(--ep-success-bg);
+  color: var(--ep-success);
+}
+
+.ep-badge--warning {
+  background: #fff4e5;
+  color: #8a4b08;
+}
+
+.ep-badge--danger {
+  background: var(--ep-danger-bg);
+  color: var(--ep-danger);
+}
+
+.ep-badge--info {
+  background: #e7f3f7;
+  color: var(--ep-teal);
+}
+

@@ -1,10 +1,20 @@
-import { useEffect, useState } from "react";
-import { AppShell, Button, ConfirmDialog, EmptyState, ErrorState, LoadingState, type AppNavItem } from "@emeris/ui";
+import { useEffect, useMemo, useState } from "react";
+import {
+  AppShell,
+  Button,
+  ConfirmDialog,
+  EmptyState,
+  ErrorState,
+  LoadingState,
+  StatusBadge,
+  type AppNavItem,
+  type StatusTone,
+} from "@emeris/ui";
 import { bookClass, cancelBooking, getTimetable, type ClassSession } from "./api";
 import "./classes.css";
 import type { MemberSession } from "./session";
 
-type BookScreenProps = {
+type ClassesScreenProps = {
   session: MemberSession;
   nav: AppNavItem[];
   onSignOut: () => void;
@@ -24,13 +34,48 @@ function formatWhen(value: string): string {
   });
 }
 
-export function BookScreen({ session, nav, onSignOut }: BookScreenProps) {
+function dayKey(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function dayLabel(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+  return date.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
+}
+
+function classBadges(item: ClassSession): Array<{ label: string; tone: StatusTone }> {
+  const badges: Array<{ label: string; tone: StatusTone }> = [];
+  if (item.status === "Cancelled") {
+    badges.push({ label: "Cancelled", tone: "danger" });
+    return badges;
+  }
+  if (item.myStatus === "Booked") {
+    badges.push({ label: "Booked", tone: "success" });
+  } else if (item.myStatus === "Waitlisted") {
+    badges.push({ label: "Waitlisted", tone: "warning" });
+  } else if (item.seatsLeft === 0) {
+    badges.push({ label: "Full", tone: "neutral" });
+  } else {
+    badges.push({ label: `${item.seatsLeft} of ${item.capacity} seats left`, tone: "info" });
+  }
+  return badges;
+}
+
+export function ClassesScreen({ session, nav, onSignOut }: ClassesScreenProps) {
   const [classes, setClasses] = useState<ClassSession[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<number | null>(null);
   const [pendingCancel, setPendingCancel] = useState<ClassSession | null>(null);
+  const [dayFilter, setDayFilter] = useState<string>("all");
 
   useEffect(() => {
     let active = true;
@@ -62,6 +107,30 @@ export function BookScreen({ session, nav, onSignOut }: BookScreenProps) {
       active = false;
     };
   }, [session.accessToken, onSignOut]);
+
+  const dayOptions = useMemo(() => {
+    if (!classes) {
+      return [];
+    }
+    const seen = new Map<string, string>();
+    for (const item of classes) {
+      const key = dayKey(item.startsAt);
+      if (!seen.has(key)) {
+        seen.set(key, dayLabel(item.startsAt));
+      }
+    }
+    return [...seen.entries()].map(([key, label]) => ({ key, label }));
+  }, [classes]);
+
+  const visible = useMemo(() => {
+    if (!classes) {
+      return [];
+    }
+    if (dayFilter === "all") {
+      return classes;
+    }
+    return classes.filter((item) => dayKey(item.startsAt) === dayFilter);
+  }, [classes, dayFilter]);
 
   async function refresh(message: string) {
     const next = await getTimetable(session.accessToken);
@@ -119,8 +188,8 @@ export function BookScreen({ session, nav, onSignOut }: BookScreenProps) {
   return (
     <AppShell area="Member" nav={nav} onSignOut={onSignOut}>
       <header className="classes-heading">
-        <h1>Book a class</h1>
-        <p>A free seat is booked straight away. A full class puts you on the waitlist, and a cancellation gives that seat to the next person waiting.</p>
+        <h1>Classes</h1>
+        <p>Browse the timetable, book a free seat, or join the waitlist when a class is full.</p>
       </header>
       {loading ? <LoadingState title="Loading classes" message="Checking seats and your bookings." /> : null}
       {error ? <ErrorState title="Booking not changed" message={error} /> : null}
@@ -129,48 +198,72 @@ export function BookScreen({ session, nav, onSignOut }: BookScreenProps) {
           {notice}
         </p>
       ) : null}
+      {classes && classes.length > 0 ? (
+        <div className="class-day-filters" role="group" aria-label="Filter by day">
+          <button
+            type="button"
+            className={dayFilter === "all" ? "is-active" : undefined}
+            aria-pressed={dayFilter === "all"}
+            onClick={() => setDayFilter("all")}
+          >
+            All days
+          </button>
+          {dayOptions.map((day) => (
+            <button
+              key={day.key}
+              type="button"
+              className={dayFilter === day.key ? "is-active" : undefined}
+              aria-pressed={dayFilter === day.key}
+              onClick={() => setDayFilter(day.key)}
+            >
+              {day.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
       {classes && classes.length === 0 ? (
         <EmptyState title="No upcoming classes" message="There is nothing to book yet." />
       ) : null}
-      {classes && classes.length > 0 ? (
+      {classes && classes.length > 0 && visible.length === 0 ? (
+        <EmptyState title="No classes on this day" message="Pick another day, or show all days." />
+      ) : null}
+      {visible.length > 0 ? (
         <ul className="class-list">
-          {classes.map((item) => {
+          {visible.map((item) => {
             const held = item.myStatus === "Booked" || item.myStatus === "Waitlisted";
             const canBook = item.status === "Scheduled" && !held && item.seatsLeft > 0;
             const canWaitlist = item.status === "Scheduled" && !held && item.seatsLeft === 0;
             return (
               <li key={item.id}>
-                <h2>{item.title}</h2>
+                <div className="class-row-heading">
+                  <h2>{item.title}</h2>
+                  <div className="class-badges">
+                    {classBadges(item).map((badge) => (
+                      <StatusBadge key={badge.label} label={badge.label} tone={badge.tone} />
+                    ))}
+                  </div>
+                </div>
                 <p>{formatWhen(item.startsAt)}</p>
                 <p>
                   {item.location} · {item.instructorName}
                 </p>
-                <p className="class-place">
-                  {item.status === "Cancelled"
-                    ? "Cancelled"
-                    : item.myStatus === "Booked"
-                      ? "Your place is booked"
-                      : item.myStatus === "Waitlisted"
-                        ? "You are on the waitlist"
-                        : item.seatsLeft === 0
-                          ? "This class is full"
-                          : `${item.seatsLeft} of ${item.capacity} seats left`}
-                </p>
-                {held ? (
-                  <Button type="button" variant="danger" disabled={busyId === item.id} onClick={() => setPendingCancel(item)}>
-                    {busyId === item.id ? "Cancelling…" : "Cancel booking"}
-                  </Button>
-                ) : null}
-                {canBook ? (
-                  <Button type="button" disabled={busyId === item.id} onClick={() => void onBook(item.id)}>
-                    {busyId === item.id ? "Booking…" : "Book"}
-                  </Button>
-                ) : null}
-                {canWaitlist ? (
-                  <Button type="button" disabled={busyId === item.id} onClick={() => void onBook(item.id)}>
-                    {busyId === item.id ? "Joining…" : "Join waitlist"}
-                  </Button>
-                ) : null}
+                <div className="class-actions">
+                  {held ? (
+                    <Button type="button" variant="danger" disabled={busyId === item.id} onClick={() => setPendingCancel(item)}>
+                      {busyId === item.id ? "Cancelling…" : "Cancel booking"}
+                    </Button>
+                  ) : null}
+                  {canBook ? (
+                    <Button type="button" disabled={busyId === item.id} onClick={() => void onBook(item.id)}>
+                      {busyId === item.id ? "Booking…" : "Book"}
+                    </Button>
+                  ) : null}
+                  {canWaitlist ? (
+                    <Button type="button" disabled={busyId === item.id} onClick={() => void onBook(item.id)}>
+                      {busyId === item.id ? "Joining…" : "Join waitlist"}
+                    </Button>
+                  ) : null}
+                </div>
               </li>
             );
           })}

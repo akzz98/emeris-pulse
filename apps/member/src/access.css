@@ -9,6 +9,10 @@
   color: var(--ep-muted, #4d5e66);
 }
 
+.access-eligibility {
+  margin: 0 0 1rem;
+}
+
 .access-pass {
   background: var(--ep-white, #ffffff);
   border: 1px solid var(--ep-line, #d5e0e4);
@@ -34,16 +38,4 @@
 
 .access-actions {
   margin-top: 1rem;
-}
-
-.visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
 }

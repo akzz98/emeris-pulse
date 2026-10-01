@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { AppShell, Button, ErrorState, LoadingState, type AppNavItem } from "@emeris/ui";
+import { AppShell, Button, ErrorState, LoadingState, StatusBadge, type AppNavItem, type StatusTone } from "@emeris/ui";
 import QRCode from "qrcode";
-import { issueAccessPass, type AccessPass } from "./api";
+import { getMembership, issueAccessPass, type AccessPass, type MembershipDetails } from "./api";
 import "./access.css";
 import type { MemberSession } from "./session";
 
@@ -15,12 +15,37 @@ function secondsLeft(expiresAt: string): number {
   return Math.max(0, Math.ceil((new Date(expiresAt).getTime() - Date.now()) / 1000));
 }
 
+function eligibilityTone(status: MembershipDetails["status"], canEnter: boolean): StatusTone {
+  if (canEnter) {
+    return "success";
+  }
+  if (status === "Pending") {
+    return "warning";
+  }
+  return "danger";
+}
+
+function eligibilityLabel(membership: MembershipDetails): string {
+  if (membership.canEnter) {
+    return "Active — eligible to enter";
+  }
+  if (membership.status === "Pending") {
+    return "Pending — waiting for activation";
+  }
+  if (membership.status === "Frozen") {
+    return "Frozen — entry refused";
+  }
+  return "Expired — entry refused";
+}
+
 export function AccessScreen({ session, nav, onSignOut }: AccessScreenProps) {
+  const [membership, setMembership] = useState<MembershipDetails | null>(null);
   const [pass, setPass] = useState<AccessPass | null>(null);
   const [image, setImage] = useState<string | null>(null);
   const [remaining, setRemaining] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [membershipError, setMembershipError] = useState<string | null>(null);
 
   async function loadPass() {
     setLoading(true);
@@ -47,6 +72,25 @@ export function AccessScreen({ session, nav, onSignOut }: AccessScreenProps) {
   }
 
   useEffect(() => {
+    let active = true;
+    getMembership(session.accessToken)
+      .then((next) => {
+        if (active) {
+          setMembership(next);
+          setMembershipError(null);
+        }
+      })
+      .catch((caught: unknown) => {
+        if (!active) {
+          return;
+        }
+        const message = caught instanceof Error ? caught.message : "Could not load membership.";
+        if (message === "UNAUTHENTICATED") {
+          onSignOut();
+          return;
+        }
+        setMembershipError(message);
+      });
     void loadPass();
     // Issue once when the screen opens. A new pass is requested from the button.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -68,6 +112,15 @@ export function AccessScreen({ session, nav, onSignOut }: AccessScreenProps) {
         <h1>QR / cardless access</h1>
         <p>Show this pass at the gym entrance. Students and staff use the same pass.</p>
       </header>
+      {membership ? (
+        <p className="access-eligibility" role="status">
+          <StatusBadge
+            label={eligibilityLabel(membership)}
+            tone={eligibilityTone(membership.status, membership.canEnter)}
+          />
+        </p>
+      ) : null}
+      {membershipError ? <ErrorState title="Membership unavailable" message={membershipError} /> : null}
       {loading ? <LoadingState title="Issuing pass" message="Signing a short-lived access code." /> : null}
       {error ? <ErrorState title="Pass unavailable" message={error} /> : null}
       {image && pass && !expired ? (
