@@ -99,6 +99,19 @@ body {
   padding: 0.55rem 1.25rem;
 }
 
+/* Screen-reader-only text used by membership details and similar headings. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .ep-nav button {
   appearance: none;
   border: 0;
@@ -106,11 +119,37 @@ body {
   color: var(--ep-teal);
   font: inherit;
   font-weight: 650;
-  padding: 0.4rem 0.65rem;
+  padding: 0.55rem 0.75rem;
+  min-height: 2.75rem;
+  min-width: 2.75rem;
   border-radius: 0.4rem;
   cursor: pointer;
   text-decoration: underline;
   text-underline-offset: 0.18em;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.ep-nav-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 0.3rem;
+  border-radius: 999px;
+  background: var(--ep-danger);
+  color: var(--ep-white);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+  text-decoration: none;
+}
+
+.ep-nav button[aria-current="page"] .ep-nav-badge {
+  background: var(--ep-white);
+  color: var(--ep-teal);
 }
 
 .ep-nav button:hover {
@@ -132,27 +171,138 @@ body {
   margin-left: auto;
 }
 
+.ep-nav-more {
+  position: relative;
+}
+
+.ep-nav-more-trigger.is-active {
+  background: var(--ep-teal);
+  color: var(--ep-white);
+  text-decoration: none;
+}
+
+.ep-nav-more-trigger.is-active .ep-nav-badge {
+  background: var(--ep-white);
+  color: var(--ep-teal);
+}
+
+.ep-nav-more-menu {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 0.25rem);
+  left: 0;
+  min-width: 12rem;
+  max-width: min(18rem, calc(100vw - 1.5rem));
+  margin: 0;
+  padding: 0.35rem;
+  list-style: none;
+  background: var(--ep-white);
+  border: 1px solid var(--ep-line);
+  border-radius: 0.5rem;
+  box-shadow: 0 8px 20px rgb(20 32 38 / 12%);
+  display: grid;
+  gap: 0.15rem;
+}
+
+/* Keep later group menus on the phone when the bar wraps. */
+.ep-nav > ul > .ep-nav-more:nth-last-child(-n + 3) .ep-nav-more-menu {
+  left: auto;
+  right: 0;
+}
+
+.ep-nav-more-menu button {
+  width: 100%;
+  justify-content: space-between;
+  text-decoration: none;
+}
+
+.ep-nav-more-menu button[aria-current="page"] {
+  background: var(--ep-teal);
+  color: var(--ep-white);
+}
+
+@media (max-width: 40rem) {
+  .ep-nav ul {
+    padding: 0.45rem 0.75rem;
+  }
+
+  .ep-nav-more-menu {
+    position: static;
+    margin-top: 0.35rem;
+    max-width: none;
+    box-shadow: none;
+  }
+
+  .ep-nav > ul > .ep-nav-more:nth-last-child(-n + 3) .ep-nav-more-menu {
+    left: 0;
+    right: auto;
+  }
+}
+
 .ep-main {
   max-width: 42rem;
   margin: 0 auto;
   padding: 1.5rem 1.25rem 3rem;
 }
 
+/* Tables and reports need a wider column on the desk apps. Member and instructor stay phone-friendly. */
+.ep-app[data-area="Admin"] .ep-nav ul,
+.ep-app[data-area="Facility"] .ep-nav ul,
+.ep-app[data-area="Admin"] .ep-main,
+.ep-app[data-area="Facility"] .ep-main {
+  max-width: 64rem;
+}
+
 .ep-button {
   appearance: none;
-  border: 0;
+  border: 1px solid transparent;
   border-radius: 0.4rem;
-  background: var(--ep-teal);
-  color: var(--ep-white);
   font: inherit;
   font-weight: 650;
-  padding: 0.65rem 1rem;
+  padding: 0.7rem 1.05rem;
+  min-height: 2.75rem;
   cursor: pointer;
+}
+
+.ep-button--primary {
+  background: var(--ep-teal);
+  color: var(--ep-white);
   box-shadow: 0 1px 0 rgb(0 0 0 / 12%);
 }
 
-.ep-button:hover {
+.ep-button--primary:hover:not(:disabled) {
   background: var(--ep-teal-dark);
+}
+
+.ep-button--secondary {
+  background: var(--ep-white);
+  color: var(--ep-teal);
+  border-color: var(--ep-line);
+}
+
+.ep-button--secondary:hover:not(:disabled) {
+  background: var(--ep-surface);
+  border-color: var(--ep-teal);
+}
+
+.ep-button--danger {
+  background: var(--ep-danger);
+  color: var(--ep-white);
+  box-shadow: 0 1px 0 rgb(0 0 0 / 12%);
+}
+
+.ep-button--danger:hover:not(:disabled) {
+  background: #6f1627;
+}
+
+.ep-button--ghost {
+  background: transparent;
+  color: var(--ep-teal);
+  box-shadow: none;
+}
+
+.ep-button--ghost:hover:not(:disabled) {
+  background: rgb(0 69 89 / 8%);
 }
 
 .ep-button:focus-visible {
@@ -163,6 +313,45 @@ body {
 .ep-button:disabled {
   cursor: not-allowed;
   opacity: 0.55;
+}
+
+.ep-dialog {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  max-width: calc(100vw - 2rem);
+}
+
+.ep-dialog::backdrop {
+  background: rgb(20 32 38 / 45%);
+}
+
+.ep-dialog-panel {
+  width: min(24rem, calc(100vw - 2rem));
+  margin: auto;
+  background: var(--ep-white);
+  border: 1px solid var(--ep-line);
+  border-radius: 0.6rem;
+  padding: 1.25rem;
+  box-shadow: 0 0.75rem 2rem rgb(20 32 38 / 18%);
+}
+
+.ep-dialog-panel h2 {
+  margin: 0 0 0.5rem;
+  color: var(--ep-teal);
+  font-size: 1.25rem;
+}
+
+.ep-dialog-panel p {
+  margin: 0 0 1.25rem;
+  color: var(--ep-muted);
+}
+
+.ep-dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.6rem;
 }
 
 .ep-link {
@@ -192,7 +381,9 @@ body {
   font-weight: 650;
 }
 
-.ep-field input {
+.ep-field input,
+.ep-field textarea,
+.ep-field select {
   font: inherit;
   color: var(--ep-ink);
   background: var(--ep-white);
@@ -201,10 +392,60 @@ body {
   padding: 0.6rem 0.7rem;
 }
 
-.ep-field input:focus-visible {
+.ep-field textarea {
+  resize: vertical;
+  min-height: 6rem;
+}
+
+.ep-field input:focus-visible,
+.ep-field textarea:focus-visible,
+.ep-field select:focus-visible {
   outline: var(--ep-focus);
   outline-offset: 2px;
   border-color: var(--ep-teal);
+}
+
+.ep-field input[aria-invalid="true"],
+.ep-field textarea[aria-invalid="true"],
+.ep-field select[aria-invalid="true"] {
+  border-color: var(--ep-danger);
+}
+
+.ep-field-hint {
+  margin: 0;
+  color: var(--ep-muted);
+  font-size: 0.9rem;
+}
+
+.ep-field-error {
+  margin: 0;
+  color: var(--ep-danger);
+  font-size: 0.9rem;
+  font-weight: 650;
+}
+
+.ep-password-field {
+  margin-bottom: 0.35rem;
+}
+
+.ep-password-field .ep-field {
+  margin-bottom: 0.45rem;
+}
+
+.ep-show-password {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0 0 0.75rem;
+  color: var(--ep-muted);
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.ep-show-password input {
+  width: 1.05rem;
+  height: 1.05rem;
+  accent-color: var(--ep-teal);
 }
 
 .ep-state {
@@ -243,3 +484,45 @@ body {
 .ep-state-success h2 {
   color: var(--ep-success);
 }
+
+.ep-state-action {
+  margin-top: 0.85rem;
+}
+
+.ep-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1.2;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.3rem;
+  border: 1px solid transparent;
+}
+
+.ep-badge--neutral {
+  background: var(--ep-surface);
+  color: var(--ep-muted);
+  border-color: var(--ep-line);
+}
+
+.ep-badge--success {
+  background: var(--ep-success-bg);
+  color: var(--ep-success);
+}
+
+.ep-badge--warning {
+  background: #fff4e5;
+  color: #8a4b08;
+}
+
+.ep-badge--danger {
+  background: var(--ep-danger-bg);
+  color: var(--ep-danger);
+}
+
+.ep-badge--info {
+  background: #e7f3f7;
+  color: var(--ep-teal);
+}
+

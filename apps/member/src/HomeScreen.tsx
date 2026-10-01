@@ -1,13 +1,15 @@
-import { useEffect, useState } from "react";
-import { AppShell, ErrorState, LoadingState, type AppNavItem } from "@emeris/ui";
+import { useCallback, useEffect, useState } from "react";
+import { AppShell, Button, EmptyState, ErrorState, LoadingState, type AppNavItem } from "@emeris/ui";
 import { getActivitySummary, type ActivitySummary } from "./api";
 import "./home.css";
+import type { MemberScreen } from "./navigation";
 import type { MemberSession } from "./session";
 
 type HomeScreenProps = {
   session: MemberSession;
   nav: AppNavItem[];
   onSignOut: () => void;
+  onNavigate: (screen: MemberScreen) => void;
 };
 
 function formatWhen(iso: string): string {
@@ -18,41 +20,35 @@ function formatWhen(iso: string): string {
   return date.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 }
 
-export function HomeScreen({ session, nav, onSignOut }: HomeScreenProps) {
+export function HomeScreen({ session, nav, onSignOut, onNavigate }: HomeScreenProps) {
   const [summary, setSummary] = useState<ActivitySummary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    let active = true;
+  const load = useCallback(() => {
     setLoading(true);
     setError(null);
-    getActivitySummary(session.accessToken)
+    return getActivitySummary(session.accessToken)
       .then((next) => {
-        if (active) {
-          setSummary(next);
-        }
+        setSummary(next);
       })
       .catch((caught: unknown) => {
-        if (!active) {
-          return;
-        }
         const message = caught instanceof Error ? caught.message : "Could not load your activity.";
         if (message === "UNAUTHENTICATED") {
           onSignOut();
           return;
         }
         setError(message);
+        setSummary(null);
       })
       .finally(() => {
-        if (active) {
-          setLoading(false);
-        }
+        setLoading(false);
       });
-    return () => {
-      active = false;
-    };
   }, [session.accessToken, onSignOut]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   return (
     <AppShell area="Member" nav={nav} onSignOut={onSignOut}>
@@ -60,22 +56,46 @@ export function HomeScreen({ session, nav, onSignOut }: HomeScreenProps) {
         <h1>Hello, {session.user.firstName}</h1>
         <p>Your activity at Emeris Pulse.</p>
       </header>
+      <div className="home-cta-row" role="group" aria-label="Quick actions">
+        <Button type="button" onClick={() => onNavigate("access")}>
+          Show QR
+        </Button>
+        <Button type="button" variant="secondary" onClick={() => onNavigate("classes")}>
+          Browse classes
+        </Button>
+        <Button type="button" variant="secondary" onClick={() => onNavigate("equipment")}>
+          Use equipment
+        </Button>
+      </div>
       {loading ? <LoadingState title="Loading activity" message="Fetching your visits, classes, and challenges." /> : null}
-      {error ? <ErrorState title="Activity unavailable" message={error} /> : null}
+      {error ? (
+        <ErrorState
+          title="Could not load activity"
+          message={error}
+          action={
+            <Button type="button" onClick={() => void load()}>
+              Retry
+            </Button>
+          }
+        />
+      ) : null}
       {summary ? (
         <>
           {summary.prompts.length > 0 ? (
             <section className="workday-prompts" aria-labelledby="workday-prompts-heading">
               <h2 id="workday-prompts-heading">Workday prompts</h2>
               <ul>
-                {summary.prompts.map((prompt) => (
-                  <li key={`${prompt.kind}-${prompt.title}`}>
-                    <p>
-                      <strong>{prompt.title}</strong>
-                      <span>{prompt.message}</span>
-                    </p>
-                  </li>
-                ))}
+                {summary.prompts.map((prompt) => {
+                  const target: MemberScreen = prompt.kind === "challenge" ? "challenges" : "classes";
+                  return (
+                    <li key={`${prompt.kind}-${prompt.title}`}>
+                      <button type="button" className="workday-prompt" onClick={() => onNavigate(target)}>
+                        <strong>{prompt.title}</strong>
+                        <span>{prompt.message}</span>
+                      </button>
+                    </li>
+                  );
+                })}
               </ul>
             </section>
           ) : null}
@@ -112,7 +132,15 @@ export function HomeScreen({ session, nav, onSignOut }: HomeScreenProps) {
           <section className="activity-recent" aria-labelledby="recent-activity-heading">
             <h2 id="recent-activity-heading">Recent activity</h2>
             {summary.recent.length === 0 ? (
-              <p>No activity yet. Visits, classes, equipment, and challenges will show here.</p>
+              <EmptyState
+                title="No activity yet"
+                message="Visits, classes, equipment, and challenges will show here."
+                action={
+                  <Button type="button" onClick={() => onNavigate("classes")}>
+                    Browse classes
+                  </Button>
+                }
+              />
             ) : (
               <ul>
                 {summary.recent.map((item) => (

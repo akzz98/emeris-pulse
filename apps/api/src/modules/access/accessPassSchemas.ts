@@ -7,6 +7,8 @@ export const redeemPassSchema = z.object({
 export const accessLogQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   pageSize: z.coerce.number().int().min(1).max(50).default(10),
+  result: z.enum(["Granted", "Refused"]).optional(),
+  q: z.string().trim().max(120).optional(),
 });
 
 export const temporaryPassSchema = z.object({

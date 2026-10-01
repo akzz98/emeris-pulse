@@ -1,5 +1,5 @@
 import { FormEvent, useState } from "react";
-import { AppShell, Button, ErrorState, TextField } from "@emeris/ui";
+import { AppShell, Button, ErrorState, PasswordField, TextField } from "@emeris/ui";
 import { login } from "./api";
 import "./login.css";
 import type { AdminSession } from "./api";
@@ -34,7 +34,14 @@ export function LoginScreen({ onSignedIn }: LoginScreenProps) {
         <p className="form-note">Gym administrators, facility managers, and system administrators sign in here.</p>
         {error ? <ErrorState title="Could not sign in" message={error} /> : null}
         <TextField id="admin-email" label="Email" type="email" autoComplete="username" value={email} onChange={(event) => setEmail(event.target.value)} required />
-        <TextField id="admin-password" label="Password" type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} required />
+        <PasswordField
+          id="admin-password"
+          label="Password"
+          autoComplete="current-password"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          required
+        />
         <Button type="submit" disabled={busy}>
           {busy ? "Signing in…" : "Sign in"}
         </Button>

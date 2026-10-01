@@ -1,24 +1,55 @@
 import type { AppNavItem } from "@emeris/ui";
 
-export type MemberScreen = "home" | "membership" | "access" | "timetable" | "book" | "equipment" | "wellness" | "notices" | "profile";
+export type MemberScreen =
+  | "home"
+  | "membership"
+  | "access"
+  | "classes"
+  | "equipment"
+  | "challenges"
+  | "notices"
+  | "profile";
 
-// Labels match the Part 1 member screens that are built.
-const memberScreens: Array<{ id: MemberScreen; label: string }> = [
-  { id: "home", label: "Home" },
-  { id: "membership", label: "Membership" },
-  { id: "access", label: "QR / cardless access" },
-  { id: "timetable", label: "Class timetable" },
-  { id: "book", label: "Book a class" },
+const moreScreens: Array<{ id: MemberScreen; label: string }> = [
   { id: "equipment", label: "Equipment" },
-  { id: "wellness", label: "Wellness" },
+  { id: "challenges", label: "Challenges" },
   { id: "notices", label: "Notifications" },
+  { id: "membership", label: "Membership" },
   { id: "profile", label: "Profile" },
 ];
 
-export function memberNav(current: MemberScreen, onSelect: (screen: MemberScreen) => void): AppNavItem[] {
-  return memberScreens.map((screen) => ({
-    label: screen.label,
-    current: screen.id === current,
-    onSelect: () => onSelect(screen.id),
-  }));
+export function memberNav(
+  current: MemberScreen,
+  onSelect: (screen: MemberScreen) => void,
+  options?: { noticeCount?: number },
+): AppNavItem[] {
+  const moreCurrent = moreScreens.some((screen) => screen.id === current);
+  return [
+    {
+      label: "Home",
+      current: current === "home",
+      onSelect: () => onSelect("home"),
+    },
+    {
+      label: "Access",
+      current: current === "access",
+      onSelect: () => onSelect("access"),
+    },
+    {
+      label: "Classes",
+      current: current === "classes",
+      onSelect: () => onSelect("classes"),
+    },
+    {
+      label: "More",
+      current: moreCurrent,
+      onSelect: () => undefined,
+      children: moreScreens.map((screen) => ({
+        label: screen.label,
+        current: screen.id === current,
+        onSelect: () => onSelect(screen.id),
+        badge: screen.id === "notices" ? options?.noticeCount : undefined,
+      })),
+    },
+  ];
 }

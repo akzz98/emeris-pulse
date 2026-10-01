@@ -120,9 +120,19 @@ export type AccessLog = {
   }>;
 };
 
-export async function getAccessLog(accessToken: string, page: number): Promise<AccessLog> {
-  // Three rows per page so the desk can move through the log.
-  const response = await authorized(`${apiUrl}/access/events?page=${page}&pageSize=3`, {
+export async function getAccessLog(
+  accessToken: string,
+  page: number,
+  filters: { result?: "Granted" | "Refused"; q?: string } = {},
+): Promise<AccessLog> {
+  const params = new URLSearchParams({ page: String(page), pageSize: "15" });
+  if (filters.result) {
+    params.set("result", filters.result);
+  }
+  if (filters.q) {
+    params.set("q", filters.q);
+  }
+  const response = await authorized(`${apiUrl}/access/events?${params.toString()}`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   const body = (await response.json()) as AccessLog & { error?: { message?: string } };
@@ -301,7 +311,7 @@ export type DowntimeReport = {
 
 export async function getClassFill(accessToken: string, page: number): Promise<ClassFillReport> {
   // One class per page so a short timetable still has a next page.
-  const response = await authorized(`${apiUrl}/reports/class-fill?page=${page}&pageSize=1`, {
+  const response = await authorized(`${apiUrl}/reports/class-fill?page=${page}&pageSize=15`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return readAdmin(response, "Could not load the class fill report.");
@@ -326,14 +336,14 @@ export type WellnessReport = {
 };
 
 export async function getWellnessParticipation(accessToken: string, page: number): Promise<WellnessReport> {
-  const response = await authorized(`${apiUrl}/reports/wellness?page=${page}&pageSize=1`, {
+  const response = await authorized(`${apiUrl}/reports/wellness?page=${page}&pageSize=15`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return readAdmin(response, "Could not load the wellness report.");
 }
 
 export async function getEquipmentDowntime(accessToken: string, page: number): Promise<DowntimeReport> {
-  const response = await authorized(`${apiUrl}/reports/equipment-downtime?page=${page}&pageSize=1`, {
+  const response = await authorized(`${apiUrl}/reports/equipment-downtime?page=${page}&pageSize=15`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return readAdmin(response, "Could not load the downtime report.");
@@ -414,6 +424,27 @@ export async function createChallenge(accessToken: string, draft: ChallengeDraft
   return readAdmin(response, "Could not create this challenge.");
 }
 
+export async function updateChallenge(
+  accessToken: string,
+  challengeId: number,
+  draft: ChallengeDraft,
+): Promise<ManagedChallenge> {
+  const response = await authorized(`${apiUrl}/challenges/${challengeId}`, {
+    method: "PATCH",
+    headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+    body: JSON.stringify(draft),
+  });
+  return readAdmin(response, "Could not update this challenge.");
+}
+
+export async function endChallenge(accessToken: string, challengeId: number): Promise<ManagedChallenge> {
+  const response = await authorized(`${apiUrl}/challenges/${challengeId}/end`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return readAdmin(response, "Could not end this challenge.");
+}
+
 export async function getManagedClasses(
   accessToken: string,
 ): Promise<{ classes: ManagedClass[]; instructors: InstructorOption[] }> {
@@ -443,6 +474,18 @@ export async function updateClass(
     body: JSON.stringify(draft),
   });
   return readAdmin(response, "Could not update the class.");
+}
+
+export async function estimateBroadcast(
+  accessToken: string,
+  roles: string[],
+): Promise<{ estimated: number }> {
+  const response = await authorized(`${apiUrl}/notices/broadcast/estimate`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ roles }),
+  });
+  return readAdmin(response, "Could not estimate recipients.");
 }
 
 export async function broadcastNotice(

@@ -14,62 +14,43 @@ import { TemporaryPassScreen } from "./TemporaryPassScreen";
 import { TimetableScreen } from "./TimetableScreen";
 import { clearSession, loadSession, saveSession } from "./session";
 import type { AdminSession } from "./api";
-
-type AdminScreen =
-  | "dashboard"
-  | "scan"
-  | "logs"
-  | "members"
-  | "roles"
-  | "temporary"
-  | "timetable"
-  | "maintenance"
-  | "challenges"
-  | "broadcast"
-  | "reports";
+import type { AdminScreen } from "./screens";
+import { useAdminRoute } from "./useAdminRoute";
 
 function adminNav(current: AdminScreen, onSelect: (screen: AdminScreen) => void, role: string): AppNavItem[] {
-  const dashboard: AppNavItem = {
-    label: "Dashboard",
-    current: current === "dashboard",
-    onSelect: () => onSelect("dashboard"),
-  };
-  const reports: AppNavItem = {
-    label: "Reports",
-    current: current === "reports",
-    onSelect: () => onSelect("reports"),
-  };
-  const maintenance: AppNavItem = {
-    label: "Maintenance",
-    current: current === "maintenance",
-    onSelect: () => onSelect("maintenance"),
-  };
+  const link = (id: AdminScreen, label: string): AppNavItem => ({
+    label,
+    current: current === id,
+    onSelect: () => onSelect(id),
+  });
+  const group = (label: string, children: AppNavItem[]): AppNavItem => ({
+    label,
+    current: children.some((child) => child.current),
+    onSelect: () => undefined,
+    children,
+  });
+
   // The facility manager watches crowding, reports, and the ticket queue. Desk actions stay with the gym administrator.
   if (role === "FacilityManager") {
-    return [dashboard, reports, maintenance];
+    return [link("dashboard", "Dashboard"), link("reports", "Reports"), link("maintenance", "Maintenance")];
   }
+
   return [
-    dashboard,
-    reports,
-    { label: "Scan entry", current: current === "scan", onSelect: () => onSelect("scan") },
-    { label: "Access logs", current: current === "logs", onSelect: () => onSelect("logs") },
-    { label: "Members", current: current === "members", onSelect: () => onSelect("members") },
-    ...(role === "SystemAdmin"
-      ? [{ label: "Roles", current: current === "roles", onSelect: () => onSelect("roles") }]
-      : []),
-    { label: "Temporary pass", current: current === "temporary", onSelect: () => onSelect("temporary") },
-    { label: "Timetable", current: current === "timetable", onSelect: () => onSelect("timetable") },
-    { label: "Challenges", current: current === "challenges", onSelect: () => onSelect("challenges") },
-    { label: "Broadcast", current: current === "broadcast", onSelect: () => onSelect("broadcast") },
-    maintenance,
+    link("dashboard", "Dashboard"),
+    group("Desk", [link("scan", "Scan entry"), link("logs", "Access logs"), link("temporary", "Temporary pass")]),
+    group("People", [
+      link("members", "Members"),
+      ...(role === "SystemAdmin" ? [link("roles", "Roles")] : []),
+    ]),
+    group("Schedule", [link("timetable", "Timetable")]),
+    group("Facility", [link("maintenance", "Maintenance"), link("reports", "Reports")]),
+    group("Comms", [link("challenges", "Challenges"), link("broadcast", "Broadcast")]),
   ];
 }
 
 export function App() {
   const [session, setSession] = useState<AdminSession | null>(() => loadSession());
-  const [screen, setScreen] = useState<AdminScreen>(
-    () => (loadSession()?.user.role === "FacilityManager" ? "dashboard" : "logs"),
-  );
+  const { screen, goScreen, navigate } = useAdminRoute(session?.user.role ?? null);
 
   if (!session) {
     return (
@@ -77,7 +58,7 @@ export function App() {
         onSignedIn={(next) => {
           saveSession(next);
           setSession(next);
-          setScreen(next.user.role === "FacilityManager" ? "dashboard" : "logs");
+          navigate("dashboard", { replace: true });
         }}
       />
     );
@@ -86,11 +67,12 @@ export function App() {
   const onSignOut = () => {
     clearSession();
     setSession(null);
+    navigate("dashboard", { replace: true });
   };
-  const nav = adminNav(screen, setScreen, session.user.role);
+  const nav = adminNav(screen, goScreen, session.user.role);
 
   if (screen === "dashboard") {
-    return <DashboardScreen session={session} nav={nav} onSignOut={onSignOut} />;
+    return <DashboardScreen session={session} nav={nav} onSignOut={onSignOut} onNavigate={goScreen} />;
   }
 
   if (screen === "reports") {

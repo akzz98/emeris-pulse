@@ -111,4 +111,19 @@ export class NoticesRepository {
       throw error;
     }
   }
+
+  async countByRoles(roles: Role[]): Promise<number> {
+    const pool = await getPool();
+    const request = pool.request();
+    const placeholders = roles.map((role, index) => {
+      request.input(`role${index}`, sql.NVarChar(32), role);
+      return `@role${index}`;
+    });
+    const result = await request.query<{ Total: number }>(`
+      SELECT COUNT(*) AS Total
+      FROM dbo.Users
+      WHERE Role IN (${placeholders.join(", ")})
+    `);
+    return Number(result.recordset[0]?.Total ?? 0);
+  }
 }

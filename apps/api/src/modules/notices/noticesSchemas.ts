@@ -18,3 +18,9 @@ export const broadcastSchema = z.object({
 });
 
 export type BroadcastInput = z.infer<typeof broadcastSchema>;
+
+export const broadcastEstimateSchema = z.object({
+  roles: z.array(z.enum(ROLES)).min(1),
+});
+
+export type BroadcastEstimateInput = z.infer<typeof broadcastEstimateSchema>;

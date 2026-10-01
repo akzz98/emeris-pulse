@@ -8,6 +8,7 @@ import {
   listTicketQueue,
   closeTicket,
   reportFault,
+  reportFloorFault,
   reportUnsafeStudio,
   startSession,
   takeOutOfService,
@@ -33,6 +34,12 @@ export async function reportFaultHandler(req: Request, res: Response) {
   const user = requireUser(req);
   const body = faultSchema.parse(req.body);
   res.status(201).json(await reportFault(user.id, body.description));
+}
+
+export async function reportFloorFaultHandler(req: Request, res: Response) {
+  const user = requireUser(req);
+  const body = studioFaultSchema.parse(req.body);
+  res.status(201).json(await reportFloorFault(user.id, body.code, body.description));
 }
 
 export async function studioEquipmentHandler(_req: Request, res: Response) {

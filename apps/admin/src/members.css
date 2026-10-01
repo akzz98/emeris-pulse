@@ -9,9 +9,29 @@
   color: var(--ep-muted, #4d5e66);
 }
 
-.members-notice {
+.members-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
   margin: 0 0 1rem;
-  color: var(--ep-success, #0d6b4c);
+}
+
+.members-tabs button {
+  appearance: none;
+  border: 1px solid var(--ep-line, #d5e0e4);
+  background: var(--ep-white, #ffffff);
+  color: var(--ep-teal, #004559);
+  font: inherit;
+  font-weight: 650;
+  padding: 0.45rem 0.75rem;
+  border-radius: 0.4rem;
+  cursor: pointer;
+}
+
+.members-tabs button.is-active {
+  background: var(--ep-teal, #004559);
+  color: var(--ep-white, #ffffff);
+  border-color: var(--ep-teal, #004559);
 }
 
 .members-list {

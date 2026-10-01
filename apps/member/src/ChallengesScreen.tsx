@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import { AppShell, Button, EmptyState, ErrorState, LoadingState, type AppNavItem } from "@emeris/ui";
+import { AppShell, Button, EmptyState, ErrorState, LoadingState, SuccessBanner, type AppNavItem } from "@emeris/ui";
 import { getChallenges, joinChallenge, type CampusChallenge } from "./api";
-import "./wellness.css";
+import "./challenges.css";
 import type { MemberSession } from "./session";
 
-type WellnessScreenProps = {
+type ChallengesScreenProps = {
   session: MemberSession;
   nav: AppNavItem[];
   onSignOut: () => void;
@@ -18,10 +18,11 @@ function formatDay(value: string): string {
   return date.toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" });
 }
 
-export function WellnessScreen({ session, nav, onSignOut }: WellnessScreenProps) {
+export function ChallengesScreen({ session, nav, onSignOut }: ChallengesScreenProps) {
   const [challenges, setChallenges] = useState<CampusChallenge[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<{ title: string; message: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<number | null>(null);
 
@@ -36,7 +37,7 @@ export function WellnessScreen({ session, nav, onSignOut }: WellnessScreenProps)
     load()
       .then(() => {
         if (active) {
-          setError(null);
+          setLoadError(null);
         }
       })
       .catch((caught: unknown) => {
@@ -48,7 +49,7 @@ export function WellnessScreen({ session, nav, onSignOut }: WellnessScreenProps)
           onSignOut();
           return;
         }
-        setError(message);
+        setLoadError(message);
       })
       .finally(() => {
         if (active) {
@@ -63,19 +64,19 @@ export function WellnessScreen({ session, nav, onSignOut }: WellnessScreenProps)
 
   async function onJoin(challenge: CampusChallenge) {
     setBusyId(challenge.id);
-    setError(null);
-    setNotice(null);
+    setActionError(null);
+    setSuccess(null);
     try {
       const joined = await joinChallenge(session.accessToken, challenge.id);
       await load();
-      setNotice(`You have joined ${joined.title}.`);
+      setSuccess({ title: "Challenge joined", message: `You have joined ${joined.title}.` });
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : "Could not join this challenge.";
       if (message === "UNAUTHENTICATED") {
         onSignOut();
         return;
       }
-      setError(message);
+      setActionError(message);
     } finally {
       setBusyId(null);
     }
@@ -83,22 +84,19 @@ export function WellnessScreen({ session, nav, onSignOut }: WellnessScreenProps)
 
   return (
     <AppShell area="Member" nav={nav} onSignOut={onSignOut}>
-      <header className="wellness-heading">
-        <h1>Wellness</h1>
-        <p>Join a campus challenge while it is open. You can join each challenge once.</p>
+      <header className="challenges-heading">
+        <h1>Challenges</h1>
+        <p>Join an open campus challenge. You can join each challenge once while it is running.</p>
       </header>
       {loading ? <LoadingState title="Loading challenges" message="Checking what is open." /> : null}
-      {error ? <ErrorState title="Challenge not joined" message={error} /> : null}
-      {notice ? (
-        <p className="wellness-notice" role="status">
-          {notice}
-        </p>
-      ) : null}
+      {loadError ? <ErrorState title="Could not load challenges" message={loadError} /> : null}
+      {actionError ? <ErrorState title="Challenge not joined" message={actionError} /> : null}
+      {success ? <SuccessBanner title={success.title} message={success.message} /> : null}
       {challenges && challenges.length === 0 ? (
         <EmptyState title="No open challenges" message="There is nothing to join right now." />
       ) : null}
       {challenges && challenges.length > 0 ? (
-        <ul className="wellness-list">
+        <ul className="challenges-list">
           {challenges.map((challenge) => (
             <li key={challenge.id}>
               <h2>{challenge.title}</h2>

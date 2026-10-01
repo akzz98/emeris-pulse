@@ -81,6 +81,38 @@ export async function reportFault(userId: number, description: string) {
   };
 }
 
+// Members can report a floor machine by code without starting a session.
+export async function reportFloorFault(userId: number, code: string, description: string) {
+  await requireActiveMember(userId);
+  const pool = await getPool();
+  const transaction = new sql.Transaction(pool);
+  await transaction.begin();
+  try {
+    const machine = await equipment.lockByCode(transaction, code);
+    if (!machine) {
+      throw new HttpError(404, "EQUIPMENT_NOT_FOUND", "That machine code is not on the floor.");
+    }
+    const alreadyOpen = await equipment.lockOpenTicket(transaction, machine.id);
+    if (alreadyOpen) {
+      throw new HttpError(409, "TICKET_ALREADY_OPEN", "A ticket is already open for this machine.");
+    }
+    const status = MaintenanceTicket.report();
+    const ticket = await equipment.insertTicket(machine.id, userId, description, status, transaction);
+    await transaction.commit();
+    return {
+      id: ticket.id,
+      equipmentId: machine.id,
+      code: machine.code,
+      name: machine.name,
+      status,
+      description,
+    };
+  } catch (error) {
+    await transaction.rollback();
+    throw error;
+  }
+}
+
 // An instructor can flag studio kit without starting a member session. Floor machines stay on the member path.
 export async function listStudioEquipment() {
   return { equipment: await equipment.listInStudio() };

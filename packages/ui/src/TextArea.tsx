@@ -1,13 +1,13 @@
-import type { InputHTMLAttributes } from "react";
+import type { TextareaHTMLAttributes } from "react";
 
-type TextFieldProps = InputHTMLAttributes<HTMLInputElement> & {
+type TextAreaProps = TextareaHTMLAttributes<HTMLTextAreaElement> & {
   id: string;
   label: string;
   hint?: string;
   error?: string;
 };
 
-export function TextField({ id, label, hint, error, "aria-describedby": describedBy, ...props }: TextFieldProps) {
+export function TextArea({ id, label, hint, error, "aria-describedby": describedBy, ...props }: TextAreaProps) {
   const hintId = hint ? `${id}-hint` : undefined;
   const errorId = error ? `${id}-error` : undefined;
   const describedByIds = [describedBy, hintId, errorId].filter(Boolean).join(" ") || undefined;
@@ -15,7 +15,7 @@ export function TextField({ id, label, hint, error, "aria-describedby": describe
   return (
     <div className="ep-field">
       <label htmlFor={id}>{label}</label>
-      <input
+      <textarea
         id={id}
         {...props}
         aria-invalid={error ? true : props["aria-invalid"]}

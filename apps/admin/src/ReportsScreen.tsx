@@ -56,13 +56,13 @@ function ReportPager({
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
   return (
     <div className="report-pager">
-      <Button onClick={() => onPage(page - 1)} disabled={page <= 1}>
+      <Button variant="secondary" onClick={() => onPage(page - 1)} disabled={page <= 1}>
         Previous
       </Button>
       <p>
         Page {page} of {pageCount}
       </p>
-      <Button onClick={() => onPage(page + 1)} disabled={page >= pageCount}>
+      <Button variant="secondary" onClick={() => onPage(page + 1)} disabled={page >= pageCount}>
         Next
       </Button>
     </div>
@@ -202,7 +202,7 @@ export function ReportsScreen({ session, nav, onSignOut }: ReportsScreenProps) {
         <h2 id="fill-heading">Class fill rate</h2>
         <p>A held seat counts. A waitlisted member does not.</p>
         {fillLoading ? <LoadingState title="Loading class fill" message="Checking held seats." /> : null}
-        {!fillLoading && fillError ? <ErrorState title="Fill rate unavailable" message={fillError} /> : null}
+        {!fillLoading && fillError ? <ErrorState title="Could not load fill rates" message={fillError} /> : null}
         {!fillLoading && fill && fill.total === 0 ? (
           <EmptyState title="No classes" message="Scheduled classes appear here once they are published." />
         ) : null}
@@ -232,7 +232,7 @@ export function ReportsScreen({ session, nav, onSignOut }: ReportsScreenProps) {
         <h2 id="downtime-heading">Equipment downtime</h2>
         <p>Time out of service is counted from the earliest ticket that is still open.</p>
         {downtimeLoading ? <LoadingState title="Loading downtime" message="Checking machines that are out of service." /> : null}
-        {!downtimeLoading && downtimeError ? <ErrorState title="Downtime unavailable" message={downtimeError} /> : null}
+        {!downtimeLoading && downtimeError ? <ErrorState title="Could not load downtime" message={downtimeError} /> : null}
         {!downtimeLoading && downtime && downtime.total === 0 ? (
           <EmptyState title="No equipment" message="Machines appear here once they are registered." />
         ) : null}
@@ -272,7 +272,7 @@ export function ReportsScreen({ session, nav, onSignOut }: ReportsScreenProps) {
         <h2 id="wellness-heading">Wellness participation</h2>
         <p>Each person is counted on every challenge they joined.</p>
         {wellnessLoading ? <LoadingState title="Loading wellness" message="Checking who joined a challenge." /> : null}
-        {!wellnessLoading && wellnessError ? <ErrorState title="Wellness report unavailable" message={wellnessError} /> : null}
+        {!wellnessLoading && wellnessError ? <ErrorState title="Could not load wellness report" message={wellnessError} /> : null}
         {!wellnessLoading && wellness && wellness.total === 0 ? (
           <EmptyState title="No challenges" message="Campus challenges appear here once they are published." />
         ) : null}

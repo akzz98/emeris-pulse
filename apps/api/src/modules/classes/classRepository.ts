@@ -371,6 +371,7 @@ export class ClassRepository {
       Location: string;
       Capacity: number;
       BookedCount: number;
+      WaitlistedCount: number;
     }>(`
       SELECT
         cs.Id,
@@ -382,23 +383,35 @@ export class ClassRepository {
         (
           SELECT COUNT(*)
           FROM dbo.Bookings b
-          WHERE b.ClassSessionId = cs.Id AND b.Status IN (N'Booked', N'Waitlisted')
-        ) AS BookedCount
+          WHERE b.ClassSessionId = cs.Id AND b.Status = N'Booked'
+        ) AS BookedCount,
+        (
+          SELECT COUNT(*)
+          FROM dbo.Bookings w
+          WHERE w.ClassSessionId = cs.Id AND w.Status = N'Waitlisted'
+        ) AS WaitlistedCount
       FROM dbo.ClassSessions cs
       WHERE cs.InstructorUserId = @instructorId
         AND cs.Status = N'Scheduled'
         AND cs.EndsAt > CAST(GETDATE() AS DATETIME2)
       ORDER BY cs.StartsAt, cs.Id
     `);
-    return result.recordset.map((row) => ({
-      id: row.Id,
-      title: row.Title,
-      startsAt: row.StartsAt,
-      endsAt: row.EndsAt,
-      location: row.Location,
-      capacity: Number(row.Capacity),
-      placesHeld: Number(row.BookedCount),
-    }));
+    return result.recordset.map((row) => {
+      const bookedCount = Number(row.BookedCount);
+      const waitlistedCount = Number(row.WaitlistedCount);
+      return {
+        id: row.Id,
+        title: row.Title,
+        startsAt: row.StartsAt,
+        endsAt: row.EndsAt,
+        location: row.Location,
+        capacity: Number(row.Capacity),
+        bookedCount,
+        waitlistedCount,
+        // Booked and waitlisted both get a cancel notice.
+        placesHeld: bookedCount + waitlistedCount,
+      };
+    });
   }
 
   async bookedUserIds(transaction: sql.Transaction, classId: number): Promise<number[]> {

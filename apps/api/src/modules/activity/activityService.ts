@@ -6,7 +6,7 @@ const activity = new ActivityRepository();
 const memberships = new MembershipRepository();
 
 export type WorkdayPrompt = {
-  kind: "class" | "wellness";
+  kind: "class" | "challenge";
   title: string;
   message: string;
 };
@@ -51,7 +51,7 @@ async function workdayPrompts(userId: number, visits: number): Promise<WorkdayPr
   const challenge = challenges[0];
   if (challenge) {
     prompts.push({
-      kind: "wellness",
+      kind: "challenge",
       title: challenge.title,
       message: challenge.joined
         ? `You have joined. Gym visits so far: ${visits}. A visit during the workday keeps this challenge moving.`

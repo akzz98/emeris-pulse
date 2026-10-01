@@ -9,14 +9,39 @@
   color: var(--ep-muted, #4d5e66);
 }
 
-.equipment-notice {
-  margin: 0 0 1rem;
-  color: var(--ep-success, #0d6b4c);
+.equipment-form,
+.equipment-open,
+.equipment-report-free {
+  margin-bottom: 1.25rem;
 }
 
-.equipment-form,
 .equipment-open {
-  margin-bottom: 1.25rem;
+  background: var(--ep-white, #ffffff);
+  border: 2px solid var(--ep-teal, #004559);
+  border-radius: 0.6rem;
+  padding: 1rem 1.1rem;
+}
+
+.equipment-open-actions {
+  margin: 0.75rem 0 0;
+}
+
+.equipment-report-free {
+  background: var(--ep-white, #ffffff);
+  border: 1px solid var(--ep-line, #d5e0e4);
+  border-radius: 0.6rem;
+  padding: 1rem 1.1rem;
+}
+
+.equipment-report-free h2 {
+  margin: 0 0 0.35rem;
+  color: var(--ep-teal, #004559);
+  font-size: 1.1rem;
+}
+
+.equipment-report-free > p {
+  margin: 0 0 0.85rem;
+  color: var(--ep-muted, #4d5e66);
 }
 
 .equipment-fault {

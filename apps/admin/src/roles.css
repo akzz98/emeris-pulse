@@ -9,9 +9,8 @@
   color: var(--ep-muted, #4d5e66);
 }
 
-.roles-notice {
-  margin: 0 0 1rem;
-  color: var(--ep-success, #0d6b4c);
+.roles-toolbar {
+  margin-bottom: 1rem;
 }
 
 .roles-list {
@@ -37,21 +36,4 @@
 
 .roles-list p {
   margin: 0.2rem 0 0;
-}
-
-.roles-list label {
-  display: block;
-  margin: 0.75rem 0 0.35rem;
-  font-weight: 600;
-}
-
-.roles-list select {
-  display: block;
-  width: min(100%, 18rem);
-  margin-bottom: 0.75rem;
-  padding: 0.45rem 0.6rem;
-  border: 1px solid var(--ep-line, #d5e0e4);
-  border-radius: 0.4rem;
-  background: var(--ep-white, #ffffff);
-  color: var(--ep-ink, #1c2b31);
 }

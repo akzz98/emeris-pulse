@@ -1,5 +1,5 @@
 import { FormEvent, useState } from "react";
-import { AppShell, Button, ErrorState, TextField, type AppNavItem } from "@emeris/ui";
+import { AppShell, Button, ErrorState, SuccessBanner, TextField, type AppNavItem } from "@emeris/ui";
 import QRCode from "qrcode";
 import { issueTemporaryPass, type TemporaryPass } from "./api";
 import "./temporary.css";
@@ -50,7 +50,7 @@ export function TemporaryPassScreen({ session, nav, onSignOut }: TemporaryPassSc
         <p className="temporary-note">
           Issue a single-use pass when a member’s phone is lost. The membership must still be active.
         </p>
-        {error ? <ErrorState title="Pass not issued" message={error} /> : null}
+        {error ? <ErrorState title="Could not issue pass" message={error} /> : null}
         <TextField
           id="member-email"
           label="Member email"
@@ -66,6 +66,10 @@ export function TemporaryPassScreen({ session, nav, onSignOut }: TemporaryPassSc
       </form>
       {pass && image ? (
         <section className="temporary-pass" aria-labelledby="temporary-pass-heading">
+          <SuccessBanner
+            title="Temporary pass issued"
+            message={`Pass for ${pass.member.firstName} ${pass.member.lastName}. Valid for ${minutes} minutes and one entry.`}
+          />
           <h2 id="temporary-pass-heading">
             Pass for {pass.member.firstName} {pass.member.lastName}
           </h2>

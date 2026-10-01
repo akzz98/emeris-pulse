@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { AccessScreen } from "./AccessScreen";
-import { BookScreen } from "./BookScreen";
+import { ClassesScreen } from "./ClassesScreen";
 import { EquipmentScreen } from "./EquipmentScreen";
 import { HomeScreen } from "./HomeScreen";
 import { LoginScreen } from "./LoginScreen";
@@ -8,22 +8,50 @@ import { MembershipScreen } from "./MembershipScreen";
 import { NotificationsScreen } from "./NotificationsScreen";
 import { ProfileScreen } from "./ProfileScreen";
 import { RegisterScreen } from "./RegisterScreen";
-import { TimetableScreen } from "./TimetableScreen";
-import { WellnessScreen } from "./WellnessScreen";
-import { memberNav, type MemberScreen } from "./navigation";
+import { ChallengesScreen } from "./ChallengesScreen";
+import { getMyNotices } from "./api";
+import { memberNav } from "./navigation";
+import { parseMemberRoute, useMemberRoute } from "./routing";
 import { clearSession, loadSession, saveSession, type MemberSession } from "./session";
 import { Splash } from "./Splash";
 
 export function App() {
   const [session, setSession] = useState<MemberSession | null>(() => loadSession());
-  const [showSplash, setShowSplash] = useState(true);
-  const [mode, setMode] = useState<"login" | "register">("login");
-  const [screen, setScreen] = useState<MemberScreen>("home");
+  // Returning members skip the brand splash and land on Home.
+  const [showSplash, setShowSplash] = useState(() => loadSession() === null);
+  const { route, navigate, goScreen, goAuth } = useMemberRoute(session !== null);
+  const [noticeCount, setNoticeCount] = useState(0);
+  const screen = route.area === "app" ? route.screen : "home";
 
   useEffect(() => {
+    if (!showSplash) {
+      return;
+    }
     const timer = window.setTimeout(() => setShowSplash(false), 900);
     return () => window.clearTimeout(timer);
-  }, []);
+  }, [showSplash]);
+
+  useEffect(() => {
+    if (!session) {
+      setNoticeCount(0);
+      return;
+    }
+    let active = true;
+    getMyNotices(session.accessToken)
+      .then((next) => {
+        if (active) {
+          setNoticeCount(next.notices.filter((item) => !item.read).length);
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setNoticeCount(0);
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [session, screen]);
 
   if (showSplash) {
     return <Splash />;
@@ -33,19 +61,24 @@ export function App() {
     const onSignedIn = (next: MemberSession) => {
       saveSession(next);
       setSession(next);
+      const pending = parseMemberRoute(window.location.pathname);
+      navigate(
+        pending.area === "app" ? pending : { area: "app", screen: "home" },
+        { replace: true },
+      );
     };
-    if (mode === "register") {
-      return <RegisterScreen onSignedIn={onSignedIn} onSignIn={() => setMode("login")} />;
+    if (route.area === "auth" && route.mode === "register") {
+      return <RegisterScreen onSignedIn={onSignedIn} onSignIn={() => goAuth("login")} />;
     }
-    return <LoginScreen onSignedIn={onSignedIn} onCreateAccount={() => setMode("register")} />;
+    return <LoginScreen onSignedIn={onSignedIn} onCreateAccount={() => goAuth("register")} />;
   }
 
   const onSignOut = () => {
     clearSession();
     setSession(null);
-    setScreen("home");
+    navigate({ area: "auth", mode: "login" }, { replace: true });
   };
-  const nav = memberNav(screen, setScreen);
+  const nav = memberNav(screen, goScreen, { noticeCount });
 
   if (screen === "membership") {
     return <MembershipScreen session={session} nav={nav} onSignOut={onSignOut} />;
@@ -55,20 +88,16 @@ export function App() {
     return <AccessScreen session={session} nav={nav} onSignOut={onSignOut} />;
   }
 
-  if (screen === "timetable") {
-    return <TimetableScreen session={session} nav={nav} onSignOut={onSignOut} />;
-  }
-
-  if (screen === "book") {
-    return <BookScreen session={session} nav={nav} onSignOut={onSignOut} />;
+  if (screen === "classes") {
+    return <ClassesScreen session={session} nav={nav} onSignOut={onSignOut} />;
   }
 
   if (screen === "equipment") {
     return <EquipmentScreen session={session} nav={nav} onSignOut={onSignOut} />;
   }
 
-  if (screen === "wellness") {
-    return <WellnessScreen session={session} nav={nav} onSignOut={onSignOut} />;
+  if (screen === "challenges") {
+    return <ChallengesScreen session={session} nav={nav} onSignOut={onSignOut} />;
   }
 
   if (screen === "notices") {
@@ -93,5 +122,5 @@ export function App() {
     );
   }
 
-  return <HomeScreen session={session} nav={nav} onSignOut={onSignOut} />;
+  return <HomeScreen session={session} nav={nav} onSignOut={onSignOut} onNavigate={goScreen} />;
 }

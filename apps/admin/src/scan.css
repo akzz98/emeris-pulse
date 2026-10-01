@@ -1,30 +1,56 @@
-.scan-form h1 {
+.scan-page {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.scan-heading h1,
+.scan-form h2,
+.scan-camera h2 {
   margin: 0 0 0.25rem;
   color: var(--ep-teal, #004559);
+}
+
+.scan-heading h1 {
   font-size: 1.5rem;
 }
 
-.scan-note {
+.scan-camera h2,
+.scan-form h2 {
+  font-size: 1.15rem;
+}
+
+.scan-note,
+.scan-camera p {
   margin: 0 0 1rem;
   color: var(--ep-muted, #4d5e66);
 }
 
-.scan-form .ep-state {
-  margin-bottom: 1rem;
+.scan-page .ep-state {
+  margin-bottom: 0;
 }
 
-.scan-form textarea {
-  font: inherit;
-  color: var(--ep-ink, #142026);
-  background: var(--ep-white, #ffffff);
+.scan-camera,
+.scan-form {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.scan-reader {
+  width: min(100%, 22rem);
+  min-height: 12rem;
+  overflow: hidden;
   border: 1px solid var(--ep-line, #d5e0e4);
-  border-radius: 0.4rem;
-  padding: 0.6rem 0.7rem;
-  resize: vertical;
+  border-radius: 0.6rem;
+  background: #0f1a1d;
 }
 
-.scan-form textarea:focus-visible {
-  outline: var(--ep-focus, 2px solid #0b6e8a);
-  outline-offset: 2px;
-  border-color: var(--ep-teal, #004559);
+.scan-reader video,
+.scan-reader canvas {
+  max-width: 100%;
+}
+
+.scan-camera-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }

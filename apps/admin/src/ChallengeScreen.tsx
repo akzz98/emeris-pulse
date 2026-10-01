@@ -1,6 +1,24 @@
 import { FormEvent, useEffect, useState } from "react";
-import { AppShell, Button, EmptyState, ErrorState, LoadingState, TextField, type AppNavItem } from "@emeris/ui";
-import { createChallenge, getManagedChallenges, type AdminSession, type ChallengeDraft, type ManagedChallenge } from "./api";
+import {
+  AppShell,
+  Button,
+  ConfirmDialog,
+  EmptyState,
+  ErrorState,
+  LoadingState,
+  SuccessBanner,
+  TextField,
+  type AppNavItem,
+} from "@emeris/ui";
+import {
+  createChallenge,
+  endChallenge,
+  getManagedChallenges,
+  updateChallenge,
+  type AdminSession,
+  type ChallengeDraft,
+  type ManagedChallenge,
+} from "./api";
 import "./challenges.css";
 
 type ChallengeScreenProps = {
@@ -27,8 +45,11 @@ function formatDay(value: string): string {
 export function ChallengeScreen({ session, nav, onSignOut }: ChallengeScreenProps) {
   const [challenges, setChallenges] = useState<ManagedChallenge[] | null>(null);
   const [draft, setDraft] = useState<ChallengeDraft>(emptyDraft);
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [pendingEnd, setPendingEnd] = useState<ManagedChallenge | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<{ title: string; message: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
 
@@ -43,7 +64,7 @@ export function ChallengeScreen({ session, nav, onSignOut }: ChallengeScreenProp
     load()
       .then(() => {
         if (active) {
-          setError(null);
+          setLoadError(null);
         }
       })
       .catch((caught: unknown) => {
@@ -55,7 +76,7 @@ export function ChallengeScreen({ session, nav, onSignOut }: ChallengeScreenProp
           onSignOut();
           return;
         }
-        setError(message);
+        setLoadError(message);
       })
       .finally(() => {
         if (active) {
@@ -71,20 +92,67 @@ export function ChallengeScreen({ session, nav, onSignOut }: ChallengeScreenProp
   async function onCreate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
-    setError(null);
-    setNotice(null);
+    setActionError(null);
+    setSuccess(null);
     try {
       const created = await createChallenge(session.accessToken, draft);
       setDraft(emptyDraft);
       await load();
-      setNotice(`${created.title} was created.`);
+      setSuccess({ title: "Challenge created", message: `${created.title} was created.` });
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : "Could not create this challenge.";
       if (message === "UNAUTHENTICATED") {
         onSignOut();
         return;
       }
-      setError(message);
+      setActionError(message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onSave(item: ManagedChallenge, next: ChallengeDraft) {
+    setBusy(true);
+    setActionError(null);
+    setSuccess(null);
+    try {
+      const updated = await updateChallenge(session.accessToken, item.id, next);
+      setEditingId(null);
+      await load();
+      setSuccess({ title: "Challenge updated", message: `${updated.title} was saved.` });
+    } catch (caught) {
+      const message = caught instanceof Error ? caught.message : "Could not update this challenge.";
+      if (message === "UNAUTHENTICATED") {
+        onSignOut();
+        return;
+      }
+      setActionError(message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onConfirmEnd() {
+    if (!pendingEnd) {
+      return;
+    }
+    const item = pendingEnd;
+    setBusy(true);
+    setActionError(null);
+    setSuccess(null);
+    try {
+      const ended = await endChallenge(session.accessToken, item.id);
+      setPendingEnd(null);
+      setEditingId(null);
+      await load();
+      setSuccess({ title: "Challenge ended", message: `${ended.title} is no longer open to join.` });
+    } catch (caught) {
+      const message = caught instanceof Error ? caught.message : "Could not end this challenge.";
+      if (message === "UNAUTHENTICATED") {
+        onSignOut();
+        return;
+      }
+      setActionError(message);
     } finally {
       setBusy(false);
     }
@@ -94,15 +162,13 @@ export function ChallengeScreen({ session, nav, onSignOut }: ChallengeScreenProp
     <AppShell area="Admin" nav={nav} onSignOut={onSignOut}>
       <header className="challenges-heading">
         <h1>Challenges</h1>
-        <p>Publish a campus challenge. Members can join it on the days it runs.</p>
+        <p>Publish a campus challenge, change its dates, or end it so members can no longer join.</p>
       </header>
-      {error ? <ErrorState title="Challenge not created" message={error} /> : null}
-      {notice ? (
-        <p className="challenges-notice" role="status">
-          {notice}
-        </p>
-      ) : null}
+      {loadError ? <ErrorState title="Could not load challenges" message={loadError} /> : null}
+      {actionError ? <ErrorState title="Challenge not saved" message={actionError} /> : null}
+      {success ? <SuccessBanner title={success.title} message={success.message} /> : null}
       <form className="challenges-form" onSubmit={(event) => void onCreate(event)}>
+        <h2>Create a challenge</h2>
         <TextField
           id="challenge-title"
           label="Title"
@@ -147,18 +213,113 @@ export function ChallengeScreen({ session, nav, onSignOut }: ChallengeScreenProp
         <ul className="challenges-list">
           {challenges.map((challenge) => (
             <li key={challenge.id}>
-              <h2>{challenge.title}</h2>
-              <p>{challenge.description}</p>
-              <p>
-                {formatDay(challenge.startsOn)} to {formatDay(challenge.endsOn)}
-              </p>
-              <p>
-                {challenge.phase} · {challenge.joinedCount === 1 ? "1 member" : `${challenge.joinedCount} members`}
-              </p>
+              <div className="challenges-row">
+                <div>
+                  <h2>{challenge.title}</h2>
+                  <p>{challenge.description}</p>
+                  <p>
+                    {formatDay(challenge.startsOn)} to {formatDay(challenge.endsOn)}
+                  </p>
+                  <p>
+                    {challenge.phase} ·{" "}
+                    {challenge.joinedCount === 1 ? "1 member" : `${challenge.joinedCount} members`}
+                  </p>
+                </div>
+                <div className="challenges-actions">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    disabled={busy}
+                    onClick={() => setEditingId((current) => (current === challenge.id ? null : challenge.id))}
+                  >
+                    {editingId === challenge.id ? "Close" : "Edit"}
+                  </Button>
+                  {challenge.phase !== "Ended" ? (
+                    <Button type="button" variant="danger" disabled={busy} onClick={() => setPendingEnd(challenge)}>
+                      End
+                    </Button>
+                  ) : null}
+                </div>
+              </div>
+              {editingId === challenge.id ? (
+                <ChallengeEditor item={challenge} disabled={busy} onSave={onSave} />
+              ) : null}
             </li>
           ))}
         </ul>
       ) : null}
+      <ConfirmDialog
+        open={pendingEnd !== null}
+        title="End this challenge?"
+        message={
+          pendingEnd
+            ? `${pendingEnd.title} will close immediately. Members will no longer be able to join.`
+            : ""
+        }
+        confirmLabel="End challenge"
+        cancelLabel="Keep open"
+        confirmVariant="danger"
+        busy={busy}
+        onCancel={() => setPendingEnd(null)}
+        onConfirm={() => void onConfirmEnd()}
+      />
     </AppShell>
+  );
+}
+
+function ChallengeEditor({
+  item,
+  disabled,
+  onSave,
+}: {
+  item: ManagedChallenge;
+  disabled: boolean;
+  onSave: (item: ManagedChallenge, draft: ChallengeDraft) => void;
+}) {
+  const [draft, setDraft] = useState<ChallengeDraft>({
+    title: item.title,
+    description: item.description,
+    startsOn: item.startsOn,
+    endsOn: item.endsOn,
+  });
+
+  return (
+    <div className="challenges-editor">
+      <TextField
+        id={`title-${item.id}`}
+        label="Title"
+        value={draft.title}
+        onChange={(event) => setDraft({ ...draft, title: event.target.value })}
+        maxLength={120}
+        required
+      />
+      <TextField
+        id={`description-${item.id}`}
+        label="Description"
+        value={draft.description}
+        onChange={(event) => setDraft({ ...draft, description: event.target.value })}
+        maxLength={400}
+        required
+      />
+      <TextField
+        id={`starts-${item.id}`}
+        label="Starts"
+        type="date"
+        value={draft.startsOn}
+        onChange={(event) => setDraft({ ...draft, startsOn: event.target.value })}
+        required
+      />
+      <TextField
+        id={`ends-${item.id}`}
+        label="Ends"
+        type="date"
+        value={draft.endsOn}
+        onChange={(event) => setDraft({ ...draft, endsOn: event.target.value })}
+        required
+      />
+      <Button type="button" disabled={disabled} onClick={() => onSave(item, draft)}>
+        Save changes
+      </Button>
+    </div>
   );
 }

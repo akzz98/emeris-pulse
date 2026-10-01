@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
-import { AppShell, Button, EmptyState, ErrorState, LoadingState, TextField, type AppNavItem } from "@emeris/ui";
+import { AppShell, Button, EmptyState, ErrorState, LoadingState, SuccessBanner, TextField, type AppNavItem } from "@emeris/ui";
 import { getStudioEquipment, reportStudioFault, type InstructorSession, type StudioMachine } from "./api";
 import "./studio.css";
 
@@ -13,8 +13,9 @@ export function StudioEquipmentScreen({ session, nav, onSignOut }: StudioEquipme
   const [machines, setMachines] = useState<StudioMachine[] | null>(null);
   const [code, setCode] = useState("");
   const [description, setDescription] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<{ title: string; message: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
 
@@ -25,7 +26,7 @@ export function StudioEquipmentScreen({ session, nav, onSignOut }: StudioEquipme
       .then((next) => {
         if (active) {
           setMachines(next.equipment);
-          setError(null);
+          setLoadError(null);
         }
       })
       .catch((caught: unknown) => {
@@ -37,7 +38,7 @@ export function StudioEquipmentScreen({ session, nav, onSignOut }: StudioEquipme
           onSignOut();
           return;
         }
-        setError(message);
+        setLoadError(message);
       })
       .finally(() => {
         if (active) {
@@ -52,19 +53,19 @@ export function StudioEquipmentScreen({ session, nav, onSignOut }: StudioEquipme
   async function onReport(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
-    setError(null);
-    setNotice(null);
+    setActionError(null);
+    setSuccess(null);
     try {
       const ticket = await reportStudioFault(session.accessToken, code, description);
       setDescription("");
-      setNotice(`A maintenance ticket is open for ${ticket.name}.`);
+      setSuccess({ title: "Fault reported", message: `A maintenance ticket is open for ${ticket.name}.` });
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : "Could not report this equipment.";
       if (message === "UNAUTHENTICATED") {
         onSignOut();
         return;
       }
-      setError(message);
+      setActionError(message);
     } finally {
       setBusy(false);
     }
@@ -77,12 +78,9 @@ export function StudioEquipmentScreen({ session, nav, onSignOut }: StudioEquipme
         <p>Report studio kit that is unsafe. This opens a maintenance ticket without starting a session.</p>
       </header>
       {loading ? <LoadingState title="Loading studio equipment" message="Checking the studios." /> : null}
-      {error ? <ErrorState title="Report not sent" message={error} /> : null}
-      {notice ? (
-        <p className="studio-notice" role="status">
-          {notice}
-        </p>
-      ) : null}
+      {loadError ? <ErrorState title="Could not load studio equipment" message={loadError} /> : null}
+      {actionError ? <ErrorState title="Report not sent" message={actionError} /> : null}
+      {success ? <SuccessBanner title={success.title} message={success.message} /> : null}
       <form className="studio-form" onSubmit={(event) => void onReport(event)}>
         <TextField
           id="studio-code"

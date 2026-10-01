@@ -67,7 +67,7 @@ export function NotificationsScreen({ session, nav, onSignOut }: NotificationsSc
         <p>Class reminders, changes, and campus messages stay in the app.</p>
       </header>
       {loading ? <LoadingState title="Loading notices" message="Checking messages for your account." /> : null}
-      {error ? <ErrorState title="Notices unavailable" message={error} /> : null}
+      {error ? <ErrorState title="Could not load notices" message={error} /> : null}
       {notices && notices.length === 0 ? (
         <EmptyState title="No notices" message="When the gym or an instructor writes to you, it appears here." />
       ) : null}

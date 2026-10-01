@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AppShell, ErrorState, LoadingState, type AppNavItem } from "@emeris/ui";
+import { AppShell, Button, ErrorState, LoadingState, StatusBadge, type AppNavItem, type StatusTone } from "@emeris/ui";
 import { getMembership, type MembershipDetails } from "./api";
 import "./membership.css";
 import type { MemberSession } from "./session";
@@ -17,6 +17,16 @@ function formatDate(isoDate: string): string {
     return isoDate;
   }
   return new Date(year, month - 1, day).toLocaleDateString(undefined, { dateStyle: "long" });
+}
+
+function statusTone(status: MembershipDetails["status"], canEnter: boolean): StatusTone {
+  if (canEnter) {
+    return "success";
+  }
+  if (status === "Pending") {
+    return "warning";
+  }
+  return "danger";
 }
 
 // Entry is allowed only while the membership is Active and not past its expiry date.
@@ -45,6 +55,7 @@ export function MembershipScreen({ session, nav, onSignOut }: MembershipScreenPr
   const [membership, setMembership] = useState<MembershipDetails | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [retryTick, setRetryTick] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -75,7 +86,7 @@ export function MembershipScreen({ session, nav, onSignOut }: MembershipScreenPr
     return () => {
       active = false;
     };
-  }, [session.accessToken, onSignOut]);
+  }, [session.accessToken, onSignOut, retryTick]);
 
   return (
     <AppShell area="Member" nav={nav} onSignOut={onSignOut}>
@@ -84,7 +95,17 @@ export function MembershipScreen({ session, nav, onSignOut }: MembershipScreenPr
         <p>Status and expiry for {session.user.firstName}.</p>
       </header>
       {loading ? <LoadingState title="Loading membership" message="Checking your status and expiry." /> : null}
-      {error ? <ErrorState title="Membership unavailable" message={error} /> : null}
+      {error ? (
+        <ErrorState
+          title="Could not load membership"
+          message={error}
+          action={
+            <Button type="button" onClick={() => setRetryTick((tick) => tick + 1)}>
+              Retry
+            </Button>
+          }
+        />
+      ) : null}
       {membership ? (
         <section className="membership-card" aria-labelledby="membership-details-heading">
           <h2 id="membership-details-heading" className="visually-hidden">
@@ -96,7 +117,9 @@ export function MembershipScreen({ session, nav, onSignOut }: MembershipScreenPr
           <dl>
             <div>
               <dt>Status</dt>
-              <dd>{membership.status}</dd>
+              <dd>
+                <StatusBadge label={membership.status} tone={statusTone(membership.status, membership.canEnter)} />
+              </dd>
             </div>
             <div>
               <dt>Type</dt>

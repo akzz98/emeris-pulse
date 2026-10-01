@@ -168,6 +168,6 @@ export async function getOccupancy() {
 }
 
 export async function listAccessLog(query: AccessLogQuery) {
-  const page = await events.page(query.page, query.pageSize);
+  const page = await events.page(query.page, query.pageSize, { result: query.result, q: query.q });
   return { page: query.page, pageSize: query.pageSize, ...page };
 }

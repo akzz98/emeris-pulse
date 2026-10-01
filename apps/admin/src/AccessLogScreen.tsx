@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { AppShell, Button, EmptyState, ErrorState, LoadingState, type AppNavItem } from "@emeris/ui";
+import { FormEvent, useEffect, useState } from "react";
+import { AppShell, Button, EmptyState, ErrorState, LoadingState, Select, TextField, type AppNavItem } from "@emeris/ui";
 import { getAccessLog, type AccessLog } from "./api";
 import "./log.css";
 import type { AdminSession } from "./api";
@@ -9,6 +9,8 @@ type AccessLogScreenProps = {
   nav: AppNavItem[];
   onSignOut: () => void;
 };
+
+type ResultFilter = "" | "Granted" | "Refused";
 
 function formatWhen(iso: string): string {
   const date = new Date(iso);
@@ -20,15 +22,22 @@ function formatWhen(iso: string): string {
 
 export function AccessLogScreen({ session, nav, onSignOut }: AccessLogScreenProps) {
   const [page, setPage] = useState(1);
+  const [result, setResult] = useState<ResultFilter>("");
+  const [query, setQuery] = useState("");
+  const [appliedQuery, setAppliedQuery] = useState("");
   const [log, setLog] = useState<AccessLog | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [retryTick, setRetryTick] = useState(0);
 
   useEffect(() => {
     let active = true;
     setLoading(true);
     setError(null);
-    getAccessLog(session.accessToken, page)
+    getAccessLog(session.accessToken, page, {
+      result: result || undefined,
+      q: appliedQuery || undefined,
+    })
       .then((next) => {
         if (active) {
           setLog(next);
@@ -53,7 +62,13 @@ export function AccessLogScreen({ session, nav, onSignOut }: AccessLogScreenProp
     return () => {
       active = false;
     };
-  }, [session.accessToken, page, onSignOut]);
+  }, [session.accessToken, page, result, appliedQuery, onSignOut, retryTick]);
+
+  function onSearch(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setPage(1);
+    setAppliedQuery(query.trim());
+  }
 
   const pageCount = log ? Math.max(1, Math.ceil(log.total / log.pageSize)) : 1;
 
@@ -63,10 +78,46 @@ export function AccessLogScreen({ session, nav, onSignOut }: AccessLogScreenProp
         <h1>Access logs</h1>
         <p>Who was granted or refused at the entrance.</p>
       </header>
+      <form className="log-filters" onSubmit={onSearch}>
+        <Select
+          id="log-result"
+          label="Result"
+          value={result}
+          onChange={(event) => {
+            setPage(1);
+            setResult(event.target.value as ResultFilter);
+          }}
+        >
+          <option value="">All results</option>
+          <option value="Granted">Granted</option>
+          <option value="Refused">Refused</option>
+        </Select>
+        <TextField
+          id="log-search"
+          label="Member search"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Name or email"
+          hint="Search by name or email, then press Search."
+        />
+        <Button type="submit" variant="secondary">
+          Search
+        </Button>
+      </form>
       {loading ? <LoadingState title="Loading access log" message="Fetching the latest scans." /> : null}
-      {error ? <ErrorState title="Access log unavailable" message={error} /> : null}
+      {error ? (
+        <ErrorState
+          title="Could not load access log"
+          message={error}
+          action={
+            <Button type="button" onClick={() => setRetryTick((tick) => tick + 1)}>
+              Retry
+            </Button>
+          }
+        />
+      ) : null}
       {log && log.events.length === 0 ? (
-        <EmptyState title="No scans yet" message="Granted and refused entry will appear here." />
+        <EmptyState title="No scans match" message="Try another result filter or search, or wait for the next entrance scan." />
       ) : null}
       {log && log.events.length > 0 ? (
         <div className="access-log">
@@ -83,27 +134,27 @@ export function AccessLogScreen({ session, nav, onSignOut }: AccessLogScreenProp
             <tbody>
               {log.events.map((event) => (
                 <tr key={event.id}>
-                  <td>
+                  <td data-label="When">
                     <time dateTime={event.occurredAt}>{formatWhen(event.occurredAt)}</time>
                   </td>
-                  <td>
+                  <td data-label="Member">
                     {event.firstName} {event.lastName}
                     <span>{event.email}</span>
                   </td>
-                  <td>{event.result}</td>
-                  <td>{event.reason ?? "—"}</td>
+                  <td data-label="Result">{event.result}</td>
+                  <td data-label="Reason">{event.reason ?? "—"}</td>
                 </tr>
               ))}
             </tbody>
           </table>
           <div className="log-pager">
-            <Button onClick={() => setPage((current) => current - 1)} disabled={page <= 1}>
+            <Button variant="secondary" onClick={() => setPage((current) => current - 1)} disabled={page <= 1}>
               Previous
             </Button>
             <p>
-              Page {log.page} of {pageCount}
+              Page {log.page} of {pageCount} · {log.total} scans · {log.pageSize} per page
             </p>
-            <Button onClick={() => setPage((current) => current + 1)} disabled={page >= pageCount}>
+            <Button variant="secondary" onClick={() => setPage((current) => current + 1)} disabled={page >= pageCount}>
               Next
             </Button>
           </div>
