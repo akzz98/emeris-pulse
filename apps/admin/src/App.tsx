@@ -15,7 +15,7 @@ import { TimetableScreen } from "./TimetableScreen";
 import { clearSession, loadSession, saveSession } from "./session";
 import type { AdminSession } from "./api";
 
-type AdminScreen =
+export type AdminScreen =
   | "dashboard"
   | "scan"
   | "logs"
@@ -65,10 +65,15 @@ function adminNav(current: AdminScreen, onSelect: (screen: AdminScreen) => void,
   ];
 }
 
+function landingScreen(_role: string): AdminScreen {
+  // GymAdmin and SystemAdmin land on the dashboard. Facility already did.
+  return "dashboard";
+}
+
 export function App() {
   const [session, setSession] = useState<AdminSession | null>(() => loadSession());
-  const [screen, setScreen] = useState<AdminScreen>(
-    () => (loadSession()?.user.role === "FacilityManager" ? "dashboard" : "logs"),
+  const [screen, setScreen] = useState<AdminScreen>(() =>
+    loadSession() ? landingScreen(loadSession()!.user.role) : "dashboard",
   );
 
   if (!session) {
@@ -77,7 +82,7 @@ export function App() {
         onSignedIn={(next) => {
           saveSession(next);
           setSession(next);
-          setScreen(next.user.role === "FacilityManager" ? "dashboard" : "logs");
+          setScreen(landingScreen(next.user.role));
         }}
       />
     );
@@ -90,7 +95,7 @@ export function App() {
   const nav = adminNav(screen, setScreen, session.user.role);
 
   if (screen === "dashboard") {
-    return <DashboardScreen session={session} nav={nav} onSignOut={onSignOut} />;
+    return <DashboardScreen session={session} nav={nav} onSignOut={onSignOut} onNavigate={setScreen} />;
   }
 
   if (screen === "reports") {

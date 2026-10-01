@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
-import { AppShell, Button, ErrorState, LoadingState, TextField, type AppNavItem } from "@emeris/ui";
+import { AppShell, Button, ConfirmDialog, EmptyState, ErrorState, LoadingState, TextField, type AppNavItem } from "@emeris/ui";
 import {
   getManagedClasses,
   publishClass,
@@ -21,6 +21,30 @@ function clock(value: string): string {
   return value.slice(0, 16);
 }
 
+function formatWhen(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+  return date.toLocaleString(undefined, {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function changeWouldNotify(item: ManagedClass, draft: ClassDraft): boolean {
+  return (
+    draft.title !== item.title ||
+    draft.location !== item.location ||
+    clock(item.startsAt) !== draft.startsAt ||
+    clock(item.endsAt) !== draft.endsAt ||
+    draft.instructorEmail !== item.instructorEmail
+  );
+}
+
 const emptyDraft: ClassDraft = {
   title: "",
   instructorEmail: "",
@@ -34,6 +58,8 @@ export function TimetableScreen({ session, nav, onSignOut }: TimetableScreenProp
   const [classes, setClasses] = useState<ManagedClass[] | null>(null);
   const [instructors, setInstructors] = useState<InstructorOption[]>([]);
   const [draft, setDraft] = useState<ClassDraft>(emptyDraft);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [pendingSave, setPendingSave] = useState<{ item: ManagedClass; draft: ClassDraft } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -102,12 +128,22 @@ export function TimetableScreen({ session, nav, onSignOut }: TimetableScreenProp
     }
   }
 
+  function requestSave(item: ManagedClass, next: ClassDraft) {
+    if (changeWouldNotify(item, next) && item.bookedCount > 0) {
+      setPendingSave({ item, draft: next });
+      return;
+    }
+    void onSave(item, next);
+  }
+
   async function onSave(item: ManagedClass, next: ClassDraft) {
     setBusy(true);
+    setPendingSave(null);
     setError(null);
     try {
       const saved = await updateClass(session.accessToken, item.id, { ...next, capacity: Number(next.capacity) });
       await load();
+      setEditingId(null);
       const told =
         saved.notified === 0
           ? "No members needed a notice."
@@ -166,13 +202,58 @@ export function TimetableScreen({ session, nav, onSignOut }: TimetableScreenProp
           {busy ? "Saving…" : "Publish class"}
         </Button>
       </form>
+      {classes && classes.length === 0 ? (
+        <EmptyState title="No published classes" message="Publish a class above to put it on the timetable." />
+      ) : null}
       {classes && classes.length > 0 ? (
         <ul className="timetable-list">
           {classes.map((item) => (
-            <ClassEditor key={item.id} item={item} instructors={instructors} disabled={busy} onSave={onSave} />
+            <li key={item.id}>
+              <div className="timetable-row">
+                <div>
+                  <h2>{item.title}</h2>
+                  <p>
+                    {formatWhen(item.startsAt)} · {item.location}
+                  </p>
+                  <p>
+                    {item.bookedCount} booked · {item.instructorName} · capacity {item.capacity}
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={busy}
+                  onClick={() => setEditingId((current) => (current === item.id ? null : item.id))}
+                >
+                  {editingId === item.id ? "Close" : "Edit"}
+                </Button>
+              </div>
+              {editingId === item.id ? (
+                <ClassEditor item={item} instructors={instructors} disabled={busy} onSave={requestSave} />
+              ) : null}
+            </li>
           ))}
         </ul>
       ) : null}
+      <ConfirmDialog
+        open={pendingSave !== null}
+        title="Save and notify booked members?"
+        message={
+          pendingSave
+            ? `Changing ${pendingSave.item.title} will tell booked and waitlisted members about the update.`
+            : ""
+        }
+        confirmLabel="Save and notify"
+        cancelLabel="Keep editing"
+        confirmVariant="primary"
+        busy={busy}
+        onCancel={() => setPendingSave(null)}
+        onConfirm={() => {
+          if (pendingSave) {
+            void onSave(pendingSave.item, pendingSave.draft);
+          }
+        }}
+      />
     </AppShell>
   );
 }
@@ -186,7 +267,7 @@ function ClassEditor({
   item: ManagedClass;
   instructors: InstructorOption[];
   disabled: boolean;
-  onSave: (item: ManagedClass, draft: ClassDraft) => Promise<void>;
+  onSave: (item: ManagedClass, draft: ClassDraft) => void;
 }) {
   const [draft, setDraft] = useState<ClassDraft>({
     title: item.title,
@@ -198,11 +279,7 @@ function ClassEditor({
   });
 
   return (
-    <li>
-      <h2>{item.title}</h2>
-      <p>
-        {item.bookedCount} booked · {item.instructorName}
-      </p>
+    <div className="timetable-editor">
       <TextField id={`title-${item.id}`} label="Title" value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} required />
       <label className="ep-field" htmlFor={`instructor-${item.id}`}>
         Instructor
@@ -222,9 +299,9 @@ function ClassEditor({
       <TextField id={`end-${item.id}`} label="Ends" type="datetime-local" value={draft.endsAt} onChange={(event) => setDraft({ ...draft, endsAt: event.target.value })} required />
       <TextField id={`capacity-${item.id}`} label="Capacity" type="number" min={1} value={String(draft.capacity)} onChange={(event) => setDraft({ ...draft, capacity: Number(event.target.value) })} required />
       <TextField id={`location-${item.id}`} label="Location" value={draft.location} onChange={(event) => setDraft({ ...draft, location: event.target.value })} required />
-      <Button type="button" disabled={disabled} onClick={() => void onSave(item, draft)}>
+      <Button type="button" disabled={disabled} onClick={() => onSave(item, draft)}>
         Save changes
       </Button>
-    </li>
+    </div>
   );
 }

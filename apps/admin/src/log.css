@@ -9,6 +9,16 @@
   color: var(--ep-muted, #4d5e66);
 }
 
+.log-filters {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0 0 1rem;
+  background: var(--ep-white, #ffffff);
+  border: 1px solid var(--ep-line, #d5e0e4);
+  border-radius: 0.6rem;
+  padding: 0.9rem 1rem;
+}
+
 .access-log {
   overflow-x: auto;
 }

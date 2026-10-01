@@ -1,27 +1,43 @@
 import { useState } from "react";
 import type { AppNavItem } from "@emeris/ui";
-import { AttendanceScreen } from "./AttendanceScreen";
-import { ClassDetailsScreen } from "./ClassDetailsScreen";
+import { ClassDetailScreen } from "./ClassDetailScreen";
 import { LoginScreen } from "./LoginScreen";
-import { RosterScreen } from "./RosterScreen";
 import { StudioEquipmentScreen } from "./StudioEquipmentScreen";
+import { TodayScreen } from "./TodayScreen";
 import { clearSession, loadSession, saveSession } from "./session";
 import type { InstructorSession } from "./api";
 
-type InstructorScreen = "classes" | "attendance" | "details" | "studio";
+type InstructorScreen = "today" | "studio" | "detail";
 
-function instructorNav(current: InstructorScreen, onSelect: (screen: InstructorScreen) => void): AppNavItem[] {
+function instructorNav(
+  current: InstructorScreen,
+  onSelect: (screen: InstructorScreen) => void,
+  clearDetail: () => void,
+): AppNavItem[] {
   return [
-    { label: "My classes", current: current === "classes", onSelect: () => onSelect("classes") },
-    { label: "Attendance", current: current === "attendance", onSelect: () => onSelect("attendance") },
-    { label: "Class details", current: current === "details", onSelect: () => onSelect("details") },
-    { label: "Studio equipment", current: current === "studio", onSelect: () => onSelect("studio") },
+    {
+      label: "Today",
+      current: current === "today" || current === "detail",
+      onSelect: () => {
+        clearDetail();
+        onSelect("today");
+      },
+    },
+    {
+      label: "Studio equipment",
+      current: current === "studio",
+      onSelect: () => {
+        clearDetail();
+        onSelect("studio");
+      },
+    },
   ];
 }
 
 export function App() {
   const [session, setSession] = useState<InstructorSession | null>(() => loadSession());
-  const [screen, setScreen] = useState<InstructorScreen>("classes");
+  const [screen, setScreen] = useState<InstructorScreen>("today");
+  const [selectedClassId, setSelectedClassId] = useState<number | null>(null);
 
   if (!session) {
     return (
@@ -29,7 +45,8 @@ export function App() {
         onSignedIn={(next) => {
           saveSession(next);
           setSession(next);
-          setScreen("classes");
+          setScreen("today");
+          setSelectedClassId(null);
         }}
       />
     );
@@ -38,17 +55,39 @@ export function App() {
   const onSignOut = () => {
     clearSession();
     setSession(null);
+    setSelectedClassId(null);
   };
-  const nav = instructorNav(screen, setScreen);
+  const clearDetail = () => setSelectedClassId(null);
+  const nav = instructorNav(screen, setScreen, clearDetail);
 
-  if (screen === "attendance") {
-    return <AttendanceScreen session={session} nav={nav} onSignOut={onSignOut} />;
-  }
-  if (screen === "details") {
-    return <ClassDetailsScreen session={session} nav={nav} onSignOut={onSignOut} />;
-  }
   if (screen === "studio") {
     return <StudioEquipmentScreen session={session} nav={nav} onSignOut={onSignOut} />;
   }
-  return <RosterScreen session={session} nav={nav} onSignOut={onSignOut} />;
+
+  if (screen === "detail" && selectedClassId !== null) {
+    return (
+      <ClassDetailScreen
+        session={session}
+        nav={nav}
+        classId={selectedClassId}
+        onSignOut={onSignOut}
+        onBack={() => {
+          setSelectedClassId(null);
+          setScreen("today");
+        }}
+      />
+    );
+  }
+
+  return (
+    <TodayScreen
+      session={session}
+      nav={nav}
+      onSignOut={onSignOut}
+      onOpenClass={(classId) => {
+        setSelectedClassId(classId);
+        setScreen("detail");
+      }}
+    />
+  );
 }

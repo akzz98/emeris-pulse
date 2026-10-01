@@ -1,12 +1,22 @@
 import { FormEvent, useEffect, useState } from "react";
 import { AppShell, Button, ConfirmDialog, EmptyState, ErrorState, LoadingState, TextField, type AppNavItem } from "@emeris/ui";
-import { announceClosure, getOccupancy, getUtilisation, type AdminSession, type Occupancy, type Utilisation } from "./api";
+import {
+  announceClosure,
+  getOccupancy,
+  getPendingMemberships,
+  getTicketQueue,
+  getUtilisation,
+  type AdminSession,
+  type Occupancy,
+  type Utilisation,
+} from "./api";
 import "./dashboard.css";
 
 type DashboardScreenProps = {
   session: AdminSession;
   nav: AppNavItem[];
   onSignOut: () => void;
+  onNavigate: (screen: "scan" | "members" | "maintenance") => void;
 };
 
 function formatHour(hour: number): string {
@@ -29,6 +39,13 @@ function formatWhen(iso: string): string {
   return date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
 }
 
+function formatUpdated(value: Date | null): string {
+  if (!value) {
+    return "";
+  }
+  return value.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+}
+
 function formatClosureDay(value: string): string {
   const date = new Date(`${value}T12:00:00`);
   if (Number.isNaN(date.getTime())) {
@@ -44,18 +61,22 @@ function closureWindowLabel(startsOn: string, endsOn: string): string {
   return `${formatClosureDay(startsOn)} to ${formatClosureDay(endsOn)}`;
 }
 
-export function DashboardScreen({ session, nav, onSignOut }: DashboardScreenProps) {
+export function DashboardScreen({ session, nav, onSignOut, onNavigate }: DashboardScreenProps) {
   const [occupancy, setOccupancy] = useState<Occupancy | null>(null);
   const [utilisation, setUtilisation] = useState<Utilisation | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [utilisationError, setUtilisationError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [utilisationLoading, setUtilisationLoading] = useState(true);
+  const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
+  const [pendingCount, setPendingCount] = useState<number | null>(null);
+  const [ticketCount, setTicketCount] = useState<number | null>(null);
   const [closure, setClosure] = useState({ startsOn: "", endsOn: "", reason: "" });
   const [closureNotice, setClosureNotice] = useState<string | null>(null);
   const [closureError, setClosureError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [confirmClosure, setConfirmClosure] = useState(false);
+  const isFacility = session.user.role === "FacilityManager";
 
   useEffect(() => {
     let active = true;
@@ -68,6 +89,7 @@ export function DashboardScreen({ session, nav, onSignOut }: DashboardScreenProp
         if (active) {
           setOccupancy(next);
           setError(null);
+          setUpdatedAt(new Date());
         }
       } catch (caught) {
         if (!active) {
@@ -95,6 +117,7 @@ export function DashboardScreen({ session, nav, onSignOut }: DashboardScreenProp
         if (active) {
           setUtilisation(next);
           setUtilisationError(null);
+          setUpdatedAt(new Date());
         }
       } catch (caught) {
         if (!active) {
@@ -113,18 +136,45 @@ export function DashboardScreen({ session, nav, onSignOut }: DashboardScreenProp
       }
     }
 
+    async function loadQuickCounts() {
+      try {
+        const tickets = await getTicketQueue(session.accessToken);
+        if (active) {
+          setTicketCount(tickets.tickets.length);
+        }
+      } catch {
+        if (active) {
+          setTicketCount(null);
+        }
+      }
+      if (isFacility) {
+        return;
+      }
+      try {
+        const pending = await getPendingMemberships(session.accessToken);
+        if (active) {
+          setPendingCount(pending.memberships.length);
+        }
+      } catch {
+        if (active) {
+          setPendingCount(null);
+        }
+      }
+    }
+
     void loadOccupancy();
     void loadUtilisation(true);
-    // New entrance scans should show up without a reload, and without hiding the report.
+    void loadQuickCounts();
     const timer = window.setInterval(() => {
       void loadOccupancy();
       void loadUtilisation(false);
+      void loadQuickCounts();
     }, 30_000);
     return () => {
       active = false;
       window.clearInterval(timer);
     };
-  }, [session.accessToken, onSignOut]);
+  }, [session.accessToken, onSignOut, isFacility]);
 
   function onClosureSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -159,14 +209,42 @@ export function DashboardScreen({ session, nav, onSignOut }: DashboardScreenProp
     }
   }
 
-  const area = session.user.role === "FacilityManager" ? "Facility" : "Admin";
+  const area = isFacility ? "Facility" : "Admin";
 
   return (
     <AppShell area={area} nav={nav} onSignOut={onSignOut}>
       <header className="dashboard-heading">
         <h1>Dashboard</h1>
         <p>Who is on the floor, and which hours the granted visits fall into.</p>
+        {updatedAt ? (
+          <p className="dashboard-updated" role="status">
+            Last updated {formatUpdated(updatedAt)}. Refreshes every 30 seconds.
+          </p>
+        ) : null}
       </header>
+      {!isFacility ? (
+        <div className="dashboard-quick" role="group" aria-label="Quick actions">
+          <button type="button" className="dashboard-quick-card" onClick={() => onNavigate("scan")}>
+            <strong>Scan entry</strong>
+            <span>Redeem a pass at the desk</span>
+          </button>
+          <button type="button" className="dashboard-quick-card" onClick={() => onNavigate("members")}>
+            <strong>Pending approvals</strong>
+            <span>{pendingCount === null ? "…" : pendingCount === 1 ? "1 waiting" : `${pendingCount} waiting`}</span>
+          </button>
+          <button type="button" className="dashboard-quick-card" onClick={() => onNavigate("maintenance")}>
+            <strong>Open tickets</strong>
+            <span>{ticketCount === null ? "…" : ticketCount === 1 ? "1 open" : `${ticketCount} open`}</span>
+          </button>
+        </div>
+      ) : (
+        <div className="dashboard-quick" role="group" aria-label="Quick actions">
+          <button type="button" className="dashboard-quick-card" onClick={() => onNavigate("maintenance")}>
+            <strong>Open tickets</strong>
+            <span>{ticketCount === null ? "…" : ticketCount === 1 ? "1 open" : `${ticketCount} open`}</span>
+          </button>
+        </div>
+      )}
       {loading ? <LoadingState title="Loading dashboard" message="Checking who is on the floor." /> : null}
       {error ? <ErrorState title="Occupancy unavailable" message={error} /> : null}
       {occupancy ? (
@@ -210,15 +288,28 @@ export function DashboardScreen({ session, nav, onSignOut }: DashboardScreenProp
             <p className="utilisation-counts">
               {utilisation.visitsToday} today · {utilisation.visitsThisWeek} in the last 7 days
             </p>
-            <p>{peakLabel(utilisation.peakHours)}</p>
-            <ul>
-              {utilisation.hours.map((hour) => (
-                <li key={hour.hour} className={utilisation.peakHours.includes(hour.hour) ? "is-peak" : undefined}>
-                  <span>{formatHour(hour.hour)}</span>
-                  <span>{hour.visits === 1 ? "1 visit" : `${hour.visits} visits`}</span>
-                </li>
-              ))}
+            <p className="utilisation-peak">{peakLabel(utilisation.peakHours)}</p>
+            <ul className="utilisation-peaks" aria-label="Peak hours">
+              {utilisation.hours
+                .filter((hour) => utilisation.peakHours.includes(hour.hour))
+                .map((hour) => (
+                  <li key={hour.hour} className="is-peak">
+                    <span>{formatHour(hour.hour)}</span>
+                    <span>{hour.visits === 1 ? "1 visit" : `${hour.visits} visits`}</span>
+                  </li>
+                ))}
             </ul>
+            <details className="utilisation-all">
+              <summary>All hours (last 7 days)</summary>
+              <ul>
+                {utilisation.hours.map((hour) => (
+                  <li key={hour.hour} className={utilisation.peakHours.includes(hour.hour) ? "is-peak" : undefined}>
+                    <span>{formatHour(hour.hour)}</span>
+                    <span>{hour.visits === 1 ? "1 visit" : `${hour.visits} visits`}</span>
+                  </li>
+                ))}
+              </ul>
+            </details>
           </>
         ) : null}
       </section>

@@ -113,15 +113,31 @@ export class AccessEventRepository {
     };
   }
 
-  // Newest scans first. OccurredAt is indexed, and OFFSET keeps each page small.
-  async page(page: number, pageSize: number): Promise<{ total: number; events: AccessLogEntry[] }> {
+  // Newest scans first. Optional result and member search narrow the page.
+  async page(
+    page: number,
+    pageSize: number,
+    filters: { result?: "Granted" | "Refused"; q?: string } = {},
+  ): Promise<{ total: number; events: AccessLogEntry[] }> {
     const pool = await getPool();
     const offset = (page - 1) * pageSize;
-    const result = await pool
+    const request = pool
       .request()
       .input("offset", sql.Int, offset)
-      .input("pageSize", sql.Int, pageSize)
-      .query<LogRow>(`
+      .input("pageSize", sql.Int, pageSize);
+    const where: string[] = [];
+    if (filters.result) {
+      request.input("result", sql.NVarChar(16), filters.result);
+      where.push("e.Result = @result");
+    }
+    if (filters.q) {
+      request.input("q", sql.NVarChar(130), `%${filters.q}%`);
+      where.push(
+        "(u.FirstName LIKE @q OR u.LastName LIKE @q OR u.Email LIKE @q OR CONCAT(u.FirstName, N' ', u.LastName) LIKE @q)",
+      );
+    }
+    const whereSql = where.length > 0 ? `WHERE ${where.join(" AND ")}` : "";
+    const result = await request.query<LogRow>(`
         SELECT
           e.Id,
           e.OccurredAt,
@@ -133,12 +149,25 @@ export class AccessEventRepository {
           COUNT(*) OVER() AS Total
         FROM dbo.AccessEvents e
         INNER JOIN dbo.Users u ON u.Id = e.UserId
+        ${whereSql}
         ORDER BY e.OccurredAt DESC, e.Id DESC
         OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY
       `);
     const total = result.recordset[0]?.Total ?? 0;
     if (result.recordset.length === 0) {
-      const count = await pool.request().query<{ Total: number }>(`SELECT COUNT(*) AS Total FROM dbo.AccessEvents`);
+      const countRequest = pool.request();
+      if (filters.result) {
+        countRequest.input("result", sql.NVarChar(16), filters.result);
+      }
+      if (filters.q) {
+        countRequest.input("q", sql.NVarChar(130), `%${filters.q}%`);
+      }
+      const count = await countRequest.query<{ Total: number }>(`
+        SELECT COUNT(*) AS Total
+        FROM dbo.AccessEvents e
+        INNER JOIN dbo.Users u ON u.Id = e.UserId
+        ${whereSql}
+      `);
       return { total: Number(count.recordset[0]?.Total ?? 0), events: [] };
     }
     return {

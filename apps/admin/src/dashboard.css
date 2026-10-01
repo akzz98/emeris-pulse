@@ -5,8 +5,49 @@
 }
 
 .dashboard-heading p {
-  margin: 0.25rem 0 1rem;
+  margin: 0.25rem 0 0.35rem;
   color: var(--ep-muted, #4d5e66);
+}
+
+.dashboard-updated {
+  margin: 0 0 1rem;
+  color: var(--ep-muted, #4d5e66);
+  font-size: 0.9rem;
+}
+
+.dashboard-quick {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 0.6rem;
+  margin: 0 0 1.25rem;
+}
+
+.dashboard-quick-card {
+  appearance: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  text-align: left;
+  border: 1px solid var(--ep-line, #d5e0e4);
+  border-radius: 0.6rem;
+  background: var(--ep-white, #ffffff);
+  color: inherit;
+  font: inherit;
+  padding: 0.85rem 1rem;
+  cursor: pointer;
+}
+
+.dashboard-quick-card:hover {
+  border-color: var(--ep-teal, #004559);
+}
+
+.dashboard-quick-card strong {
+  color: var(--ep-teal, #004559);
+}
+
+.dashboard-quick-card span {
+  color: var(--ep-muted, #4d5e66);
+  font-size: 0.9rem;
 }
 
 .occupancy {
@@ -74,6 +115,27 @@
 .utilisation-counts {
   color: var(--ep-teal, #004559);
   font-weight: 700;
+}
+
+.utilisation-peak {
+  color: var(--ep-ink, #142026);
+  font-weight: 650;
+}
+
+.utilisation-peaks {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+}
+
+.utilisation-all {
+  margin-top: 0.85rem;
+}
+
+.utilisation-all summary {
+  cursor: pointer;
+  color: var(--ep-teal, #004559);
+  font-weight: 650;
 }
 
 .utilisation ul {
