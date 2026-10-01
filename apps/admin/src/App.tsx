@@ -14,19 +14,8 @@ import { TemporaryPassScreen } from "./TemporaryPassScreen";
 import { TimetableScreen } from "./TimetableScreen";
 import { clearSession, loadSession, saveSession } from "./session";
 import type { AdminSession } from "./api";
-
-export type AdminScreen =
-  | "dashboard"
-  | "scan"
-  | "logs"
-  | "members"
-  | "roles"
-  | "temporary"
-  | "timetable"
-  | "maintenance"
-  | "challenges"
-  | "broadcast"
-  | "reports";
+import type { AdminScreen } from "./screens";
+import { useAdminRoute } from "./useAdminRoute";
 
 function adminNav(current: AdminScreen, onSelect: (screen: AdminScreen) => void, role: string): AppNavItem[] {
   const link = (id: AdminScreen, label: string): AppNavItem => ({
@@ -59,16 +48,9 @@ function adminNav(current: AdminScreen, onSelect: (screen: AdminScreen) => void,
   ];
 }
 
-function landingScreen(_role: string): AdminScreen {
-  // GymAdmin and SystemAdmin land on the dashboard. Facility already did.
-  return "dashboard";
-}
-
 export function App() {
   const [session, setSession] = useState<AdminSession | null>(() => loadSession());
-  const [screen, setScreen] = useState<AdminScreen>(() =>
-    loadSession() ? landingScreen(loadSession()!.user.role) : "dashboard",
-  );
+  const { screen, goScreen, navigate } = useAdminRoute(session?.user.role ?? null);
 
   if (!session) {
     return (
@@ -76,7 +58,7 @@ export function App() {
         onSignedIn={(next) => {
           saveSession(next);
           setSession(next);
-          setScreen(landingScreen(next.user.role));
+          navigate("dashboard", { replace: true });
         }}
       />
     );
@@ -85,11 +67,12 @@ export function App() {
   const onSignOut = () => {
     clearSession();
     setSession(null);
+    navigate("dashboard", { replace: true });
   };
-  const nav = adminNav(screen, setScreen, session.user.role);
+  const nav = adminNav(screen, goScreen, session.user.role);
 
   if (screen === "dashboard") {
-    return <DashboardScreen session={session} nav={nav} onSignOut={onSignOut} onNavigate={setScreen} />;
+    return <DashboardScreen session={session} nav={nav} onSignOut={onSignOut} onNavigate={goScreen} />;
   }
 
   if (screen === "reports") {

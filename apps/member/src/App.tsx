@@ -10,7 +10,8 @@ import { ProfileScreen } from "./ProfileScreen";
 import { RegisterScreen } from "./RegisterScreen";
 import { ChallengesScreen } from "./ChallengesScreen";
 import { getMyNotices } from "./api";
-import { memberNav, type MemberScreen } from "./navigation";
+import { memberNav } from "./navigation";
+import { parseMemberRoute, useMemberRoute } from "./routing";
 import { clearSession, loadSession, saveSession, type MemberSession } from "./session";
 import { Splash } from "./Splash";
 
@@ -18,9 +19,9 @@ export function App() {
   const [session, setSession] = useState<MemberSession | null>(() => loadSession());
   // Returning members skip the brand splash and land on Home.
   const [showSplash, setShowSplash] = useState(() => loadSession() === null);
-  const [mode, setMode] = useState<"login" | "register">("login");
-  const [screen, setScreen] = useState<MemberScreen>("home");
+  const { route, navigate, goScreen, goAuth } = useMemberRoute(session !== null);
   const [noticeCount, setNoticeCount] = useState(0);
+  const screen = route.area === "app" ? route.screen : "home";
 
   useEffect(() => {
     if (!showSplash) {
@@ -60,19 +61,24 @@ export function App() {
     const onSignedIn = (next: MemberSession) => {
       saveSession(next);
       setSession(next);
+      const pending = parseMemberRoute(window.location.pathname);
+      navigate(
+        pending.area === "app" ? pending : { area: "app", screen: "home" },
+        { replace: true },
+      );
     };
-    if (mode === "register") {
-      return <RegisterScreen onSignedIn={onSignedIn} onSignIn={() => setMode("login")} />;
+    if (route.area === "auth" && route.mode === "register") {
+      return <RegisterScreen onSignedIn={onSignedIn} onSignIn={() => goAuth("login")} />;
     }
-    return <LoginScreen onSignedIn={onSignedIn} onCreateAccount={() => setMode("register")} />;
+    return <LoginScreen onSignedIn={onSignedIn} onCreateAccount={() => goAuth("register")} />;
   }
 
   const onSignOut = () => {
     clearSession();
     setSession(null);
-    setScreen("home");
+    navigate({ area: "auth", mode: "login" }, { replace: true });
   };
-  const nav = memberNav(screen, setScreen, { noticeCount });
+  const nav = memberNav(screen, goScreen, { noticeCount });
 
   if (screen === "membership") {
     return <MembershipScreen session={session} nav={nav} onSignOut={onSignOut} />;
@@ -116,5 +122,5 @@ export function App() {
     );
   }
 
-  return <HomeScreen session={session} nav={nav} onSignOut={onSignOut} onNavigate={setScreen} />;
+  return <HomeScreen session={session} nav={nav} onSignOut={onSignOut} onNavigate={goScreen} />;
 }

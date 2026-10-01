@@ -16,7 +16,7 @@ Task 2 implementation walkthrough: https://youtu.be/DALwdxsRzwE
 
 Sign-in is email and password. The API issues a 15-minute JWT and a hashed refresh token. Using the refresh token revokes it and issues a new pair. Campus Microsoft Entra ID is not available to this group, so the app issues its own tokens. Each person still has a campus identifier. QR access is implemented. NFC stays a future hardware step.
 
-The member app opens with a short splash, then sign-in. It is installable on a phone (standalone display, Emeris icon). A service worker keeps a cached copy of the shell and falls back to it when the network drops. Gym actions still need the API.
+The member app opens with a short splash, then sign-in. It is installable on a phone (standalone display, Emeris icon). A service worker keeps a cached copy of the shell and falls back to it when the network drops. Gym actions still need the API. Signed-in screens use path URLs (`/access`, `/classes`, and so on) so the browser Back button returns to the previous screen. The admin and instructor apps do the same.
 
 ## Member app
 

@@ -9,3 +9,4 @@ export { Select } from "./Select";
 export { TextArea } from "./TextArea";
 export { TextField } from "./TextField";
 export { TextLink } from "./TextLink";
+export { useHistoryPath, type HistoryNavigateOptions } from "./useHistoryPath";
