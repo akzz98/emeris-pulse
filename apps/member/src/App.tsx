@@ -8,7 +8,7 @@ import { MembershipScreen } from "./MembershipScreen";
 import { NotificationsScreen } from "./NotificationsScreen";
 import { ProfileScreen } from "./ProfileScreen";
 import { RegisterScreen } from "./RegisterScreen";
-import { WellnessScreen } from "./WellnessScreen";
+import { ChallengesScreen } from "./ChallengesScreen";
 import { getMyNotices } from "./api";
 import { memberNav, type MemberScreen } from "./navigation";
 import { clearSession, loadSession, saveSession, type MemberSession } from "./session";
@@ -90,8 +90,8 @@ export function App() {
     return <EquipmentScreen session={session} nav={nav} onSignOut={onSignOut} />;
   }
 
-  if (screen === "wellness") {
-    return <WellnessScreen session={session} nav={nav} onSignOut={onSignOut} />;
+  if (screen === "challenges") {
+    return <ChallengesScreen session={session} nav={nav} onSignOut={onSignOut} />;
   }
 
   if (screen === "notices") {

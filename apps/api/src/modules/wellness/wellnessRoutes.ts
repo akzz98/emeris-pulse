@@ -4,11 +4,13 @@ import { asyncHandler } from "../../http/asyncHandler.js";
 import { validateBody, validateParams } from "../../http/validate.js";
 import {
   createChallengeHandler,
+  endChallengeHandler,
   joinChallengeHandler,
   listChallengesHandler,
   managedChallengesHandler,
+  updateChallengeHandler,
 } from "./wellnessController.js";
-import { challengeIdParams, createChallengeSchema } from "./wellnessSchemas.js";
+import { challengeIdParams, createChallengeSchema, updateChallengeSchema } from "./wellnessSchemas.js";
 
 export const wellnessRouter = Router();
 
@@ -21,6 +23,21 @@ wellnessRouter.post(
   challengeEditors,
   validateBody(createChallengeSchema),
   asyncHandler(createChallengeHandler),
+);
+wellnessRouter.patch(
+  "/challenges/:challengeId",
+  authenticate,
+  challengeEditors,
+  validateParams(challengeIdParams),
+  validateBody(updateChallengeSchema),
+  asyncHandler(updateChallengeHandler),
+);
+wellnessRouter.post(
+  "/challenges/:challengeId/end",
+  authenticate,
+  challengeEditors,
+  validateParams(challengeIdParams),
+  asyncHandler(endChallengeHandler),
 );
 wellnessRouter.get("/challenges", authenticate, asyncHandler(listChallengesHandler));
 wellnessRouter.post(

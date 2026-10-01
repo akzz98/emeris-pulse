@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { AppShell, Button, EmptyState, ErrorState, LoadingState, SuccessBanner, type AppNavItem } from "@emeris/ui";
 import { getChallenges, joinChallenge, type CampusChallenge } from "./api";
-import "./wellness.css";
+import "./challenges.css";
 import type { MemberSession } from "./session";
 
-type WellnessScreenProps = {
+type ChallengesScreenProps = {
   session: MemberSession;
   nav: AppNavItem[];
   onSignOut: () => void;
@@ -18,7 +18,7 @@ function formatDay(value: string): string {
   return date.toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" });
 }
 
-export function WellnessScreen({ session, nav, onSignOut }: WellnessScreenProps) {
+export function ChallengesScreen({ session, nav, onSignOut }: ChallengesScreenProps) {
   const [challenges, setChallenges] = useState<CampusChallenge[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -84,7 +84,7 @@ export function WellnessScreen({ session, nav, onSignOut }: WellnessScreenProps)
 
   return (
     <AppShell area="Member" nav={nav} onSignOut={onSignOut}>
-      <header className="wellness-heading">
+      <header className="challenges-heading">
         <h1>Challenges</h1>
         <p>Join an open campus challenge. You can join each challenge once while it is running.</p>
       </header>
@@ -96,7 +96,7 @@ export function WellnessScreen({ session, nav, onSignOut }: WellnessScreenProps)
         <EmptyState title="No open challenges" message="There is nothing to join right now." />
       ) : null}
       {challenges && challenges.length > 0 ? (
-        <ul className="wellness-list">
+        <ul className="challenges-list">
           {challenges.map((challenge) => (
             <li key={challenge.id}>
               <h2>{challenge.title}</h2>

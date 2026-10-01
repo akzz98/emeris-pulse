@@ -86,7 +86,7 @@ export function HomeScreen({ session, nav, onSignOut, onNavigate }: HomeScreenPr
               <h2 id="workday-prompts-heading">Workday prompts</h2>
               <ul>
                 {summary.prompts.map((prompt) => {
-                  const target: MemberScreen = prompt.kind === "wellness" ? "wellness" : "classes";
+                  const target: MemberScreen = prompt.kind === "challenge" ? "challenges" : "classes";
                   return (
                     <li key={`${prompt.kind}-${prompt.title}`}>
                       <button type="button" className="workday-prompt" onClick={() => onNavigate(target)}>

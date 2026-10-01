@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ROLES, type Role } from "@emeris/shared";
-import { AppShell, Button, ErrorState, LoadingState, Select, SuccessBanner, type AppNavItem } from "@emeris/ui";
+import { AppShell, Button, EmptyState, ErrorState, LoadingState, Select, SuccessBanner, TextField, type AppNavItem } from "@emeris/ui";
 import { assignAccountRole, getAccounts, type AdminSession, type DirectoryAccount } from "./api";
 import "./roles.css";
 
@@ -19,9 +19,18 @@ const roleLabels: Record<Role, string> = {
   SystemAdmin: "System admin",
 };
 
+function matchesSearch(account: DirectoryAccount, query: string): boolean {
+  if (!query) {
+    return true;
+  }
+  const haystack = `${account.firstName} ${account.lastName} ${account.email} ${account.campusIdentifier} ${roleLabels[account.role]}`.toLowerCase();
+  return haystack.includes(query);
+}
+
 export function RolesScreen({ session, nav, onSignOut }: RolesScreenProps) {
   const [accounts, setAccounts] = useState<DirectoryAccount[] | null>(null);
   const [drafts, setDrafts] = useState<Record<number, Role>>({});
+  const [search, setSearch] = useState("");
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [success, setSuccess] = useState<{ title: string; message: string } | null>(null);
@@ -61,6 +70,12 @@ export function RolesScreen({ session, nav, onSignOut }: RolesScreenProps) {
     };
   }, [session.accessToken, onSignOut]);
 
+  const query = search.trim().toLowerCase();
+  const filtered = useMemo(
+    () => (accounts ?? []).filter((account) => matchesSearch(account, query)),
+    [accounts, query],
+  );
+
   async function onSave(account: DirectoryAccount) {
     const role = drafts[account.id] ?? account.role;
     setBusyId(account.id);
@@ -98,43 +113,62 @@ export function RolesScreen({ session, nav, onSignOut }: RolesScreenProps) {
       {actionError ? <ErrorState title="Role not changed" message={actionError} /> : null}
       {success ? <SuccessBanner title={success.title} message={success.message} /> : null}
       {accounts ? (
-        <ul className="roles-list">
-          {accounts.map((account) => {
-            const mine = account.id === session.user.id;
-            const draft = drafts[account.id] ?? account.role;
-            return (
-              <li key={account.id}>
-                <h2>
-                  {account.firstName} {account.lastName}
-                </h2>
-                <p>{account.email}</p>
-                <p>{account.campusIdentifier}</p>
-                {mine ? <p>This is your account. {roleLabels[account.role]}</p> : null}
-                {mine ? null : (
-                  <>
-                    <Select
-                      id={`role-${account.id}`}
-                      label="Role"
-                      value={draft}
-                      onChange={(event) =>
-                        setDrafts((current) => ({ ...current, [account.id]: event.target.value as Role }))
-                      }
-                    >
-                      {ROLES.map((role) => (
-                        <option key={role} value={role}>
-                          {roleLabels[role]}
-                        </option>
-                      ))}
-                    </Select>
-                    <Button type="button" disabled={busyId !== null || draft === account.role} onClick={() => void onSave(account)}>
-                      {busyId === account.id ? "Saving…" : "Save role"}
-                    </Button>
-                  </>
-                )}
-              </li>
-            );
-          })}
-        </ul>
+        <>
+          <div className="roles-toolbar">
+            <TextField
+              id="roles-search"
+              label="Search accounts"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Name, email, campus identifier, or role"
+            />
+          </div>
+          {accounts.length === 0 ? (
+            <EmptyState title="No accounts" message="There are no directory accounts to manage yet." />
+          ) : null}
+          {accounts.length > 0 && filtered.length === 0 ? (
+            <EmptyState title="No matching accounts" message="Try a different name, email, or role." />
+          ) : null}
+          {filtered.length > 0 ? (
+            <ul className="roles-list">
+              {filtered.map((account) => {
+                const mine = account.id === session.user.id;
+                const draft = drafts[account.id] ?? account.role;
+                return (
+                  <li key={account.id}>
+                    <h2>
+                      {account.firstName} {account.lastName}
+                    </h2>
+                    <p>{account.email}</p>
+                    <p>{account.campusIdentifier}</p>
+                    {mine ? <p>This is your account. {roleLabels[account.role]}</p> : null}
+                    {mine ? null : (
+                      <>
+                        <Select
+                          id={`role-${account.id}`}
+                          label="Role"
+                          value={draft}
+                          onChange={(event) =>
+                            setDrafts((current) => ({ ...current, [account.id]: event.target.value as Role }))
+                          }
+                        >
+                          {ROLES.map((role) => (
+                            <option key={role} value={role}>
+                              {roleLabels[role]}
+                            </option>
+                          ))}
+                        </Select>
+                        <Button type="button" disabled={busyId !== null || draft === account.role} onClick={() => void onSave(account)}>
+                          {busyId === account.id ? "Saving…" : "Save role"}
+                        </Button>
+                      </>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          ) : null}
+        </>
       ) : null}
     </AppShell>
   );

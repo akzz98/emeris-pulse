@@ -126,7 +126,7 @@ export type ActivitySummary = {
     occurredAt: string;
   }>;
   prompts: Array<{
-    kind: "class" | "wellness";
+    kind: "class" | "challenge";
     title: string;
     message: string;
   }>;

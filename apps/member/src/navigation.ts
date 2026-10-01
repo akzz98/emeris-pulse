@@ -6,13 +6,13 @@ export type MemberScreen =
   | "access"
   | "classes"
   | "equipment"
-  | "wellness"
+  | "challenges"
   | "notices"
   | "profile";
 
 const moreScreens: Array<{ id: MemberScreen; label: string }> = [
   { id: "equipment", label: "Equipment" },
-  { id: "wellness", label: "Challenges" },
+  { id: "challenges", label: "Challenges" },
   { id: "notices", label: "Notifications" },
   { id: "membership", label: "Membership" },
   { id: "profile", label: "Profile" },

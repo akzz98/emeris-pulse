@@ -9,6 +9,10 @@
   color: var(--ep-muted, #4d5e66);
 }
 
+.roles-toolbar {
+  margin-bottom: 1rem;
+}
+
 .roles-list {
   list-style: none;
   margin: 0;

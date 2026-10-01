@@ -170,4 +170,88 @@ export class WellnessRepository {
         VALUES (@challengeId, @userId)
       `);
   }
+
+  async findManaged(challengeId: number): Promise<ManagedChallenge | null> {
+    const pool = await getPool();
+    const result = await pool.request().input("challengeId", sql.Int, challengeId).query<ManagedChallengeRow>(`
+      SELECT
+        c.Id,
+        c.Title,
+        c.Description,
+        CONVERT(char(10), c.StartsOn, 23) AS StartsOn,
+        CONVERT(char(10), c.EndsOn, 23) AS EndsOn,
+        CASE
+          WHEN c.EndsOn < CAST(GETDATE() AS DATE) THEN N'Ended'
+          WHEN c.StartsOn > CAST(GETDATE() AS DATE) THEN N'Upcoming'
+          ELSE N'Open'
+        END AS Phase,
+        (SELECT COUNT(*) FROM dbo.ChallengeEnrolments ce WHERE ce.ChallengeId = c.Id) AS JoinedCount
+      FROM dbo.Challenges c
+      WHERE c.Id = @challengeId
+    `);
+    const row = result.recordset[0];
+    if (!row) {
+      return null;
+    }
+    return {
+      id: row.Id,
+      title: row.Title,
+      description: row.Description,
+      startsOn: row.StartsOn,
+      endsOn: row.EndsOn,
+      phase: row.Phase,
+      joinedCount: Number(row.JoinedCount),
+    };
+  }
+
+  async updateChallenge(
+    challengeId: number,
+    input: { title: string; description: string; startsOn: string; endsOn: string },
+  ): Promise<boolean> {
+    const pool = await getPool();
+    const result = await pool
+      .request()
+      .input("challengeId", sql.Int, challengeId)
+      .input("title", sql.NVarChar(120), input.title)
+      .input("description", sql.NVarChar(400), input.description)
+      .input("startsOn", sql.NVarChar(10), input.startsOn)
+      .input("endsOn", sql.NVarChar(10), input.endsOn)
+      .query(`
+        UPDATE dbo.Challenges
+        SET
+          Title = @title,
+          Description = @description,
+          StartsOn = CAST(@startsOn AS DATE),
+          EndsOn = CAST(@endsOn AS DATE)
+        WHERE Id = @challengeId
+      `);
+    return (result.rowsAffected[0] ?? 0) > 0;
+  }
+
+  // Ends the challenge immediately by setting EndsOn to yesterday.
+  // Upcoming challenges also move StartsOn back so the date check still holds.
+  async endChallenge(challengeId: number): Promise<"ended" | "already_ended" | "missing"> {
+    const pool = await getPool();
+    const result = await pool.request().input("challengeId", sql.Int, challengeId).query<{ Id: number }>(`
+      UPDATE dbo.Challenges
+      SET
+        StartsOn = CASE
+          WHEN StartsOn > DATEADD(day, -1, CAST(GETDATE() AS DATE))
+          THEN DATEADD(day, -1, CAST(GETDATE() AS DATE))
+          ELSE StartsOn
+        END,
+        EndsOn = DATEADD(day, -1, CAST(GETDATE() AS DATE))
+      OUTPUT INSERTED.Id
+      WHERE Id = @challengeId
+        AND EndsOn >= CAST(GETDATE() AS DATE)
+    `);
+    if (result.recordset[0]) {
+      return "ended";
+    }
+    const existing = await this.findManaged(challengeId);
+    if (!existing) {
+      return "missing";
+    }
+    return "already_ended";
+  }
 }

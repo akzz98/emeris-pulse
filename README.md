@@ -82,7 +82,7 @@ The floor lists every machine, its code, location, and whether it is available o
 - While a session is open they can describe a fault. That opens a maintenance ticket. A second open ticket for the same machine is refused.
 - Reporting a fault does not by itself take the machine off the floor. Facility staff do that from the maintenance queue.
 
-### Wellness
+### Challenges
 
 Open campus challenges are listed with their description and dates. An active member can join each challenge once, and only while today falls inside its start and end dates. The app records the join. It does not score progress or close the challenge on its own.
 
@@ -196,7 +196,7 @@ An existing scheduled class can be edited. Capacity cannot drop below the number
 
 ### Challenges
 
-Publish a campus challenge with a title, description, and start and end dates. The end date can be the same day as the start, and cannot be earlier. Members join it from the member app while it is open. The admin list shows each challenge and how many people have joined.
+Publish a campus challenge with a title, description, and start and end dates. The end date can be the same day as the start, and cannot be earlier. An existing challenge can be edited, or ended so members can no longer join. Members join it from the member app while it is open. The admin list shows each challenge and how many people have joined.
 
 ### Broadcast
 
@@ -211,7 +211,7 @@ The open ticket queue: machine, location, description, who reported it, and when
 
 ### Roles
 
-System admin only. Every account is listed with name, email, and campus identifier. The admin picks a new role and saves it. They cannot change their own role. Assignable roles are Student, Staff, Instructor, Gym admin, Facility manager, and System admin.
+System admin only. Every account is listed with name, email, and campus identifier. Search narrows the list; an empty directory or no matches shows an empty state. The admin picks a new role and saves it. They cannot change their own role. Assignable roles are Student, Staff, Instructor, Gym admin, Facility manager, and System admin.
 
 ## Status values
 

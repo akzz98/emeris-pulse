@@ -424,6 +424,27 @@ export async function createChallenge(accessToken: string, draft: ChallengeDraft
   return readAdmin(response, "Could not create this challenge.");
 }
 
+export async function updateChallenge(
+  accessToken: string,
+  challengeId: number,
+  draft: ChallengeDraft,
+): Promise<ManagedChallenge> {
+  const response = await authorized(`${apiUrl}/challenges/${challengeId}`, {
+    method: "PATCH",
+    headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+    body: JSON.stringify(draft),
+  });
+  return readAdmin(response, "Could not update this challenge.");
+}
+
+export async function endChallenge(accessToken: string, challengeId: number): Promise<ManagedChallenge> {
+  const response = await authorized(`${apiUrl}/challenges/${challengeId}/end`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return readAdmin(response, "Could not end this challenge.");
+}
+
 export async function getManagedClasses(
   accessToken: string,
 ): Promise<{ classes: ManagedClass[]; instructors: InstructorOption[] }> {

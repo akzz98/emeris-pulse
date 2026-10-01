@@ -37,3 +37,24 @@
 .challenges-list p {
   margin: 0.2rem 0 0;
 }
+
+.challenges-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.challenges-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.challenges-editor {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--ep-line, #d5e0e4);
+}
+
