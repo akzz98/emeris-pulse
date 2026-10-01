@@ -20,11 +20,6 @@
   color: var(--ep-muted, #4d5e66);
 }
 
-.timetable-notice {
-  margin: 0 0 1rem;
-  color: var(--ep-success, #0d6b4c);
-}
-
 .timetable-form,
 .timetable-list li {
   background: var(--ep-white, #ffffff);
@@ -57,14 +52,4 @@
   margin-top: 0.85rem;
   padding-top: 0.85rem;
   border-top: 1px solid var(--ep-line, #d5e0e4);
-}
-
-.timetable-form select,
-.timetable-list select {
-  font: inherit;
-  color: var(--ep-ink, #142026);
-  background: var(--ep-white, #ffffff);
-  border: 1px solid var(--ep-line, #d5e0e4);
-  border-radius: 0.4rem;
-  padding: 0.6rem 0.7rem;
 }

@@ -91,7 +91,18 @@
 
   .access-log td {
     border: 0;
-    padding: 0.1rem 0;
+    padding: 0.35rem 0;
+    display: grid;
+    grid-template-columns: 5.5rem minmax(0, 1fr);
+    gap: 0.5rem;
+    align-items: start;
+  }
+
+  .access-log td::before {
+    content: attr(data-label);
+    color: var(--ep-muted, #4d5e66);
+    font-weight: 650;
+    font-size: 0.85rem;
   }
 
   .access-log td:first-child {

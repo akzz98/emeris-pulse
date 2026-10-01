@@ -110,7 +110,7 @@ function MoreNav({ item }: { item: AppNavItem }) {
 
 export function AppShell({ area, nav, onSignOut, children }: AppShellProps) {
   return (
-    <div className="ep-app">
+    <div className="ep-app" data-area={area}>
       <a className="ep-skip" href="#main">
         Skip to content
       </a>

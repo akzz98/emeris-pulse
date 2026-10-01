@@ -9,11 +9,6 @@
   color: var(--ep-muted, #4d5e66);
 }
 
-.members-notice {
-  margin: 0 0 1rem;
-  color: var(--ep-success, #0d6b4c);
-}
-
 .members-tabs {
   display: flex;
   flex-wrap: wrap;

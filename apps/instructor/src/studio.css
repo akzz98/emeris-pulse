@@ -9,11 +9,6 @@
   color: var(--ep-muted, #4d5e66);
 }
 
-.studio-notice {
-  margin: 0 0 1rem;
-  color: var(--ep-success, #0d6b4c);
-}
-
 .studio-form {
   margin-bottom: 1.25rem;
 }

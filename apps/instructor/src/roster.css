@@ -98,11 +98,6 @@
   color: var(--ep-muted, #4d5e66);
 }
 
-.class-notice {
-  margin: 0 0 1rem;
-  color: var(--ep-success, #0d6b4c);
-}
-
 .attendance-actions {
   display: flex;
   gap: 0.4rem;

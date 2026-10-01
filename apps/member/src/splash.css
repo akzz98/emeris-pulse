@@ -46,20 +46,6 @@
   margin-top: 1rem;
 }
 
-.login-form select {
-  font: inherit;
-  color: var(--ep-ink, #142026);
-  background: var(--ep-white, #ffffff);
-  border: 1px solid var(--ep-line, #d5e0e4);
-  border-radius: 0.4rem;
-  padding: 0.6rem 0.7rem;
-}
-
-.login-form select:focus-visible {
-  outline: var(--ep-focus, 2px solid #0b6e8a);
-  outline-offset: 2px;
-}
-
 .signed-in .ep-button {
   margin-top: 1rem;
 }

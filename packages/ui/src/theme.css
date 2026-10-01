@@ -245,6 +245,14 @@ body {
   padding: 1.5rem 1.25rem 3rem;
 }
 
+/* Tables and reports need a wider column on the desk apps. Member and instructor stay phone-friendly. */
+.ep-app[data-area="Admin"] .ep-nav ul,
+.ep-app[data-area="Facility"] .ep-nav ul,
+.ep-app[data-area="Admin"] .ep-main,
+.ep-app[data-area="Facility"] .ep-main {
+  max-width: 64rem;
+}
+
 .ep-button {
   appearance: none;
   border: 1px solid transparent;

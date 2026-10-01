@@ -9,29 +9,6 @@
   color: var(--ep-muted, #4d5e66);
 }
 
-.text-button {
-  appearance: none;
-  border: 0;
-  background: none;
-  padding: 0;
-  margin: 0 0 1rem;
-  color: var(--ep-teal, #004559);
-  font: inherit;
-  font-weight: 650;
-  text-decoration: underline;
-  text-underline-offset: 0.18em;
-  cursor: pointer;
-}
-
-.text-button:hover {
-  color: var(--ep-teal-dark, #003344);
-}
-
-.text-button:focus-visible {
-  outline: var(--ep-focus, 2px solid #0b6e8a);
-  outline-offset: 3px;
-}
-
 .membership-card {
   background: var(--ep-white, #ffffff);
   border: 1px solid var(--ep-line, #d5e0e4);
@@ -82,8 +59,4 @@
 .entry-refused {
   background: var(--ep-danger-bg, #fdecef);
   color: var(--ep-danger, #8c1d32);
-}
-
-.membership-actions {
-  margin-top: 1rem;
 }

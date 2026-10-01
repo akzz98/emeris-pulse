@@ -9,11 +9,6 @@
   color: var(--ep-muted, #4d5e66);
 }
 
-.challenges-notice {
-  margin: 0 0 1rem;
-  color: var(--ep-success, #0d6b4c);
-}
-
 .challenges-form {
   margin-bottom: 1.25rem;
 }

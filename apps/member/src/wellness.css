@@ -9,11 +9,6 @@
   color: var(--ep-muted, #4d5e66);
 }
 
-.wellness-notice {
-  margin: 0 0 1rem;
-  color: var(--ep-success, #0d6b4c);
-}
-
 .wellness-list {
   list-style: none;
   margin: 0;
