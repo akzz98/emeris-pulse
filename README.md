@@ -159,7 +159,7 @@ Three paged reports. Each page in the app shows one row, with previous and next.
 
 ### Scan entry
 
-The desk pastes the signed pass from the member’s QR, or from a temporary pass. The scan does not sign in as the member. Each attempt is stored:
+The desk can point a webcam at the member’s QR pass, or paste the signed code from the phone or a temporary pass. The scan does not sign in as the member. Each attempt is stored:
 
 - **Granted** when the pass is valid, unused, and the membership can enter.
 - **Refused** when the membership is not active, or the pass was already used.
