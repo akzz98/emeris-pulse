@@ -274,6 +274,10 @@ Every live address is HTTPS. Azure terminates TLS on `azurewebsites.net`.
 
 `GET /health` returns `{"status":"ok","service":"emeris-pulse-api"}`.
 
+## Presentation
+
+Task 2 slide deck for Emeris management: [`docs/Task2-Presentation.pptx`](docs/Task2-Presentation.pptx). Screenshots are from the hosted apps. Spoken click-path: `docs/DEMO.md` (local working copy).
+
 The database is Azure SQL Standard S0 (10 DTU, 100 MB). That size stays on the student subscription’s free S0 meter, which covers one S0 database for 31 days a month. The API and the three web apps share one Linux B1 App Service plan, paid from the Azure for Students credit of $100. Extra apps on that plan do not add a second plan charge.
 
 Static Web Apps Free was not used. That service can only be created in Central US, East US 2, West US 2, West Europe, and East Asia. This student subscription can create resources only in Austria East, Brazil South, Italy North, Spain Central, and Central India, so the two lists do not overlap. The four sites therefore sit on one Linux B1 plan in Spain Central. The database stays a separate Azure SQL server, so publishing a web app does not replace the data. `GET /health` is the check that the API process is up and answering.
@@ -321,7 +325,7 @@ npm run dev:admin
 - `packages/ui` — Emeris visual system
 - `packages/shared` — roles and types shared by the apps and the API
 - `database` — Azure SQL schema and seed
-- `docs` — data model (`docs/erd.md`), hosted demo script (`docs/DEMO.md`), and the project attendance register
+- `docs` — data model (`docs/erd.md`), Task 2 presentation (`docs/Task2-Presentation.pptx`), hosted demo script (`docs/DEMO.md`), and the project attendance register
 - `.github/workflows` — pull-request checks and the deploy to Azure
 
 ## API

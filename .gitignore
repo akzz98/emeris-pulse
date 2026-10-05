@@ -14,3 +14,11 @@ docs/hosting-checklist.md
 docs/DEMO.md
 docs/task2-walkthrough.md
 .azure-hosting.local
+
+# Screenshot staging for Task 2 PPTX (keep the .pptx).
+docs/presentation-assets/*.png
+docs/presentation-assets/node_modules/
+docs/presentation-assets/package-lock.json
+docs/presentation-assets/capture.mjs
+docs/presentation-assets/build-pptx.mjs
+docs/presentation-assets/package.json
