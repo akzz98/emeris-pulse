@@ -276,7 +276,7 @@ Every live address is HTTPS. Azure terminates TLS on `azurewebsites.net`.
 
 ## Presentation
 
-Task 2 slide deck for Emeris management: [`docs/Task2-Presentation.pptx`](docs/Task2-Presentation.pptx). Screenshots are from the hosted apps. Spoken click-path: `docs/DEMO.md` (local working copy).
+Task 2 slide deck for Emeris management: [`docs/Task2-Presentation-bottomnav.pptx`](docs/Task2-Presentation-bottomnav.pptx) (bottom-nav screenshots from the live member app). Demo walkthrough: [https://youtu.be/kNUCYi37EvI](https://youtu.be/kNUCYi37EvI). Spoken click-path: `docs/DEMO.md` (local working copy).
 
 The database is Azure SQL Standard S0 (10 DTU, 100 MB). That size stays on the student subscription’s free S0 meter, which covers one S0 database for 31 days a month. The API and the three web apps share one Linux B1 App Service plan, paid from the Azure for Students credit of $100. Extra apps on that plan do not add a second plan charge.
 
