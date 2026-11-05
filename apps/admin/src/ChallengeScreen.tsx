@@ -11,6 +11,7 @@ import {
   type AppNavItem,
 } from "@emeris/ui";
 import {
+  ApiError,
   createChallenge,
   endChallenge,
   getManagedChallenges,
@@ -49,6 +50,8 @@ export function ChallengeScreen({ session, nav, onSignOut }: ChallengeScreenProp
   const [pendingEnd, setPendingEnd] = useState<ManagedChallenge | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [editFieldErrors, setEditFieldErrors] = useState<Record<string, string>>({});
   const [success, setSuccess] = useState<{ title: string; message: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -89,10 +92,22 @@ export function ChallengeScreen({ session, nav, onSignOut }: ChallengeScreenProp
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session.accessToken, onSignOut]);
 
+  function patchDraft(patch: Partial<ChallengeDraft>) {
+    setDraft((current) => ({ ...current, ...patch }));
+    setFieldErrors((current) => {
+      const next = { ...current };
+      for (const key of Object.keys(patch)) {
+        delete next[key];
+      }
+      return next;
+    });
+  }
+
   async function onCreate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
     setActionError(null);
+    setFieldErrors({});
     setSuccess(null);
     try {
       const created = await createChallenge(session.accessToken, draft);
@@ -105,6 +120,10 @@ export function ChallengeScreen({ session, nav, onSignOut }: ChallengeScreenProp
         onSignOut();
         return;
       }
+      if (caught instanceof ApiError && Object.keys(caught.fieldErrors).length > 0) {
+        setFieldErrors(caught.fieldErrors);
+        return;
+      }
       setActionError(message);
     } finally {
       setBusy(false);
@@ -114,6 +133,7 @@ export function ChallengeScreen({ session, nav, onSignOut }: ChallengeScreenProp
   async function onSave(item: ManagedChallenge, next: ChallengeDraft) {
     setBusy(true);
     setActionError(null);
+    setEditFieldErrors({});
     setSuccess(null);
     try {
       const updated = await updateChallenge(session.accessToken, item.id, next);
@@ -124,6 +144,10 @@ export function ChallengeScreen({ session, nav, onSignOut }: ChallengeScreenProp
       const message = caught instanceof Error ? caught.message : "Could not update this challenge.";
       if (message === "UNAUTHENTICATED") {
         onSignOut();
+        return;
+      }
+      if (caught instanceof ApiError && Object.keys(caught.fieldErrors).length > 0) {
+        setEditFieldErrors(caught.fieldErrors);
         return;
       }
       setActionError(message);
@@ -167,13 +191,14 @@ export function ChallengeScreen({ session, nav, onSignOut }: ChallengeScreenProp
       {loadError ? <ErrorState title="Could not load challenges" message={loadError} /> : null}
       {actionError ? <ErrorState title="Challenge not saved" message={actionError} /> : null}
       {success ? <SuccessBanner title={success.title} message={success.message} /> : null}
-      <form className="challenges-form" onSubmit={(event) => void onCreate(event)}>
+      <form className="challenges-form" onSubmit={(event) => void onCreate(event)} noValidate>
         <h2>Create a challenge</h2>
         <TextField
           id="challenge-title"
           label="Title"
           value={draft.title}
-          onChange={(event) => setDraft({ ...draft, title: event.target.value })}
+          onChange={(event) => patchDraft({ title: event.target.value })}
+          error={fieldErrors.title}
           maxLength={120}
           required
         />
@@ -181,7 +206,8 @@ export function ChallengeScreen({ session, nav, onSignOut }: ChallengeScreenProp
           id="challenge-description"
           label="Description"
           value={draft.description}
-          onChange={(event) => setDraft({ ...draft, description: event.target.value })}
+          onChange={(event) => patchDraft({ description: event.target.value })}
+          error={fieldErrors.description}
           maxLength={400}
           required
         />
@@ -190,7 +216,8 @@ export function ChallengeScreen({ session, nav, onSignOut }: ChallengeScreenProp
           label="Starts"
           type="date"
           value={draft.startsOn}
-          onChange={(event) => setDraft({ ...draft, startsOn: event.target.value })}
+          onChange={(event) => patchDraft({ startsOn: event.target.value })}
+          error={fieldErrors.startsOn}
           required
         />
         <TextField
@@ -198,7 +225,8 @@ export function ChallengeScreen({ session, nav, onSignOut }: ChallengeScreenProp
           label="Ends"
           type="date"
           value={draft.endsOn}
-          onChange={(event) => setDraft({ ...draft, endsOn: event.target.value })}
+          onChange={(event) => patchDraft({ endsOn: event.target.value })}
+          error={fieldErrors.endsOn}
           required
         />
         <Button type="submit" disabled={busy}>
@@ -230,7 +258,10 @@ export function ChallengeScreen({ session, nav, onSignOut }: ChallengeScreenProp
                     type="button"
                     variant="secondary"
                     disabled={busy}
-                    onClick={() => setEditingId((current) => (current === challenge.id ? null : challenge.id))}
+                    onClick={() => {
+                      setEditFieldErrors({});
+                      setEditingId((current) => (current === challenge.id ? null : challenge.id));
+                    }}
                   >
                     {editingId === challenge.id ? "Close" : "Edit"}
                   </Button>
@@ -242,7 +273,13 @@ export function ChallengeScreen({ session, nav, onSignOut }: ChallengeScreenProp
                 </div>
               </div>
               {editingId === challenge.id ? (
-                <ChallengeEditor item={challenge} disabled={busy} onSave={onSave} />
+                <ChallengeEditor
+                  item={challenge}
+                  disabled={busy}
+                  fieldErrors={editFieldErrors}
+                  onFieldErrorsChange={setEditFieldErrors}
+                  onSave={onSave}
+                />
               ) : null}
             </li>
           ))}
@@ -270,10 +307,14 @@ export function ChallengeScreen({ session, nav, onSignOut }: ChallengeScreenProp
 function ChallengeEditor({
   item,
   disabled,
+  fieldErrors,
+  onFieldErrorsChange,
   onSave,
 }: {
   item: ManagedChallenge;
   disabled: boolean;
+  fieldErrors: Record<string, string>;
+  onFieldErrorsChange: (next: Record<string, string>) => void;
   onSave: (item: ManagedChallenge, draft: ChallengeDraft) => void;
 }) {
   const [draft, setDraft] = useState<ChallengeDraft>({
@@ -283,13 +324,23 @@ function ChallengeEditor({
     endsOn: item.endsOn,
   });
 
+  function patch(patch: Partial<ChallengeDraft>) {
+    setDraft((current) => ({ ...current, ...patch }));
+    const next = { ...fieldErrors };
+    for (const key of Object.keys(patch)) {
+      delete next[key];
+    }
+    onFieldErrorsChange(next);
+  }
+
   return (
     <div className="challenges-editor">
       <TextField
         id={`title-${item.id}`}
         label="Title"
         value={draft.title}
-        onChange={(event) => setDraft({ ...draft, title: event.target.value })}
+        onChange={(event) => patch({ title: event.target.value })}
+        error={fieldErrors.title}
         maxLength={120}
         required
       />
@@ -297,7 +348,8 @@ function ChallengeEditor({
         id={`description-${item.id}`}
         label="Description"
         value={draft.description}
-        onChange={(event) => setDraft({ ...draft, description: event.target.value })}
+        onChange={(event) => patch({ description: event.target.value })}
+        error={fieldErrors.description}
         maxLength={400}
         required
       />
@@ -306,7 +358,8 @@ function ChallengeEditor({
         label="Starts"
         type="date"
         value={draft.startsOn}
-        onChange={(event) => setDraft({ ...draft, startsOn: event.target.value })}
+        onChange={(event) => patch({ startsOn: event.target.value })}
+        error={fieldErrors.startsOn}
         required
       />
       <TextField
@@ -314,7 +367,8 @@ function ChallengeEditor({
         label="Ends"
         type="date"
         value={draft.endsOn}
-        onChange={(event) => setDraft({ ...draft, endsOn: event.target.value })}
+        onChange={(event) => patch({ endsOn: event.target.value })}
+        error={fieldErrors.endsOn}
         required
       />
       <Button type="button" disabled={disabled} onClick={() => onSave(item, draft)}>

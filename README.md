@@ -53,19 +53,27 @@ docker compose up -d
 sqlcmd -S localhost,1433 -U sa -P "Emeris_Pulse_Dev1" -C -i database/schema.sql
 sqlcmd -S localhost,1433 -U sa -P "Emeris_Pulse_Dev1" -C -i database/seed.sql
 npm run dev:api
-npm run dev:member
-npm run dev:instructor
-npm run dev:admin
 ```
+
+`.env.example` lists the API port, the three local web origins, the JWT secret, and the local SQL connection string. The API only accepts those origins. Local API health: http://localhost:4000/health
+
+### Run the member app
+
+With the API running locally:
+
+```bash
+npm run dev:member
+```
+
+Then open http://localhost:5173 on the same machine.
+
+If the phone is **not** on this dev machine (or you are not running the API locally), use the hosted member site instead: https://emeris-pulse-member.azurewebsites.net
 
 | App | Local URL |
 | --- | --- |
-| API health | http://localhost:4000/health |
 | Member | http://localhost:5173 |
-| Instructor | http://localhost:5174 |
-| Admin | http://localhost:5175 |
-
-`.env.example` lists the API port, the three local web origins, the JWT secret, and the local SQL connection string. The API only accepts those origins.
+| Instructor | http://localhost:5174 (`npm run dev:instructor`) |
+| Admin | http://localhost:5175 (`npm run dev:admin`) |
 
 ## Member app
 

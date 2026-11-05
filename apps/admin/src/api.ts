@@ -274,13 +274,40 @@ export type ClassDraft = {
   location: string;
 };
 
+export class ApiError extends Error {
+  readonly fieldErrors: Record<string, string>;
+
+  constructor(message: string, fieldErrors: Record<string, string> = {}) {
+    super(message);
+    this.name = "ApiError";
+    this.fieldErrors = fieldErrors;
+  }
+}
+
+function fieldErrorsFrom(details: unknown): Record<string, string> {
+  if (!details || typeof details !== "object" || !("fieldErrors" in details)) {
+    return {};
+  }
+  const raw = (details as { fieldErrors?: unknown }).fieldErrors;
+  if (!raw || typeof raw !== "object") {
+    return {};
+  }
+  const errors: Record<string, string> = {};
+  for (const [key, value] of Object.entries(raw)) {
+    if (Array.isArray(value) && typeof value[0] === "string") {
+      errors[key] = value[0];
+    }
+  }
+  return errors;
+}
+
 async function readAdmin<T>(response: Response, fallback: string): Promise<T> {
-  const body = (await response.json()) as T & { error?: { message?: string } };
+  const body = (await response.json()) as T & { error?: { message?: string; details?: unknown } };
   if (response.status === 401) {
     throw new Error("UNAUTHENTICATED");
   }
   if (!response.ok) {
-    throw new Error(body.error?.message ?? fallback);
+    throw new ApiError(body.error?.message ?? fallback, fieldErrorsFrom(body.error?.details));
   }
   return body;
 }

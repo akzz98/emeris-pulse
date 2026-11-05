@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { AppShell, Button, ConfirmDialog, EmptyState, ErrorState, LoadingState, Select, SuccessBanner, TextField, type AppNavItem } from "@emeris/ui";
 import {
+  ApiError,
   getManagedClasses,
   publishClass,
   updateClass,
@@ -62,6 +63,8 @@ export function TimetableScreen({ session, nav, onSignOut }: TimetableScreenProp
   const [pendingSave, setPendingSave] = useState<{ item: ManagedClass; draft: ClassDraft } | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [editFieldErrors, setEditFieldErrors] = useState<Record<string, string>>({});
   const [success, setSuccess] = useState<{ title: string; message: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -112,6 +115,7 @@ export function TimetableScreen({ session, nav, onSignOut }: TimetableScreenProp
     event.preventDefault();
     setBusy(true);
     setActionError(null);
+    setFieldErrors({});
     setSuccess(null);
     try {
       const title = draft.title;
@@ -123,6 +127,10 @@ export function TimetableScreen({ session, nav, onSignOut }: TimetableScreenProp
       const message = caught instanceof Error ? caught.message : "Could not publish the class.";
       if (message === "UNAUTHENTICATED") {
         onSignOut();
+        return;
+      }
+      if (caught instanceof ApiError && Object.keys(caught.fieldErrors).length > 0) {
+        setFieldErrors(caught.fieldErrors);
         return;
       }
       setActionError(message);
@@ -143,6 +151,7 @@ export function TimetableScreen({ session, nav, onSignOut }: TimetableScreenProp
     setBusy(true);
     setPendingSave(null);
     setActionError(null);
+    setEditFieldErrors({});
     setSuccess(null);
     try {
       const saved = await updateClass(session.accessToken, item.id, { ...next, capacity: Number(next.capacity) });
@@ -161,10 +170,25 @@ export function TimetableScreen({ session, nav, onSignOut }: TimetableScreenProp
         onSignOut();
         return;
       }
+      if (caught instanceof ApiError && Object.keys(caught.fieldErrors).length > 0) {
+        setEditFieldErrors(caught.fieldErrors);
+        return;
+      }
       setActionError(message);
     } finally {
       setBusy(false);
     }
+  }
+
+  function patchDraft(patch: Partial<ClassDraft>) {
+    setDraft((current) => ({ ...current, ...patch }));
+    setFieldErrors((current) => {
+      const next = { ...current };
+      for (const key of Object.keys(patch)) {
+        delete next[key];
+      }
+      return next;
+    });
   }
 
   return (
@@ -177,14 +201,22 @@ export function TimetableScreen({ session, nav, onSignOut }: TimetableScreenProp
       {loadError ? <ErrorState title="Could not load timetable" message={loadError} /> : null}
       {actionError ? <ErrorState title="Timetable not saved" message={actionError} /> : null}
       {success ? <SuccessBanner title={success.title} message={success.message} /> : null}
-      <form className="timetable-form" onSubmit={onPublish}>
+      <form className="timetable-form" onSubmit={onPublish} noValidate>
         <h2>Publish a class</h2>
-        <TextField id="class-title" label="Title" value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} required />
+        <TextField
+          id="class-title"
+          label="Title"
+          value={draft.title}
+          onChange={(event) => patchDraft({ title: event.target.value })}
+          error={fieldErrors.title}
+          required
+        />
         <Select
           id="class-instructor"
           label="Instructor"
           value={draft.instructorEmail}
-          onChange={(event) => setDraft({ ...draft, instructorEmail: event.target.value })}
+          onChange={(event) => patchDraft({ instructorEmail: event.target.value })}
+          error={fieldErrors.instructorEmail}
           required
         >
           {instructors.map((instructor) => (
@@ -193,10 +225,42 @@ export function TimetableScreen({ session, nav, onSignOut }: TimetableScreenProp
             </option>
           ))}
         </Select>
-        <TextField id="class-start" label="Starts" type="datetime-local" value={draft.startsAt} onChange={(event) => setDraft({ ...draft, startsAt: event.target.value })} required />
-        <TextField id="class-end" label="Ends" type="datetime-local" value={draft.endsAt} onChange={(event) => setDraft({ ...draft, endsAt: event.target.value })} required />
-        <TextField id="class-capacity" label="Capacity" type="number" min={1} value={String(draft.capacity)} onChange={(event) => setDraft({ ...draft, capacity: Number(event.target.value) })} required />
-        <TextField id="class-location" label="Location" value={draft.location} onChange={(event) => setDraft({ ...draft, location: event.target.value })} required />
+        <TextField
+          id="class-start"
+          label="Starts"
+          type="datetime-local"
+          value={draft.startsAt}
+          onChange={(event) => patchDraft({ startsAt: event.target.value })}
+          error={fieldErrors.startsAt}
+          required
+        />
+        <TextField
+          id="class-end"
+          label="Ends"
+          type="datetime-local"
+          value={draft.endsAt}
+          onChange={(event) => patchDraft({ endsAt: event.target.value })}
+          error={fieldErrors.endsAt}
+          required
+        />
+        <TextField
+          id="class-capacity"
+          label="Capacity"
+          type="number"
+          min={1}
+          value={String(draft.capacity)}
+          onChange={(event) => patchDraft({ capacity: Number(event.target.value) })}
+          error={fieldErrors.capacity}
+          required
+        />
+        <TextField
+          id="class-location"
+          label="Location"
+          value={draft.location}
+          onChange={(event) => patchDraft({ location: event.target.value })}
+          error={fieldErrors.location}
+          required
+        />
         <Button type="submit" disabled={busy}>
           {busy ? "Saving…" : "Publish class"}
         </Button>
@@ -222,13 +286,23 @@ export function TimetableScreen({ session, nav, onSignOut }: TimetableScreenProp
                   type="button"
                   variant="secondary"
                   disabled={busy}
-                  onClick={() => setEditingId((current) => (current === item.id ? null : item.id))}
+                  onClick={() => {
+                    setEditFieldErrors({});
+                    setEditingId((current) => (current === item.id ? null : item.id));
+                  }}
                 >
                   {editingId === item.id ? "Close" : "Edit"}
                 </Button>
               </div>
               {editingId === item.id ? (
-                <ClassEditor item={item} instructors={instructors} disabled={busy} onSave={requestSave} />
+                <ClassEditor
+                  item={item}
+                  instructors={instructors}
+                  disabled={busy}
+                  fieldErrors={editFieldErrors}
+                  onFieldErrorsChange={setEditFieldErrors}
+                  onSave={requestSave}
+                />
               ) : null}
             </li>
           ))}
@@ -261,11 +335,15 @@ function ClassEditor({
   item,
   instructors,
   disabled,
+  fieldErrors,
+  onFieldErrorsChange,
   onSave,
 }: {
   item: ManagedClass;
   instructors: InstructorOption[];
   disabled: boolean;
+  fieldErrors: Record<string, string>;
+  onFieldErrorsChange: (next: Record<string, string>) => void;
   onSave: (item: ManagedClass, draft: ClassDraft) => void;
 }) {
   const [draft, setDraft] = useState<ClassDraft>({
@@ -277,14 +355,31 @@ function ClassEditor({
     location: item.location,
   });
 
+  function patch(patch: Partial<ClassDraft>) {
+    setDraft((current) => ({ ...current, ...patch }));
+    const next = { ...fieldErrors };
+    for (const key of Object.keys(patch)) {
+      delete next[key];
+    }
+    onFieldErrorsChange(next);
+  }
+
   return (
     <div className="timetable-editor">
-      <TextField id={`title-${item.id}`} label="Title" value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} required />
+      <TextField
+        id={`title-${item.id}`}
+        label="Title"
+        value={draft.title}
+        onChange={(event) => patch({ title: event.target.value })}
+        error={fieldErrors.title}
+        required
+      />
       <Select
         id={`instructor-${item.id}`}
         label="Instructor"
         value={draft.instructorEmail}
-        onChange={(event) => setDraft({ ...draft, instructorEmail: event.target.value })}
+        onChange={(event) => patch({ instructorEmail: event.target.value })}
+        error={fieldErrors.instructorEmail}
       >
         {instructors.map((instructor) => (
           <option key={instructor.id} value={instructor.email}>
@@ -292,10 +387,42 @@ function ClassEditor({
           </option>
         ))}
       </Select>
-      <TextField id={`start-${item.id}`} label="Starts" type="datetime-local" value={draft.startsAt} onChange={(event) => setDraft({ ...draft, startsAt: event.target.value })} required />
-      <TextField id={`end-${item.id}`} label="Ends" type="datetime-local" value={draft.endsAt} onChange={(event) => setDraft({ ...draft, endsAt: event.target.value })} required />
-      <TextField id={`capacity-${item.id}`} label="Capacity" type="number" min={1} value={String(draft.capacity)} onChange={(event) => setDraft({ ...draft, capacity: Number(event.target.value) })} required />
-      <TextField id={`location-${item.id}`} label="Location" value={draft.location} onChange={(event) => setDraft({ ...draft, location: event.target.value })} required />
+      <TextField
+        id={`start-${item.id}`}
+        label="Starts"
+        type="datetime-local"
+        value={draft.startsAt}
+        onChange={(event) => patch({ startsAt: event.target.value })}
+        error={fieldErrors.startsAt}
+        required
+      />
+      <TextField
+        id={`end-${item.id}`}
+        label="Ends"
+        type="datetime-local"
+        value={draft.endsAt}
+        onChange={(event) => patch({ endsAt: event.target.value })}
+        error={fieldErrors.endsAt}
+        required
+      />
+      <TextField
+        id={`capacity-${item.id}`}
+        label="Capacity"
+        type="number"
+        min={1}
+        value={String(draft.capacity)}
+        onChange={(event) => patch({ capacity: Number(event.target.value) })}
+        error={fieldErrors.capacity}
+        required
+      />
+      <TextField
+        id={`location-${item.id}`}
+        label="Location"
+        value={draft.location}
+        onChange={(event) => patch({ location: event.target.value })}
+        error={fieldErrors.location}
+        required
+      />
       <Button type="button" disabled={disabled} onClick={() => onSave(item, draft)}>
         Save changes
       </Button>

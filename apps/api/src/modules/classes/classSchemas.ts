@@ -4,7 +4,9 @@ export const classIdParams = z.object({
   classId: z.coerce.number().int().positive(),
 });
 
-export const localDateTime = z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/);
+export const localDateTime = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/, "Enter a date and time.");
 
 export const publishClassSchema = z.object({
   title: z.string().trim().min(1, "Enter a class title.").max(120, "Use at most 120 characters."),
