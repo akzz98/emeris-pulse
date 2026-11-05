@@ -16,7 +16,7 @@ export const accessLogQuerySchema = z.object({
 });
 
 export const temporaryPassSchema = z.object({
-  email: z.string().trim().email().max(255),
+  email: z.string().trim().email("Enter a valid email address.").max(255, "Enter a valid email address."),
 });
 
 export type RedeemPassInput = z.infer<typeof redeemPassSchema>;

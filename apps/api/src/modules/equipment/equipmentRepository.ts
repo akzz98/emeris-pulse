@@ -166,6 +166,18 @@ export class EquipmentRepository {
     return Number(result.recordset[0]?.OpenCount ?? 0);
   }
 
+  async setTicketStatus(transaction: sql.Transaction, ticketId: number, status: TicketStatus): Promise<void> {
+    await transaction
+      .request()
+      .input("ticketId", sql.Int, ticketId)
+      .input("status", sql.NVarChar(16), status)
+      .query(`
+        UPDATE dbo.MaintenanceTickets
+        SET Status = @status
+        WHERE Id = @ticketId
+      `);
+  }
+
   async closeTicket(transaction: sql.Transaction, ticketId: number, status: TicketStatus): Promise<void> {
     await transaction
       .request()

@@ -7,6 +7,7 @@ import {
   listStudioEquipment,
   listTicketQueue,
   closeTicket,
+  startTicket,
   reportFault,
   reportFloorFault,
   reportUnsafeStudio,
@@ -54,6 +55,12 @@ export async function reportStudioFaultHandler(req: Request, res: Response) {
 
 export async function ticketQueueHandler(_req: Request, res: Response) {
   res.status(200).json(await listTicketQueue());
+}
+
+export async function startTicketHandler(req: Request, res: Response) {
+  requireUser(req);
+  const params = ticketIdParams.parse(res.locals.params);
+  res.status(200).json(await startTicket(params.ticketId));
 }
 
 export async function closeTicketHandler(req: Request, res: Response) {

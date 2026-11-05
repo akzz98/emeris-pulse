@@ -12,6 +12,7 @@ import {
   startSessionHandler,
   studioEquipmentHandler,
   closeTicketHandler,
+  startTicketHandler,
   takeOutOfServiceHandler,
   ticketQueueHandler,
 } from "./equipmentController.js";
@@ -23,6 +24,13 @@ const instructor = authorize("Instructor");
 const facility = authorize("FacilityManager", "GymAdmin", "SystemAdmin");
 
 equipmentRouter.get("/equipment/tickets", authenticate, facility, asyncHandler(ticketQueueHandler));
+equipmentRouter.post(
+  "/equipment/tickets/:ticketId/start",
+  authenticate,
+  facility,
+  validateParams(ticketIdParams),
+  asyncHandler(startTicketHandler),
+);
 equipmentRouter.post(
   "/equipment/tickets/:ticketId/close",
   authenticate,

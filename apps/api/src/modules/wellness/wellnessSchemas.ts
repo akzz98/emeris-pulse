@@ -7,8 +7,8 @@ export const challengeIdParams = z.object({
 });
 
 export const createChallengeSchema = z.object({
-  title: z.string().trim().min(1).max(120),
-  description: z.string().trim().min(1).max(400),
+  title: z.string().trim().min(1, "Enter a challenge title.").max(120, "Use at most 120 characters."),
+  description: z.string().trim().min(1, "Enter a description.").max(400, "Use at most 400 characters."),
   startsOn: calendarDate,
   endsOn: calendarDate,
 });

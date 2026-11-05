@@ -176,7 +176,38 @@ export async function takeOutOfService(equipmentId: number) {
   }
 }
 
-// Closing the last open ticket returns the machine. Another open fault keeps it off the floor.
+// Facility staff mark work as started before they close the ticket.
+export async function startTicket(ticketId: number) {
+  const pool = await getPool();
+  const transaction = new sql.Transaction(pool);
+  await transaction.begin();
+  try {
+    const ticket = await equipment.lockTicket(transaction, ticketId);
+    if (!ticket) {
+      throw new HttpError(404, "TICKET_NOT_FOUND", "That ticket does not exist.");
+    }
+    const machine = await equipment.lockById(transaction, ticket.equipmentId);
+    if (!machine) {
+      throw new HttpError(404, "EQUIPMENT_NOT_FOUND", "That machine is not on the floor.");
+    }
+    const status = new MaintenanceTicket(ticket.status).start();
+    await equipment.setTicketStatus(transaction, ticket.id, status);
+    await transaction.commit();
+    return {
+      id: ticket.id,
+      status,
+      equipmentId: machine.id,
+      code: machine.code,
+      name: machine.name,
+      equipmentStatus: machine.status,
+    };
+  } catch (error) {
+    await transaction.rollback();
+    throw error;
+  }
+}
+
+// Closing the last open or in-progress ticket returns the machine. Another open fault keeps it off the floor.
 export async function closeTicket(ticketId: number) {
   const pool = await getPool();
   const transaction = new sql.Transaction(pool);
