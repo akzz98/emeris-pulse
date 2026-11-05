@@ -95,6 +95,7 @@ export async function redeemPass(input: RedeemPassInput) {
     throw new HttpError(403, "ENTRY_REFUSED", "Entry is refused because this membership is not active.");
   }
 
+  // UsedAt is set only while it is still null, so a second scan of the same pass cannot grant entry.
   const passId = await passes.consumeOnce(claim.jti, claim.userId);
   if (passId) {
     // Granted and refused scans are both stored so the access log has a row for this door check.

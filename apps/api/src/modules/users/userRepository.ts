@@ -42,6 +42,16 @@ function mapUser(row: UserRow): UserRecord {
 }
 
 export class UserRepository {
+  async findByCampusIdentifier(campusIdentifier: string): Promise<UserRecord | null> {
+    const pool = await getPool();
+    const result = await pool
+      .request()
+      .input("campusIdentifier", sql.NVarChar(64), campusIdentifier)
+      .query<UserRow>(`SELECT ${userColumns} FROM dbo.Users WHERE CampusIdentifier = @campusIdentifier`);
+    const row = result.recordset[0];
+    return row ? mapUser(row) : null;
+  }
+
   async findByEmail(email: string): Promise<UserRecord | null> {
     const pool = await getPool();
     const result = await pool
@@ -89,6 +99,16 @@ export class UserRepository {
         VALUES (@email, @passwordHash, @role, @campusIdentifier, @firstName, @lastName, @phone)
       `);
     return mapUser(result.recordset[0]);
+  }
+
+  async updatePassword(id: number, passwordHash: string): Promise<boolean> {
+    const pool = await getPool();
+    const result = await pool
+      .request()
+      .input("id", sql.Int, id)
+      .input("passwordHash", sql.NVarChar(255), passwordHash)
+      .query(`UPDATE dbo.Users SET PasswordHash = @passwordHash WHERE Id = @id`);
+    return (result.rowsAffected[0] ?? 0) > 0;
   }
 
   async updateProfile(id: number, input: { firstName: string; lastName: string; phone: string | null }) {

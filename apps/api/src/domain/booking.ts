@@ -5,6 +5,7 @@ export type BookingStatus = "Booked" | "Waitlisted" | "Cancelled" | "Attended" |
 export class Booking {
   constructor(readonly status: BookingStatus) {}
 
+  // A free seat is booked immediately. A full class waitlists. One member holds one place per class.
   static placeFor(seatsLeft: number): BookingStatus {
     if (seatsLeft > 0) {
       return "Booked";

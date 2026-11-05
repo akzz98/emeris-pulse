@@ -13,7 +13,7 @@ import { ScanScreen } from "./ScanScreen";
 import { TemporaryPassScreen } from "./TemporaryPassScreen";
 import { TimetableScreen } from "./TimetableScreen";
 import { clearSession, loadSession, saveSession } from "./session";
-import type { AdminSession } from "./api";
+import { logout, type AdminSession } from "./api";
 import type { AdminScreen } from "./screens";
 import { useAdminRoute } from "./useAdminRoute";
 
@@ -65,9 +65,11 @@ export function App() {
   }
 
   const onSignOut = () => {
+    const refreshToken = session.refreshToken;
     clearSession();
     setSession(null);
     navigate("dashboard", { replace: true });
+    void logout(refreshToken);
   };
   const nav = adminNav(screen, goScreen, session.user.role);
 

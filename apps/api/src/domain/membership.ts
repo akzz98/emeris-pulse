@@ -3,6 +3,8 @@ import { DomainError } from "./domainError.js";
 export type MembershipStatus = "Pending" | "Active" | "Frozen" | "Expired";
 export type MemberType = "Student" | "Staff";
 
+// Pending and frozen memberships cannot enter, book, use equipment, or join a challenge.
+// An active membership whose expiry date has passed is treated as expired the next time it is loaded.
 export class Membership {
   constructor(
     readonly status: MembershipStatus,

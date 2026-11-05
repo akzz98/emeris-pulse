@@ -9,7 +9,7 @@ import { NotificationsScreen } from "./NotificationsScreen";
 import { ProfileScreen } from "./ProfileScreen";
 import { RegisterScreen } from "./RegisterScreen";
 import { ChallengesScreen } from "./ChallengesScreen";
-import { getMyNotices } from "./api";
+import { getMyNotices, logout } from "./api";
 import { memberNav } from "./navigation";
 import { parseMemberRoute, useMemberRoute } from "./routing";
 import { clearSession, loadSession, saveSession, type MemberSession } from "./session";
@@ -74,9 +74,11 @@ export function App() {
   }
 
   const onSignOut = () => {
+    const refreshToken = session.refreshToken;
     clearSession();
     setSession(null);
     navigate({ area: "auth", mode: "login" }, { replace: true });
+    void logout(refreshToken);
   };
   const nav = memberNav(screen, goScreen, { noticeCount });
 

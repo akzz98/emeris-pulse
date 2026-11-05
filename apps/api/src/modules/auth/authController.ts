@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import { loginSchema, refreshSchema, registerSchema } from "./authSchemas.js";
-import { login, refresh, register } from "./authService.js";
+import { login, logout, refresh, register } from "./authService.js";
 
 export async function registerHandler(req: Request, res: Response) {
   const result = await register(registerSchema.parse(req.body));
@@ -15,4 +15,9 @@ export async function loginHandler(req: Request, res: Response) {
 export async function refreshHandler(req: Request, res: Response) {
   const result = await refresh(refreshSchema.parse(req.body));
   res.status(200).json(result);
+}
+
+export async function logoutHandler(req: Request, res: Response) {
+  await logout(refreshSchema.parse(req.body));
+  res.status(204).end();
 }

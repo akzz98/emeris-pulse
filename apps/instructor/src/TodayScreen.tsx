@@ -91,7 +91,7 @@ export function TodayScreen({ session, nav, onSignOut, onOpenClass }: TodayScree
     <AppShell area="Instructor" nav={nav} onSignOut={onSignOut}>
       <header className="roster-heading">
         <h1>Today</h1>
-        <p>Open a class for the roster, attendance, and messages. Waitlisted members are not on the roster.</p>
+        <p>Open a class, then take attendance, message the people who are booked, or cancel the class. Waitlisted members are not on the roster.</p>
       </header>
       {loading ? <LoadingState title="Loading today" message="Checking your scheduled classes." /> : null}
       {error ? <ErrorState title="Could not load classes" message={error} /> : null}

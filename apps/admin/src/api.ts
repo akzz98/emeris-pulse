@@ -105,6 +105,14 @@ export async function login(email: string, password: string): Promise<AdminSessi
   return { accessToken: body.accessToken, refreshToken: body.refreshToken, user: body.user };
 }
 
+export async function logout(refreshToken: string): Promise<void> {
+  await fetch(`${apiUrl}/auth/logout`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ refreshToken }),
+  }).catch(() => undefined);
+}
+
 export type AccessLog = {
   page: number;
   pageSize: number;
@@ -554,6 +562,18 @@ export async function freezeMembership(accessToken: string, userId: number): Pro
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   await readAdmin(response, "Could not freeze this membership.");
+}
+
+export async function setMemberPassword(accessToken: string, userId: number, password: string): Promise<void> {
+  const response = await authorized(`${apiUrl}/users/${userId}/password`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ password }),
+  });
+  await readAdmin(response, "Could not set a new password.");
 }
 
 export type DirectoryAccount = {

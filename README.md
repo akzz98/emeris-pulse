@@ -31,7 +31,9 @@ A new member registers with first name, last name, email, campus identifier, an 
 - A student membership is created for 120 days.
 - A staff membership is created for 365 days.
 - The membership starts as **Pending**. An admin has to activate it before the person can enter, book, use a machine, or join a challenge.
-- Email and campus identifier must be unique.
+- Email and campus identifier must be unique. A duplicate is shown on that field, not as one shared message.
+- A short password, a bad email, or a campus identifier under 4 characters is shown under the field that failed.
+- Forgotten passwords are not emailed. The sign-in screen tells the member to ask the gym desk. A gym admin sets the new password from Members.
 
 ### Home
 
@@ -338,6 +340,8 @@ Authenticated routes expect `Authorization: Bearer`. The door redeem route is th
 | POST | `/auth/register` | Anyone. Body: email, password, role (`Student` or `Staff`), campus identifier, first name, last name, optional phone. |
 | POST | `/auth/login` | Anyone. Rate limited. |
 | POST | `/auth/refresh` | Anyone with a live refresh token. |
+| POST | `/auth/logout` | Anyone holding a refresh token. Revokes that token. |
+| POST | `/users/:userId/password` | Gym admin, system admin. Body: password of at least 8 characters. Cannot target themselves. |
 | GET | `/me` | Signed-in user |
 | PATCH | `/me` | Signed-in user. First name, last name, phone. |
 | GET | `/users` | System admin |
@@ -394,7 +398,7 @@ The member shell is cached by a service worker so the frame still opens if the n
 
 ## Security
 
-Passwords are hashed with bcrypt (cost 10) and are never returned by the API. Sign-in issues a 15-minute JWT and a refresh token stored only as a hash. Using a refresh token revokes it and issues a new pair. Routes check the role before they run. A student cannot open admin routes. An instructor cannot approve a membership. A system admin cannot change their own role.
+Passwords are hashed with bcrypt (cost 10) and are never returned by the API. Sign-in issues a 15-minute JWT and a refresh token stored only as a hash. Using a refresh token revokes it and issues a new pair. Sign out revokes the refresh token held by that browser. A gym administrator can set a new password from Members, which ends that member's sessions. An administrator cannot set a new password on their own account. Routes check the role before they run. A student cannot open admin routes. An instructor cannot approve a membership. A system admin cannot change their own role.
 
 Request bodies are checked with Zod before they reach a service. A bad body returns `400`. A broken business rule returns `409`. A missing or refused permission returns `401` or `403`. Unexpected failures return `500` with no internal detail. The door redeem route does not use the signed-in session. The signed pass is the credential, and it is single-use.
 

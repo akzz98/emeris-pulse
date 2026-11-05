@@ -102,6 +102,14 @@ export async function login(email: string, password: string): Promise<Instructor
   return { accessToken: body.accessToken, refreshToken: body.refreshToken, user: body.user };
 }
 
+export async function logout(refreshToken: string): Promise<void> {
+  await fetch(`${apiUrl}/auth/logout`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ refreshToken }),
+  }).catch(() => undefined);
+}
+
 export type RosterClass = {
   id: number;
   title: string;

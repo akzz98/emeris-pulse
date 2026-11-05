@@ -48,4 +48,17 @@ export class RefreshTokenRepository {
       .input("id", sql.Int, id)
       .query(`UPDATE dbo.RefreshTokens SET RevokedAt = SYSUTCDATETIME() WHERE Id = @id`);
   }
+
+  // A new password ends every session for that account, not only the browser that requested it.
+  async revokeAllForUser(userId: number): Promise<void> {
+    const pool = await getPool();
+    await pool
+      .request()
+      .input("userId", sql.Int, userId)
+      .query(`
+        UPDATE dbo.RefreshTokens
+        SET RevokedAt = SYSUTCDATETIME()
+        WHERE UserId = @userId AND RevokedAt IS NULL
+      `);
+  }
 }

@@ -21,6 +21,10 @@ const users = new UserRepository();
 const memberships = new MembershipRepository();
 const refreshTokens = new RefreshTokenRepository();
 
+// A session is a 15-minute access JWT plus a refresh token. Only the hash of the refresh token is stored.
+// Presenting that token revokes the row and issues a new pair, so a stolen copy cannot be reused after a refresh.
+
+
 function publicUser(user: UserRecord) {
   return {
     id: user.id,
@@ -60,7 +64,37 @@ async function issueSession(user: UserRecord) {
   };
 }
 
+function alreadyRegistered(fieldErrors: Record<string, string[]>): HttpError {
+  const message = fieldErrors.email?.[0] ?? fieldErrors.campusIdentifier?.[0] ?? "That account is already registered.";
+  return new HttpError(409, "ALREADY_REGISTERED", message, { fieldErrors });
+}
+
+// SQL Server names the unique index in the error. That tells the form which of the two fields collided.
+function duplicateField(error: unknown): "email" | "campusIdentifier" | null {
+  const message = error instanceof Error ? error.message : "";
+  if (message.includes("UQ_Users_Email")) {
+    return "email";
+  }
+  if (message.includes("UQ_Users_CampusIdentifier")) {
+    return "campusIdentifier";
+  }
+  return null;
+}
+
 export async function register(input: RegisterInput) {
+  const email = input.email.toLowerCase();
+  const campusIdentifier = input.campusIdentifier.trim();
+  const fieldErrors: Record<string, string[]> = {};
+  if (await users.findByEmail(email)) {
+    fieldErrors.email = ["That email is already registered."];
+  }
+  if (await users.findByCampusIdentifier(campusIdentifier)) {
+    fieldErrors.campusIdentifier = ["That campus identifier is already registered."];
+  }
+  if (Object.keys(fieldErrors).length > 0) {
+    throw alreadyRegistered(fieldErrors);
+  }
+
   const today = todayLocal();
   const pool = await getPool();
   const tx = new sql.Transaction(pool);
@@ -69,10 +103,10 @@ export async function register(input: RegisterInput) {
     const passwordHash = await bcrypt.hash(input.password, 10);
     const user = await users.insert(
       {
-        email: input.email.toLowerCase(),
+        email,
         passwordHash,
         role: input.role,
-        campusIdentifier: input.campusIdentifier.trim(),
+        campusIdentifier,
         firstName: input.firstName,
         lastName: input.lastName,
         phone: input.phone ?? null,
@@ -94,11 +128,17 @@ export async function register(input: RegisterInput) {
   } catch (error) {
     await tx.rollback().catch(() => undefined);
     if (isUniqueViolation(error)) {
-      throw new HttpError(
-        409,
-        "ALREADY_REGISTERED",
-        "That email or campus identifier is already registered.",
-      );
+      const field = duplicateField(error);
+      if (field === "email") {
+        throw alreadyRegistered({ email: ["That email is already registered."] });
+      }
+      if (field === "campusIdentifier") {
+        throw alreadyRegistered({ campusIdentifier: ["That campus identifier is already registered."] });
+      }
+      throw alreadyRegistered({
+        email: ["That email is already registered."],
+        campusIdentifier: ["That campus identifier is already registered."],
+      });
     }
     throw error;
   }
@@ -124,5 +164,13 @@ export async function refresh(input: RefreshInput) {
   }
   await refreshTokens.revoke(existing.id);
   return issueSession(user);
+}
+
+// Sign-out drops the refresh token for this browser. The access JWT expires on its own within 15 minutes.
+export async function logout(input: RefreshInput) {
+  const existing = await refreshTokens.findActive(hashRefreshToken(input.refreshToken));
+  if (existing) {
+    await refreshTokens.revoke(existing.id);
+  }
 }
 

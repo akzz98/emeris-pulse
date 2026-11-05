@@ -215,7 +215,11 @@ export function DashboardScreen({ session, nav, onSignOut, onNavigate }: Dashboa
     <AppShell area={area} nav={nav} onSignOut={onSignOut}>
       <header className="dashboard-heading">
         <h1>Dashboard</h1>
-        <p>Who is on the floor, and which hours the granted visits fall into.</p>
+        <p>
+          {isFacility
+            ? "Start with the open tickets. Reports and maintenance are in the menu. Occupancy is who is on the floor right now."
+            : "Start with a scan, the members waiting for approval, or the open tickets. Occupancy is who is on the floor right now."}
+        </p>
         {updatedAt ? (
           <p className="dashboard-updated" role="status">
             Last updated {formatUpdated(updatedAt)}. Refreshes every 30 seconds.

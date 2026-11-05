@@ -1,9 +1,12 @@
+import bcrypt from "bcrypt";
 import type { Role } from "../../domain/roles.js";
 import { HttpError } from "../../http/httpError.js";
 import type { ContactInput } from "../auth/authSchemas.js";
+import { RefreshTokenRepository } from "../auth/refreshTokenRepository.js";
 import { UserRepository } from "./userRepository.js";
 
 const users = new UserRepository();
+const refreshTokens = new RefreshTokenRepository();
 
 function publicUser(user: NonNullable<Awaited<ReturnType<UserRepository["findById"]>>>) {
   return {
@@ -42,6 +45,20 @@ export async function updateMyContact(userId: number, input: ContactInput) {
 
 export async function listAccounts() {
   return users.listDirectory();
+}
+
+// The desk sets a password when a member has forgotten theirs. No email is sent.
+// The signed-in administrator cannot reset their own account from this action.
+export async function setPassword(actorId: number, targetId: number, password: string) {
+  if (actorId === targetId) {
+    throw new HttpError(409, "INVALID_STATE", "Ask another administrator to set a new password for your own account.");
+  }
+  const passwordHash = await bcrypt.hash(password, 10);
+  const updated = await users.updatePassword(targetId, passwordHash);
+  if (!updated) {
+    throw new HttpError(404, "USER_NOT_FOUND", "Account not found.");
+  }
+  await refreshTokens.revokeAllForUser(targetId);
 }
 
 export async function assignRole(actorId: number, targetId: number, role: Role) {

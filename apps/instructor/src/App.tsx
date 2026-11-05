@@ -6,7 +6,7 @@ import { StudioEquipmentScreen } from "./StudioEquipmentScreen";
 import { TodayScreen } from "./TodayScreen";
 import { instructorRoutePath, parseInstructorRoute, type InstructorRoute } from "./routing";
 import { clearSession, loadSession, saveSession } from "./session";
-import type { InstructorSession } from "./api";
+import { logout, type InstructorSession } from "./api";
 
 function instructorNav(route: InstructorRoute, go: (next: InstructorRoute) => void): AppNavItem[] {
   return [
@@ -42,9 +42,11 @@ export function App() {
   }
 
   const onSignOut = () => {
+    const refreshToken = session.refreshToken;
     clearSession();
     setSession(null);
     navigate({ screen: "today" }, { replace: true });
+    void logout(refreshToken);
   };
   const nav = instructorNav(route, navigate);
 

@@ -1,5 +1,5 @@
 import { FormEvent, useState } from "react";
-import { AppShell, Button, ErrorState, PasswordField, TextField, TextLink } from "@emeris/ui";
+import { AppShell, Button, ErrorState, ForgotPasswordNote, PasswordField, TextField, TextLink } from "@emeris/ui";
 import { login } from "./api";
 import "./splash.css";
 import type { MemberSession } from "./session";
@@ -12,11 +12,21 @@ type LoginScreenProps = {
 export function LoginScreen({ onSignedIn, onCreateAccount }: LoginScreenProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const nextEmailError = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) ? null : "Enter a valid email address.";
+    const nextPasswordError = password.length > 0 ? null : "Enter your password.";
+    setEmailError(nextEmailError);
+    setPasswordError(nextPasswordError);
+    if (nextEmailError || nextPasswordError) {
+      setError(null);
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -30,7 +40,7 @@ export function LoginScreen({ onSignedIn, onCreateAccount }: LoginScreenProps) {
 
   return (
     <AppShell area="Member">
-      <form className="login-form" onSubmit={onSubmit}>
+      <form className="login-form" onSubmit={onSubmit} noValidate>
         <h1>Sign in</h1>
         {error ? <ErrorState title="Could not sign in" message={error} /> : null}
         <TextField
@@ -39,17 +49,24 @@ export function LoginScreen({ onSignedIn, onCreateAccount }: LoginScreenProps) {
           type="email"
           autoComplete="username"
           value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          required
+          onChange={(event) => {
+            setEmail(event.target.value);
+            setEmailError(null);
+          }}
+          error={emailError ?? undefined}
         />
         <PasswordField
           id="password"
           label="Password"
           autoComplete="current-password"
           value={password}
-          onChange={(event) => setPassword(event.target.value)}
-          required
+          onChange={(event) => {
+            setPassword(event.target.value);
+            setPasswordError(null);
+          }}
+          error={passwordError ?? undefined}
         />
+        <ForgotPasswordNote />
         <Button type="submit" disabled={busy}>
           {busy ? "Signing in…" : "Sign in"}
         </Button>

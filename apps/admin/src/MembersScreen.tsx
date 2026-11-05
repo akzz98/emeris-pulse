@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { AppShell, Button, ConfirmDialog, EmptyState, ErrorState, LoadingState, SuccessBanner, TextField, type AppNavItem } from "@emeris/ui";
+import { AppShell, Button, ConfirmDialog, EmptyState, ErrorState, LoadingState, PasswordField, SuccessBanner, TextField, type AppNavItem } from "@emeris/ui";
 import {
   approveMembership,
   freezeMembership,
   getActiveMemberships,
   getFrozenMemberships,
   getPendingMemberships,
+  setMemberPassword,
   type AdminSession,
   type DeskMembership,
 } from "./api";
@@ -47,6 +48,10 @@ export function MembersScreen({ session, nav, onSignOut }: MembersScreenProps) {
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<number | null>(null);
   const [pendingFreeze, setPendingFreeze] = useState<DeskMembership | null>(null);
+  const [resetFor, setResetFor] = useState<number | null>(null);
+  const [nextPassword, setNextPassword] = useState("");
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [pendingPassword, setPendingPassword] = useState<{ membership: DeskMembership; password: string } | null>(null);
 
   async function load() {
     const [waiting, current, paused] = await Promise.all([
@@ -89,6 +94,37 @@ export function MembersScreen({ session, nav, onSignOut }: MembersScreenProps) {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session.accessToken, onSignOut]);
+
+  async function savePassword() {
+    if (!pendingPassword) {
+      return;
+    }
+    const { membership, password } = pendingPassword;
+    setBusyId(membership.userId);
+    setActionError(null);
+    setSuccess(null);
+    const name = `${membership.firstName} ${membership.lastName}`;
+    try {
+      await setMemberPassword(session.accessToken, membership.userId, password);
+      setPendingPassword(null);
+      setResetFor(null);
+      setNextPassword("");
+      setSuccess({
+        title: "Password set",
+        message: `${name} can sign in with the new password. Their current sessions have ended.`,
+      });
+    } catch (caught) {
+      const message = caught instanceof Error ? caught.message : "Could not set a new password.";
+      if (message === "UNAUTHENTICATED") {
+        onSignOut();
+        return;
+      }
+      setPendingPassword(null);
+      setActionError(message);
+    } finally {
+      setBusyId(null);
+    }
+  }
 
   async function run(membership: DeskMembership, action: "approve" | "freeze" | "activate") {
     setBusyId(membership.userId);
@@ -168,7 +204,7 @@ export function MembersScreen({ session, nav, onSignOut }: MembersScreenProps) {
     <AppShell area="Admin" nav={nav} onSignOut={onSignOut}>
       <header className="members-heading">
         <h1>Members</h1>
-        <p>Approve a new profile, freeze an active membership, or activate a frozen one.</p>
+        <p>Approve a new profile, freeze an active membership, or set a new password when a member has forgotten theirs.</p>
       </header>
       {loading ? <LoadingState title="Loading members" message="Checking pending, active, and frozen memberships." /> : null}
       {loadError ? <ErrorState title="Could not load members" message={loadError} /> : null}
@@ -218,20 +254,78 @@ export function MembersScreen({ session, nav, onSignOut }: MembersScreenProps) {
                       {membership.campusIdentifier} · {membership.memberType} · expires {formatDay(membership.expiryDate)}
                     </p>
                     <p>{current.detail}</p>
-                    <Button
-                      type="button"
-                      variant={current.action === "freeze" ? "danger" : "primary"}
-                      disabled={busyId !== null}
-                      onClick={() => {
-                        if (current.action === "freeze") {
-                          setPendingFreeze(membership);
-                          return;
-                        }
-                        void run(membership, current.action);
-                      }}
-                    >
-                      {busyId === membership.userId ? current.busy : current.label}
-                    </Button>
+                    <div className="members-actions">
+                      <Button
+                        type="button"
+                        variant={current.action === "freeze" ? "danger" : "primary"}
+                        disabled={busyId !== null}
+                        onClick={() => {
+                          if (current.action === "freeze") {
+                            setPendingFreeze(membership);
+                            return;
+                          }
+                          void run(membership, current.action);
+                        }}
+                      >
+                        {busyId === membership.userId && pendingPassword === null ? current.busy : current.label}
+                      </Button>
+                      {membership.userId !== session.user.id ? (
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          disabled={busyId !== null}
+                          onClick={() => {
+                            setResetFor(membership.userId);
+                            setNextPassword("");
+                            setPasswordError(null);
+                          }}
+                        >
+                          Set new password
+                        </Button>
+                      ) : null}
+                    </div>
+                    {resetFor === membership.userId ? (
+                      <div className="members-reset">
+                        <PasswordField
+                          id={`reset-${membership.userId}`}
+                          label="New password"
+                          autoComplete="new-password"
+                          value={nextPassword}
+                          hint="At least 8 characters. This is not emailed."
+                          error={passwordError ?? undefined}
+                          onChange={(event) => {
+                            setNextPassword(event.target.value);
+                            setPasswordError(null);
+                          }}
+                        />
+                        <div className="members-actions">
+                          <Button
+                            type="button"
+                            disabled={busyId !== null}
+                            onClick={() => {
+                              if (nextPassword.length < 8) {
+                                setPasswordError("Use at least 8 characters.");
+                                return;
+                              }
+                              setPendingPassword({ membership, password: nextPassword });
+                            }}
+                          >
+                            Save password
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            onClick={() => {
+                              setResetFor(null);
+                              setNextPassword("");
+                              setPasswordError(null);
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    ) : null}
                   </li>
                 ))}
               </ul>
@@ -256,6 +350,22 @@ export function MembersScreen({ session, nav, onSignOut }: MembersScreenProps) {
           if (pendingFreeze) {
             void run(pendingFreeze, "freeze");
           }
+        }}
+      />
+      <ConfirmDialog
+        open={pendingPassword !== null}
+        title="Set this password?"
+        message={
+          pendingPassword
+            ? `${pendingPassword.membership.firstName} ${pendingPassword.membership.lastName} will sign in with this password. Their current sessions will end.`
+            : ""
+        }
+        confirmLabel="Set password"
+        cancelLabel="Keep the current password"
+        busy={pendingPassword !== null && busyId === pendingPassword.membership.userId}
+        onCancel={() => setPendingPassword(null)}
+        onConfirm={() => {
+          void savePassword();
         }}
       />
     </AppShell>

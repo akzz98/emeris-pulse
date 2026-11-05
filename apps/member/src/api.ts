@@ -80,12 +80,39 @@ type LoginResponse = {
   user: MemberSession["user"];
 };
 
+export class ApiError extends Error {
+  readonly fieldErrors: Record<string, string>;
+
+  constructor(message: string, fieldErrors: Record<string, string> = {}) {
+    super(message);
+    this.name = "ApiError";
+    this.fieldErrors = fieldErrors;
+  }
+}
+
+function fieldErrorsFrom(details: unknown): Record<string, string> {
+  if (!details || typeof details !== "object" || !("fieldErrors" in details)) {
+    return {};
+  }
+  const raw = (details as { fieldErrors?: unknown }).fieldErrors;
+  if (!raw || typeof raw !== "object") {
+    return {};
+  }
+  const errors: Record<string, string> = {};
+  for (const [key, value] of Object.entries(raw)) {
+    if (Array.isArray(value) && typeof value[0] === "string") {
+      errors[key] = value[0];
+    }
+  }
+  return errors;
+}
+
 async function readSession(response: Response, fallback: string): Promise<MemberSession> {
   const body = (await response.json()) as LoginResponse & {
-    error?: { message?: string };
+    error?: { message?: string; details?: unknown };
   };
   if (!response.ok) {
-    throw new Error(body.error?.message ?? fallback);
+    throw new ApiError(body.error?.message ?? fallback, fieldErrorsFrom(body.error?.details));
   }
   return {
     accessToken: body.accessToken,
@@ -101,6 +128,14 @@ export async function login(email: string, password: string): Promise<MemberSess
     body: JSON.stringify({ email, password }),
   });
   return readSession(response, "Sign in failed.");
+}
+
+export async function logout(refreshToken: string): Promise<void> {
+  await fetch(`${apiUrl}/auth/logout`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ refreshToken }),
+  }).catch(() => undefined);
 }
 
 export type RegisterDetails = {
