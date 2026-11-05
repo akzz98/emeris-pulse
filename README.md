@@ -1,10 +1,10 @@
 # Emeris Pulse
 
-Digital platform for the Emeris campus gym. Members use a phone app for access, classes, equipment, and challenges. Instructors run their classes from a web app. Gym staff run the floor, the timetable, and the facility from a third web app. One API serves all three.
+This is the GitHub project file for Emeris Pulse. It says what the system is, who uses which app, the live URLs, the demo accounts, and how to run the code. It is not the product presentation. That explanation for Emeris and for marking sits in the EXPO PowerPoint.
 
-Membership, door access, class bookings, equipment, maintenance, challenges, and notices all live in the same system. Notices stay inside the app. They are not sent by email or text.
+Campus gym platform: membership, QR access, classes, equipment, challenges, and in-app notices. Three front ends share one API. Notices stay in the app. They are not emailed or texted.
 
-Task 2 implementation walkthrough: https://youtu.be/DALwdxsRzwE
+Task 2 walkthrough: https://youtu.be/DALwdxsRzwE
 
 ## Who uses it
 
@@ -14,15 +14,66 @@ Task 2 implementation walkthrough: https://youtu.be/DALwdxsRzwE
 | Instructor | Instructor accounts only. Any other role is turned away at sign-in. | See today's roster, mark attendance, cancel a class, message booked members, and report unsafe studio equipment. |
 | Admin | Gym admin, facility manager, and system admin. | Depends on the role. The facility manager sees crowding, reports, maintenance, and closure notices. Gym admins and system admins also run the desk, memberships, timetable, challenges, and broadcasts. Only a system admin can change roles. |
 
-Sign-in is email and password. The API issues a 15-minute JWT and a hashed refresh token. Using the refresh token revokes it and issues a new pair. Campus Microsoft Entra ID is not available to this group, so the app issues its own tokens. Each person still has a campus identifier. QR access is implemented. NFC stays a future hardware step.
+## Open the apps
 
-The member app opens with a short splash, then sign-in. Returning members who already have a session skip the splash. It is installable on a phone (standalone display, Emeris icon). A service worker keeps a cached copy of the shell and falls back to it when the network drops. Gym actions still need the API. Signed-in screens use path URLs (`/access`, `/classes`, and so on) so the browser Back button returns to the previous screen. The admin and instructor apps do the same.
+Every live address is HTTPS.
 
-Signed-in member navigation is **Home · Access · Classes · More**. On a phone-width screen the primary destinations sit in a **fixed bottom tab bar**; the header stays brand-only (logo + Emeris Pulse / Member). **More** opens a bottom sheet with Equipment, Challenges, Notifications, Membership, Profile, and Sign out. On a wider window the same four items stay in the top nav, with More as a menu and Sign out at the end.
+| App | URL |
+| --- | --- |
+| Member | https://emeris-pulse-member.azurewebsites.net |
+| Instructor | https://emeris-pulse-instructor.azurewebsites.net |
+| Admin | https://emeris-pulse-admin.azurewebsites.net |
+| API health | https://emeris-pulse-api.azurewebsites.net/health |
+
+**Member app on a phone:** open the Member URL in the phone browser, then add it to the home screen. It is a hosted installable web app, not an App Store or Play Store download, and not an Android Studio project.
+
+| Member | Instructor | Admin |
+| --- | --- | --- |
+| ![Member home](docs/readme/member.png) | ![Instructor Today](docs/readme/instructor.png) | ![Admin dashboard](docs/readme/admin.png) |
+
+Demo password for every seeded account: `Pulse123!`
+
+| Email | Role |
+| --- | --- |
+| student@emeris.test | Student member |
+| staff@emeris.test | Staff member |
+| instructor@emeris.test | Instructor |
+| admin@emeris.test | Gym admin |
+| facility@emeris.test | Facility manager |
+| sysadmin@emeris.test | System admin |
+
+## Run locally
+
+Needs Node.js 22 or newer, and Docker Desktop for the local database.
+
+```bash
+npm install
+copy .env.example .env
+docker compose up -d
+sqlcmd -S localhost,1433 -U sa -P "Emeris_Pulse_Dev1" -C -i database/schema.sql
+sqlcmd -S localhost,1433 -U sa -P "Emeris_Pulse_Dev1" -C -i database/seed.sql
+npm run dev:api
+npm run dev:member
+npm run dev:instructor
+npm run dev:admin
+```
+
+| App | Local URL |
+| --- | --- |
+| API health | http://localhost:4000/health |
+| Member | http://localhost:5173 |
+| Instructor | http://localhost:5174 |
+| Admin | http://localhost:5175 |
+
+`.env.example` lists the API port, the three local web origins, the JWT secret, and the local SQL connection string. The API only accepts those origins.
 
 ## Member app
 
-Live: https://emeris-pulse-member.azurewebsites.net
+Sign-in is email and password. The API issues a 15-minute JWT and a hashed refresh token. Campus Microsoft Entra ID is not available to this group, so the app issues its own tokens. Each person still has a campus identifier. QR access is live. NFC stays a future hardware step.
+
+The member app opens with a short splash, then sign-in. Returning members who already have a session skip the splash. A service worker keeps a cached copy of the shell when the network drops. Gym actions still need the API. Signed-in screens use path URLs (`/access`, `/classes`, and so on).
+
+Signed-in member navigation is **Home · Access · Classes · More**. On a phone-width screen those destinations sit in a **fixed bottom tab bar**. **More** opens a bottom sheet with Equipment, Challenges, Notifications, Membership, Profile, and Sign out. On a wider window the same four items stay in the top nav.
 
 ### Create a profile and sign in
 
@@ -238,20 +289,9 @@ These are enforced in the database.
 | Equipment | Available, OutOfService |
 | Maintenance ticket | Open, InProgress, Closed. A member or instructor report starts as Open. The desk can start work, then close the ticket. |
 
-## Demo accounts
+## Seeded demo data
 
-Demo password for every seeded account: `Pulse123!`
-
-| Email | Who they are |
-| --- | --- |
-| student@emeris.test | Lindiwe Nkosi, student, active membership |
-| staff@emeris.test | Johan Botha, staff, active staff membership. Home shows workday prompts. |
-| instructor@emeris.test | Ayesha Khan, instructor, plus a personal student membership |
-| admin@emeris.test | Peter Naidoo, gym admin |
-| facility@emeris.test | Nomsa Dlamini, facility manager |
-| sysadmin@emeris.test | Chris Jacobs, system admin |
-| pending@emeris.test | Sam Patel, student, membership waiting for approval |
-| frozen@emeris.test | Elena Jacobs, student, frozen membership. A refused scan is in the access log. |
+Live URLs, the main demo logins, and the local run steps are at the top of this file. Extra seeded accounts: `pending@emeris.test` (waiting for approval) and `frozen@emeris.test` (frozen; a refused scan is in the access log).
 
 Seeded gym data, dates relative to the day the seed ran:
 
@@ -264,51 +304,15 @@ Seeded gym data, dates relative to the day the seed ran:
 
 Running `database/seed.sql` again does not duplicate that data. The diagram of the tables is in `docs/erd.md`.
 
-## Live sites
-
-Every live address is HTTPS. Azure terminates TLS on `azurewebsites.net`.
-
-| App | URL |
-| --- | --- |
-| API health | https://emeris-pulse-api.azurewebsites.net/health |
-| Member | https://emeris-pulse-member.azurewebsites.net |
-| Instructor | https://emeris-pulse-instructor.azurewebsites.net |
-| Admin | https://emeris-pulse-admin.azurewebsites.net |
-
-`GET /health` returns `{"status":"ok","service":"emeris-pulse-api"}`.
-
 ## Presentation
 
-Task 2 slide deck for Emeris management: [`docs/Task2-Presentation-bottomnav.pptx`](docs/Task2-Presentation-bottomnav.pptx) (bottom-nav screenshots from the live member app). Demo walkthrough: [https://youtu.be/kNUCYi37EvI](https://youtu.be/kNUCYi37EvI). Spoken click-path: `docs/DEMO.md` (local working copy).
+The marker-facing explanation of the app is a PowerPoint, not this README. Task 2 slide deck: [`docs/Task2-Presentation-bottomnav.pptx`](docs/Task2-Presentation-bottomnav.pptx). Demo walkthrough: [https://youtu.be/kNUCYi37EvI](https://youtu.be/kNUCYi37EvI). Spoken click-path: `docs/DEMO.md` (local working copy). The Part 3 EXPO deck replaces that deck for the final showcase.
+
+## Hosting
 
 The database is Azure SQL Standard S0 (10 DTU, 100 MB). That size stays on the student subscription’s free S0 meter, which covers one S0 database for 31 days a month. The API and the three web apps share one Linux B1 App Service plan, paid from the Azure for Students credit of $100. Extra apps on that plan do not add a second plan charge.
 
 Static Web Apps Free was not used. That service can only be created in Central US, East US 2, West US 2, West Europe, and East Asia. This student subscription can create resources only in Austria East, Brazil South, Italy North, Spain Central, and Central India, so the two lists do not overlap. The four sites therefore sit on one Linux B1 plan in Spain Central. The database stays a separate Azure SQL server, so publishing a web app does not replace the data. `GET /health` is the check that the API process is up and answering.
-
-## Run locally
-
-Requires Node.js 22 or newer, and Docker Desktop for the local database.
-
-```bash
-npm install
-copy .env.example .env
-docker compose up -d
-sqlcmd -S localhost,1433 -U sa -P "Emeris_Pulse_Dev1" -C -i database/schema.sql
-sqlcmd -S localhost,1433 -U sa -P "Emeris_Pulse_Dev1" -C -i database/seed.sql
-npm run dev:api
-npm run dev:member
-npm run dev:instructor
-npm run dev:admin
-```
-
-| App | URL |
-| --- | --- |
-| API health | http://localhost:4000/health |
-| Member | http://localhost:5173 |
-| Instructor | http://localhost:5174 |
-| Admin | http://localhost:5175 |
-
-`.env.example` sets the API port, the three local web origins, the JWT secret, and the local SQL connection string. The API reads `CORS_ORIGINS` and only those origins may call it.
 
 ## Stack
 
