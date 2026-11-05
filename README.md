@@ -306,7 +306,7 @@ Running `database/seed.sql` again does not duplicate that data. The diagram of t
 
 ## Presentation
 
-The marker-facing explanation of the app is a PowerPoint, not this README. Task 2 slide deck: [`docs/Task2-Presentation-bottomnav.pptx`](docs/Task2-Presentation-bottomnav.pptx). Demo walkthrough: [https://youtu.be/kNUCYi37EvI](https://youtu.be/kNUCYi37EvI). Spoken click-path: `docs/DEMO.md` (local working copy). The Part 3 EXPO deck replaces that deck for the final showcase.
+The marker-facing explanation of the app is a PowerPoint, not this README. Task 2 slide deck: [`docs/Task2-Presentation-bottomnav.pptx`](docs/Task2-Presentation-bottomnav.pptx). Demo walkthrough: [https://youtu.be/kNUCYi37EvI](https://youtu.be/kNUCYi37EvI). Spoken click-path: `docs/DEMO.md` (local working copy). The Part 3 EXPO deck is `Part 3/EXPO-Presentation.pptx` (next to this repo under INSY7315). It replaces the Task 2 deck for the final showcase.
 
 ## Hosting
 
