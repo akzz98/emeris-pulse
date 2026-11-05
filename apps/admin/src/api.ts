@@ -384,6 +384,17 @@ export async function getTicketQueue(accessToken: string): Promise<{ tickets: Op
   return readAdmin(response, "Could not load the ticket queue.");
 }
 
+export async function startTicket(
+  accessToken: string,
+  ticketId: number,
+): Promise<{ name: string; status: "InProgress" }> {
+  const response = await authorized(`${apiUrl}/equipment/tickets/${ticketId}/start`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return readAdmin(response, "Could not start this ticket.");
+}
+
 export async function closeTicket(
   accessToken: string,
   ticketId: number,

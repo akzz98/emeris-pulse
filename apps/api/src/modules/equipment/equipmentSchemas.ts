@@ -5,15 +5,15 @@ export const startSessionSchema = z.object({
   code: z
     .string()
     .trim()
-    .min(1)
-    .max(32)
+    .min(1, "Enter the machine code.")
+    .max(32, "Use at most 32 characters.")
     .transform((value) => value.toUpperCase()),
 });
 
 export type StartSessionInput = z.infer<typeof startSessionSchema>;
 
 export const faultSchema = z.object({
-  description: z.string().trim().min(1).max(400),
+  description: z.string().trim().min(1, "Describe what is wrong.").max(400, "Use at most 400 characters."),
 });
 
 export type FaultInput = z.infer<typeof faultSchema>;
@@ -22,10 +22,10 @@ export const studioFaultSchema = z.object({
   code: z
     .string()
     .trim()
-    .min(1)
-    .max(32)
+    .min(1, "Enter the machine code.")
+    .max(32, "Use at most 32 characters.")
     .transform((value) => value.toUpperCase()),
-  description: z.string().trim().min(1).max(400),
+  description: z.string().trim().min(1, "Describe what is wrong.").max(400, "Use at most 400 characters."),
 });
 
 export type StudioFaultInput = z.infer<typeof studioFaultSchema>;

@@ -13,6 +13,7 @@ type TemporaryPassScreenProps = {
 
 export function TemporaryPassScreen({ session, nav, onSignOut }: TemporaryPassScreenProps) {
   const [email, setEmail] = useState("");
+  const [emailError, setEmailError] = useState<string | null>(null);
   const [pass, setPass] = useState<TemporaryPass | null>(null);
   const [image, setImage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -20,6 +21,12 @@ export function TemporaryPassScreen({ session, nav, onSignOut }: TemporaryPassSc
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const nextEmailError = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) ? null : "Enter a valid email address.";
+    setEmailError(nextEmailError);
+    if (nextEmailError) {
+      setError(null);
+      return;
+    }
     setBusy(true);
     setError(null);
     setPass(null);
@@ -45,7 +52,7 @@ export function TemporaryPassScreen({ session, nav, onSignOut }: TemporaryPassSc
 
   return (
     <AppShell area="Admin" nav={nav} onSignOut={onSignOut}>
-      <form className="temporary-form" onSubmit={onSubmit}>
+      <form className="temporary-form" onSubmit={onSubmit} noValidate>
         <h1>Temporary pass</h1>
         <p className="temporary-note">
           Issue a single-use pass when a member’s phone is lost. The membership must still be active.
@@ -57,8 +64,11 @@ export function TemporaryPassScreen({ session, nav, onSignOut }: TemporaryPassSc
           type="email"
           autoComplete="off"
           value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          required
+          onChange={(event) => {
+            setEmail(event.target.value);
+            setEmailError(null);
+          }}
+          error={emailError ?? undefined}
         />
         <Button type="submit" disabled={busy}>
           {busy ? "Issuing pass…" : "Issue temporary pass"}

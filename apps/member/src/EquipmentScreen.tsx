@@ -33,6 +33,9 @@ export function EquipmentScreen({ session, nav, onSignOut }: EquipmentScreenProp
   const [code, setCode] = useState("");
   const [fault, setFault] = useState("");
   const [faultCode, setFaultCode] = useState("");
+  const [codeError, setCodeError] = useState<string | null>(null);
+  const [faultCodeError, setFaultCodeError] = useState<string | null>(null);
+  const [faultError, setFaultError] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [success, setSuccess] = useState<{ title: string; message: string } | null>(null);
@@ -78,11 +81,17 @@ export function EquipmentScreen({ session, nav, onSignOut }: EquipmentScreenProp
   }, [session.accessToken, onSignOut]);
 
   async function startWithCode(machineCode: string) {
+    const trimmed = machineCode.trim();
+    if (!trimmed) {
+      setCodeError("Enter the machine code.");
+      return;
+    }
+    setCodeError(null);
     setBusy("start");
     setActionError(null);
     setSuccess(null);
     try {
-      const started = await startEquipmentSession(session.accessToken, machineCode);
+      const started = await startEquipmentSession(session.accessToken, trimmed);
       await load();
       setCode("");
       setSuccess({ title: "Session started", message: `${started.name} session started.` });
@@ -105,6 +114,14 @@ export function EquipmentScreen({ session, nav, onSignOut }: EquipmentScreenProp
 
   async function onReport(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const nextFaultError = fault.trim() ? null : "Describe what is wrong.";
+    const nextFaultCodeError = !open && !faultCode.trim() ? "Enter the machine code." : null;
+    setFaultError(nextFaultError);
+    setFaultCodeError(nextFaultCodeError);
+    if (nextFaultError || nextFaultCodeError) {
+      setActionError(null);
+      return;
+    }
     setBusy("report");
     setActionError(null);
     setSuccess(null);
@@ -172,14 +189,17 @@ export function EquipmentScreen({ session, nav, onSignOut }: EquipmentScreenProp
               {busy === "end" ? "Ending…" : "End session"}
             </Button>
           </div>
-          <form className="equipment-fault" onSubmit={(event) => void onReport(event)}>
+          <form className="equipment-fault" onSubmit={(event) => void onReport(event)} noValidate>
             <TextField
               id="fault-description"
               label="What is wrong?"
               value={fault}
-              onChange={(event) => setFault(event.target.value)}
+              onChange={(event) => {
+                setFault(event.target.value);
+                setFaultError(null);
+              }}
               maxLength={400}
-              required
+              error={faultError ?? undefined}
             />
             <Button type="submit" disabled={busy !== null}>
               {busy === "report" ? "Sending…" : "Report a fault"}
@@ -188,14 +208,17 @@ export function EquipmentScreen({ session, nav, onSignOut }: EquipmentScreenProp
         </section>
       ) : (
         <>
-          <form className="equipment-form" onSubmit={(event) => void onStart(event)}>
+          <form className="equipment-form" onSubmit={(event) => void onStart(event)} noValidate>
             <TextField
               id="machine-code"
               label="Machine code"
               value={code}
-              onChange={(event) => setCode(event.target.value)}
+              onChange={(event) => {
+                setCode(event.target.value);
+                setCodeError(null);
+              }}
               autoComplete="off"
-              required
+              error={codeError ?? undefined}
             />
             <Button type="submit" disabled={busy !== null}>
               {busy === "start" ? "Starting…" : "Start session"}
@@ -204,22 +227,28 @@ export function EquipmentScreen({ session, nav, onSignOut }: EquipmentScreenProp
           <section className="equipment-report-free" aria-labelledby="report-without-session-heading">
             <h2 id="report-without-session-heading">Report a fault</h2>
             <p>You can open a ticket with the machine code. You do not need to start a session first.</p>
-            <form className="equipment-fault" onSubmit={(event) => void onReport(event)}>
+            <form className="equipment-fault" onSubmit={(event) => void onReport(event)} noValidate>
               <TextField
                 id="fault-machine-code"
                 label="Machine code"
                 value={faultCode}
-                onChange={(event) => setFaultCode(event.target.value)}
+                onChange={(event) => {
+                  setFaultCode(event.target.value);
+                  setFaultCodeError(null);
+                }}
                 autoComplete="off"
-                required
+                error={faultCodeError ?? undefined}
               />
               <TextField
                 id="fault-description-free"
                 label="What is wrong?"
                 value={fault}
-                onChange={(event) => setFault(event.target.value)}
+                onChange={(event) => {
+                  setFault(event.target.value);
+                  setFaultError(null);
+                }}
                 maxLength={400}
-                required
+                error={faultError ?? undefined}
               />
               <Button type="submit" disabled={busy !== null}>
                 {busy === "report" ? "Sending…" : "Report a fault"}

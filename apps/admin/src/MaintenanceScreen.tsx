@@ -1,6 +1,23 @@
 import { useEffect, useState } from "react";
-import { AppShell, Button, ConfirmDialog, EmptyState, ErrorState, LoadingState, SuccessBanner, type AppNavItem } from "@emeris/ui";
-import { closeTicket, getTicketQueue, takeEquipmentOutOfService, type AdminSession, type OpenTicket } from "./api";
+import {
+  AppShell,
+  Button,
+  ConfirmDialog,
+  EmptyState,
+  ErrorState,
+  LoadingState,
+  StatusBadge,
+  SuccessBanner,
+  type AppNavItem,
+} from "@emeris/ui";
+import {
+  closeTicket,
+  getTicketQueue,
+  startTicket,
+  takeEquipmentOutOfService,
+  type AdminSession,
+  type OpenTicket,
+} from "./api";
 import "./maintenance.css";
 
 type MaintenanceScreenProps = {
@@ -29,6 +46,7 @@ export function MaintenanceScreen({ session, nav, onSignOut }: MaintenanceScreen
   const [success, setSuccess] = useState<{ title: string; message: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<number | null>(null);
+  const [startingId, setStartingId] = useState<number | null>(null);
   const [closingId, setClosingId] = useState<number | null>(null);
   const [pendingOut, setPendingOut] = useState<OpenTicket | null>(null);
   const [pendingClose, setPendingClose] = useState<OpenTicket | null>(null);
@@ -69,6 +87,26 @@ export function MaintenanceScreen({ session, nav, onSignOut }: MaintenanceScreen
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session.accessToken, onSignOut]);
+
+  async function onStart(ticket: OpenTicket) {
+    setStartingId(ticket.id);
+    setActionError(null);
+    setSuccess(null);
+    try {
+      const started = await startTicket(session.accessToken, ticket.id);
+      await load();
+      setSuccess({ title: "Work started", message: `${started.name} is marked in progress.` });
+    } catch (caught) {
+      const message = caught instanceof Error ? caught.message : "Could not start this ticket.";
+      if (message === "UNAUTHENTICATED") {
+        onSignOut();
+        return;
+      }
+      setActionError(message);
+    } finally {
+      setStartingId(null);
+    }
+  }
 
   async function onCloseConfirmed(ticket: OpenTicket) {
     setClosingId(ticket.id);
@@ -119,11 +157,16 @@ export function MaintenanceScreen({ session, nav, onSignOut }: MaintenanceScreen
     }
   }
 
+  const queueBusy = busyId !== null || startingId !== null || closingId !== null;
+
   return (
     <AppShell area={area} nav={nav} onSignOut={onSignOut}>
       <header className="maintenance-heading">
         <h1>Maintenance</h1>
-        <p>Open tickets waiting for the facility team. Closing the last ticket for a machine puts it back in service.</p>
+        <p>
+          Start work on an open ticket, then close it when the machine is ready. Closing the last open or in-progress
+          ticket for a machine puts it back in service.
+        </p>
       </header>
       {loading ? <LoadingState title="Loading tickets" message="Checking the open queue." /> : null}
       {loadError ? <ErrorState title="Could not load tickets" message={loadError} /> : null}
@@ -144,19 +187,33 @@ export function MaintenanceScreen({ session, nav, onSignOut }: MaintenanceScreen
               <p>
                 Reported by {ticket.reportedBy} · {formatWhen(ticket.openedAt)}
               </p>
-              <p>{ticket.equipmentStatus === "Available" ? "Available" : "Out of service"}</p>
+              <p className="maintenance-status">
+                <StatusBadge
+                  label={ticket.status === "InProgress" ? "In progress" : "Open"}
+                  tone={ticket.status === "InProgress" ? "warning" : "neutral"}
+                />
+                <StatusBadge
+                  label={ticket.equipmentStatus === "Available" ? "Available" : "Out of service"}
+                  tone={ticket.equipmentStatus === "Available" ? "success" : "danger"}
+                />
+              </p>
               <div className="maintenance-actions">
+                {ticket.status === "Open" ? (
+                  <Button type="button" disabled={queueBusy} onClick={() => void onStart(ticket)}>
+                    {startingId === ticket.id ? "Starting…" : "Start work"}
+                  </Button>
+                ) : null}
                 {ticket.equipmentStatus === "Available" ? (
                   <Button
                     type="button"
                     variant="danger"
-                    disabled={busyId !== null || closingId !== null}
+                    disabled={queueBusy}
                     onClick={() => setPendingOut(ticket)}
                   >
                     {busyId === ticket.equipmentId ? "Updating…" : "Take out of service"}
                   </Button>
                 ) : null}
-                <Button type="button" disabled={busyId !== null || closingId !== null} onClick={() => setPendingClose(ticket)}>
+                <Button type="button" disabled={queueBusy} onClick={() => setPendingClose(ticket)}>
                   {closingId === ticket.id
                     ? "Closing…"
                     : ticket.equipmentStatus === "OutOfService"
@@ -197,7 +254,7 @@ export function MaintenanceScreen({ session, nav, onSignOut }: MaintenanceScreen
         message={
           pendingClose
             ? pendingClose.equipmentStatus === "OutOfService"
-              ? `${pendingClose.name} (${pendingClose.code}) will accept new sessions again if this is the last open ticket.`
+              ? `${pendingClose.name} (${pendingClose.code}) will accept new sessions again if this is the last open or in-progress ticket.`
               : `The report for ${pendingClose.name} (${pendingClose.code}) will be marked closed.`
             : ""
         }

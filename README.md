@@ -215,8 +215,9 @@ One title and message, sent to every account in the roles that are ticked: Stude
 
 The open ticket queue: machine, location, description, who reported it, and when.
 
+- An open ticket can be moved to **In progress** with **Start work**.
 - If the machine is still available, **Take out of service** asks for confirmation, then marks it out of service so members cannot start it.
-- **Close ticket** asks for confirmation. If the machine is out of service and this was its last open ticket, closing it puts the machine back in service. Another open fault keeps it off the floor.
+- **Close ticket** asks for confirmation. If the machine is out of service and this was its last open or in-progress ticket, closing it puts the machine back in service. Another open fault keeps it off the floor.
 
 ### Roles
 
@@ -235,7 +236,7 @@ These are enforced in the database.
 | Access event | Granted, Refused |
 | Access pass | Standard (60 seconds, from the phone) or Temporary (15 minutes, from the desk). Both are single-use. |
 | Equipment | Available, OutOfService |
-| Maintenance ticket | Open, InProgress, Closed. A member or instructor report starts as Open. Closing it is what the desk does today. |
+| Maintenance ticket | Open, InProgress, Closed. A member or instructor report starts as Open. The desk can start work, then close the ticket. |
 
 ## Demo accounts
 
@@ -373,6 +374,7 @@ Authenticated routes expect `Authorization: Bearer`. The door redeem route is th
 | POST | `/equipment/studio/tickets` | Instructor |
 | GET | `/equipment/tickets` | Facility manager, gym admin, system admin |
 | POST | `/equipment/:equipmentId/out-of-service` | Facility manager, gym admin, system admin |
+| POST | `/equipment/tickets/:ticketId/start` | Facility manager, gym admin, system admin. Moves Open to InProgress. |
 | POST | `/equipment/tickets/:ticketId/close` | Facility manager, gym admin, system admin |
 | GET | `/challenges` | Signed-in user |
 | POST | `/challenges/:challengeId/join` | Signed-in user with an active membership |
@@ -428,4 +430,4 @@ A pull request into `main` or `develop` runs `.github/workflows/ci.yml` before t
 - unit tests for the domain rules
 - API tests against Azure SQL Edge, with `database/schema.sql` and `database/seed.sql` applied
 
-A push to `main` runs `.github/workflows/cd.yml`. That workflow builds the API and the three web apps and deploys them to the four App Service sites. The web apps are built with `VITE_API_URL` pointing at the live API. Deployment is that workflow. Files are not copied up by hand.
+A push to `main` runs `.github/workflows/cd.yml`. That workflow runs lint and the domain unit tests first. A failed check stops the job. Only then does it build the API and the three web apps and deploy them to the four App Service sites (`emeris-pulse-api`, `emeris-pulse-member`, `emeris-pulse-instructor`, `emeris-pulse-admin`). The web apps are built with `VITE_API_URL` pointing at the live API. Deployment is that workflow. Files are not copied up by hand.
