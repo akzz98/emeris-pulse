@@ -1,7 +1,13 @@
+import dotenv from "dotenv";
 import assert from "node:assert/strict";
 import type { Server } from "node:http";
+import path from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 import { createApp } from "../app.js";
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../..");
+dotenv.config({ path: path.join(root, ".env") });
 
 const enabled = process.env.RUN_API_TESTS === "1";
 

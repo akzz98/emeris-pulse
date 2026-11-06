@@ -1,6 +1,6 @@
 # Emeris Pulse
 
-This is the GitHub project file for Emeris Pulse. It says what the system is, who uses which app, the live URLs, the demo accounts, and how to run the code. It is not the product presentation. That explanation for Emeris and for marking sits in the EXPO PowerPoint.
+This is the GitHub project file for Emeris Pulse. It says what the system is, who uses which app, the live URLs, the demo accounts, how to run the code, and how to run the tests. It is not the product presentation. That explanation for Emeris and for marking sits in the EXPO PowerPoint.
 
 Campus gym platform: membership, QR access, classes, equipment, challenges, and in-app notices. Three front ends share one API. Notices stay in the app. They are not emailed or texted.
 
@@ -83,6 +83,23 @@ Then open http://localhost:5173 on the same machine. A phone that is not on this
 | Member | http://localhost:5173 |
 | Instructor | http://localhost:5174 (`npm run dev:instructor`) |
 | Admin | http://localhost:5175 (`npm run dev:admin`) |
+
+## Testing
+
+From the repository root, after `npm install`.
+
+`npm test` runs the domain unit tests. They do not need Docker or the database. They cover membership entry, booking and the waitlist, equipment in and out of service, a maintenance ticket from open to in progress to closed, and the home-screen streak.
+
+`npm run test:api` runs the API test against the local database from the section above. Apply `database/schema.sql` and `database/seed.sql` first. The test reads `.env`, then signs in as `student@emeris.test` and `staff@emeris.test`, checks `/health` and the membership, and books Lunch Yoga. It stays skipped until `RUN_API_TESTS` is `1`.
+
+PowerShell:
+
+```powershell
+$env:RUN_API_TESTS = "1"
+npm run test:api
+```
+
+The same two commands are what the pipeline runs. A pull request runs `npm test` and `npm run test:api` against Azure SQL Edge. A push to `main` runs `npm test` before anything is deployed. See Pipeline below.
 
 ## Member app
 
