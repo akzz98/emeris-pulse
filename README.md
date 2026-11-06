@@ -38,7 +38,7 @@ After that, open Pulse from the home screen. Sign in on that icon the same way a
 
 | Member | Instructor | Admin |
 | --- | --- | --- |
-| ![Member home](docs/readme/member.png) | ![Instructor Today](docs/readme/instructor.png) | ![Admin dashboard](docs/readme/admin.png) |
+| ![Member home on a phone: activity counts and the Home, Access, Classes, and More tabs](docs/readme/member.png) | ![Instructor Today: classes ready for attendance, each with Open class](docs/readme/instructor.png) | ![Admin dashboard: people on the floor, visit hours, and shortcuts to the desk, pending memberships, and open tickets](docs/readme/admin.png) |
 
 Demo password for every seeded account: `Pulse123!`
 
@@ -140,6 +140,10 @@ Entry is allowed only while the membership is **Active** and the expiry date has
 
 An active member can issue a signed pass. The phone shows it as a QR code with a countdown. Open Access from the primary nav, or Show QR from Home.
 
+![Member Access screen with Access selected, an eligible-to-enter status, and a QR pass that expires in 56 seconds](docs/readme/member-access.png)
+
+*Access shows the signed pass as a QR code and counts down the 60 seconds it stays valid.*
+
 - The pass lasts **60 seconds**.
 - Students and staff get the same kind of pass.
 - The code is single-use. A second scan is refused and stored as “Pass already used.”
@@ -199,6 +203,10 @@ Under the list, **attendance trends** show classes this instructor has already t
 ### Attendance
 
 After a scheduled class has started, the instructor marks each booked member **Attended** or **Absent** from the Attendance tab. A waitlisted place cannot be marked. Attendance cannot be recorded before the start time.
+
+![Instructor Attendance tab for Lunch Yoga, with Attended and Absent for booked member Lindiwe Nkosi](docs/readme/instructor-attendance.png)
+
+*Lunch Yoga on the Attendance tab. Each booked member can be marked Attended or Absent.*
 
 ### Class details
 
@@ -267,6 +275,10 @@ A paged table of granted and refused scans: when, member, result, and reason. Fi
 ### Members
 
 Tabs for Pending, Active, and Frozen, plus search by name, email, or campus identifier. Empty states show when a tab or search has no rows.
+
+![Admin Members screen on the Pending tab, with Approve for Sam Patel at pending@emeris.test](docs/readme/admin-members.png)
+
+*The Pending tab. Approve activates a membership that has not already expired. The account in view is the seeded pending member.*
 
 - **Pending** — Approve sets the membership to Active, if it has not already expired.
 - **Active** — Freeze asks for confirmation first, then stops entry until someone activates them again.
