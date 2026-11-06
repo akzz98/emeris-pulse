@@ -14,18 +14,27 @@ Task 2 walkthrough: https://youtu.be/DALwdxsRzwE
 | Instructor | Instructor accounts only. Any other role is turned away at sign-in. | See today's roster, mark attendance, cancel a class, message booked members, and report unsafe studio equipment. |
 | Admin | Gym admin, facility manager, and system admin. | Depends on the role. The facility manager sees crowding, reports, maintenance, and closure notices. Gym admins and system admins also run the desk, memberships, timetable, challenges, and broadcasts. Only a system admin can change roles. |
 
-## Open the apps
+## Use the live apps
 
-Every live address is HTTPS.
+Open these sites. Nothing is installed from an app store, and you do not need Node, Docker, or localhost.
 
-| App | URL |
-| --- | --- |
-| Member | https://emeris-pulse-member.azurewebsites.net |
-| Instructor | https://emeris-pulse-instructor.azurewebsites.net |
-| Admin | https://emeris-pulse-admin.azurewebsites.net |
-| API health | https://emeris-pulse-api.azurewebsites.net/health |
+| App | Who opens it | URL |
+| --- | --- | --- |
+| Member | Students and staff, on a phone | https://emeris-pulse-member.azurewebsites.net |
+| Instructor | Instructors, on a desktop browser | https://emeris-pulse-instructor.azurewebsites.net |
+| Admin | Gym admin, facility manager, and system admin, on a desktop browser | https://emeris-pulse-admin.azurewebsites.net |
+| API health | A check that the service is up | https://emeris-pulse-api.azurewebsites.net/health |
 
-**Member app on a phone:** open the Member URL in the phone browser, then add it to the home screen. It is a hosted installable web app, not an App Store or Play Store download, and not an Android Studio project.
+1. Open the URL for the role in Chrome, Edge, or Safari.
+2. Sign in with one of the seeded accounts below. The shared demo password is `Pulse123!`.
+3. A brand-new registration stays Pending. Booking, a QR pass, equipment, and challenges stay closed until a gym admin activates that membership from the admin app.
+
+**Member app on a phone.** Open the member URL in the phone browser. It is an installable web app, not an App Store or Play Store download, and not an Android Studio project.
+
+- iPhone (Safari): tap Share, then Add to Home Screen. The icon is labelled Pulse.
+- Android (Chrome): open the browser menu, then Install app or Add to Home screen.
+
+After that, open Pulse from the home screen. Sign in on that icon the same way as in the browser.
 
 | Member | Instructor | Admin |
 | --- | --- | --- |
@@ -44,6 +53,8 @@ Demo password for every seeded account: `Pulse123!`
 
 ## Run locally
 
+Use this section only when you are running the source code on your own machine. The live sites above are what a member, an instructor, a desk, and a marker open.
+
 Needs Node.js 22 or newer, and Docker Desktop for the local database.
 
 ```bash
@@ -57,7 +68,7 @@ npm run dev:api
 
 `.env.example` lists the API port, the three local web origins, the JWT secret, and the local SQL connection string. The API only accepts those origins. Local API health: http://localhost:4000/health
 
-### Run the member app
+### Run the member app from source
 
 With the API running locally:
 
@@ -65,9 +76,7 @@ With the API running locally:
 npm run dev:member
 ```
 
-Then open http://localhost:5173 on the same machine.
-
-If the phone is **not** on this dev machine (or you are not running the API locally), use the hosted member site instead: https://emeris-pulse-member.azurewebsites.net
+Then open http://localhost:5173 on the same machine. A phone that is not on this machine uses the live member site in the section above: https://emeris-pulse-member.azurewebsites.net
 
 | App | Local URL |
 | --- | --- |
